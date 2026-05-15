@@ -1,0 +1,8 @@
+# Constraint files (.xdc) for qick_zcu216
+# Paths relative to the repository root
+#
+# Example:
+# firmware/constraints/qick_zcu216.xdc
+# firmware/constraints/timing.xdc
+Top/qick_tprocv2_216_standard/ios.xdc
+Top/qick_tprocv2_216_standard/timing.xdc

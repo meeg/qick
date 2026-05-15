@@ -1,73 +1,129 @@
-# Created by .ignore support plugin (hsz.mobi)
-### JupyterNotebooks template
-# gitignore template for Jupyter Notebooks
-# website: http://jupyter.org/
+#   Copyright 2018-2026 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
+### Hog .gitignore ###
+# The following two lines assume that you have your IPs like this: IP/<ip name>/<ip name>.xci
+# If you have a more complex subdirectory structure please make sure that:
+# - the last subdirectory has the same name as the IP and that
+# - only .xci files are committed.
+#
+IP/*/*
+!IP/*/*.xci*
 
-# IPython
-profile_default/
-ipython_config.py
+BD/*
+!BD/*.bd
 
-.idea/*
-
-# Remove previous ipynb_checkpoints
-#   git rm -r .ipynb_checkpoints/
-
-# Vivado
-.Xil/
-*.log
-*.jou
-vivado_pid*.str
-
-### Python template
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# pip
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Distribution / packaging
-build/
-dist/
-
-# Sphinx documentation
-docs/_build/
-docs/_autosummary/
-
-### macOS template
-# General
+## OS
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
+.DS_Store?
 .Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+**.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-### Linux template
-*~
-.*.swp
-
+## MISCELLANEA
+**.tmp
 !/.gitignore
-!/README.md
+bin
+gitk
+*~
+**.pyc
+Doc/*
+**.log
+DCPs/
+
+## CERNbox
+._*
+**._*
+
+## Sigasi Studio
+.library_mapping.xml
+.project
+.settings
+
+## Xilinx Vivado
+**.str
+**.jou
+.Xil/
+.Xilinx/
+Projects/
+output/
+lastbuilt.txt
+credentials.sh
+VivadoProject
+SimulationLib
+profpga
+
+## Intel Quartus Prime
+Projects
+SimulationLib_quartus
+*.bak
+
+## Software building
+**.depend
+**.layout
+**.o
+bin*/
+obj/
+compile*
+*.out
+
+## ModelSim, UVVM
+transcript*
+work/
+.cxl*
+# .cxl.modelsim.version # .cxl.ip/
+_*
+_Alert.txt
+_Log.txt
+_info
+**.bak
+**.mti
+**.mtp
+**.mpf
+**.wlf
+**.ini
+**.qdb
+**.qpg
+**.qtl
+
+# HOG + QICK firmware outputs
+firmware/Projects/
+firmware/bin/
+
+# Vivado auto-generated files
+*.log
+*.os
+*.pb
+*.wdb
+*.sim/
+.Xil/
+vivado_pid*.str
+*.cache
+*.hw
+
+# IP output files (only .xci is tracked)
+firmware/ip/*/*/
+!firmware/ip/*/*.xci
+
+# Block Design outputs (only .bd is tracked)
+firmware/bd/*/*/
+!firmware/bd/*/*.bd
+
+#VSCode
+.vscode
+settings.json
+
+#Python checkpoints
+.ipynb_checkpoints
