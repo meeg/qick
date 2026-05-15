@@ -4,5 +4,5 @@
 # Example:
 # firmware/constraints/qick_zcu216.xdc
 # firmware/constraints/timing.xdc
-Top/qick_tprocv2_216_standard/ios.xdc
 Top/qick_tprocv2_216_standard/timing.xdc
+Top/qick_tprocv2_216_standard/ios.xdc

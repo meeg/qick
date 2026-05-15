@@ -1,3 +1,4 @@
 # proj.tcl is sourced here — must run after HOG creates the project
 # so that the BD and wrapper are added to an existing project
-Top/qick_tprocv2_111_standard/proj.tcl source
+#Top/qick_tprocv2_111_standard/proj.tcl source
+Projects/qick_tprocv2_111_standard/qick_tprocv2_111_standard.gen/sources_1/bd/d_1/hdl/d_1_wrapper.v top=d_1_wrapper
