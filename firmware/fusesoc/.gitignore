@@ -1,0 +1,8 @@
+venv/
+build/
+*.egg-info/
+__pycache__/
+*.vcd
+.fusesoc_libraries/
+fusesoc.conf
+qick_fused.egg-info/

@@ -1,0 +1,11 @@
+CAPI=2:
+name: qick:ip:qick_pkg:1.0.0
+description: QICK shared package and interface definitions
+
+filesets:
+  hdl:
+    file_type: systemVerilogSource
+
+targets:
+  default:
+    filesets: [hdl]

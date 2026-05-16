@@ -1,0 +1,92 @@
+CAPI=2:
+name : qick:proj:qick:2.0.0
+
+filesets:
+  tcl_pre:
+    files: 
+      - proj_pre.tcl : {file_type : tclSource}
+
+  tcl:
+    files: 
+      - hello_world.tcl : {file_type : tclSource}
+
+  tcl_post:
+    files: 
+      - proj_post.tcl : {file_type : tclSource}
+
+  board_4x2_tcl:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_4x2_standard/bd_2023-1.tcl : {file_type : tclSource}
+
+  board_4x2_xdc:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_4x2_standard/ios.xdc : {file_type : xdc}
+      - ../../../firmware/projects/qick_tprocv2_4x2_standard/timing.xdc : {file_type : xdc}
+
+  board_111_tcl:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_111_standard/bd_2023-1.tcl : {file_type : tclSource}
+
+  board_111_xdc:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_111_standard/ios.xdc : {file_type : xdc}
+      - ../../../firmware/projects/qick_tprocv2_111_standard/timing.xdc : {file_type : xdc}
+
+  board_216_tcl:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_216_standard/bd_2023-1.tcl : {file_type : tclSource}
+
+  board_216_xdc:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_216_standard/ios.xdc : {file_type : xdc}
+      - ../../../firmware/projects/qick_tprocv2_216_standard/timing.xdc : {file_type : xdc}
+
+  board_216_rfbv2_tcl:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_216_standard/bd_2023-1.tcl : {file_type : tclSource}
+
+  board_216_rfbv2_xdc:
+    files: 
+      - ../../../firmware/projects/qick_tprocv2_216_standard/ios.xdc : {file_type : xdc}
+      - ../../../firmware/projects/qick_tprocv2_216_standard/timing.xdc : {file_type : xdc}
+
+targets:
+  default: &default
+
+  board_4x2:
+    default_tool: vivado
+    description : QICK tProc_v2 for 4x2 Board
+    filesets : [tcl_pre, board_4x2_tcl, tcl_post, board_4x2_xdc]
+    tools:
+      vivado:
+        part : xczu48dr-ffvg1517-2-e
+    toplevel: d_1_wrapper
+
+  qick_tprocv2_111_standard:
+    default_tool: vivado
+    description : QICK tProc_v2 for ZCU111 Board
+    filesets : [tcl_pre, board_111_tcl, tcl_post, board_111_xdc]
+    tools:
+      vivado:
+        part : xczu28dr-ffvg1517-2-e
+    toplevel: d_1_wrapper
+
+  qick_tprocv2_216_standard:
+    default_tool: vivado
+    description : QICK tProc_v2 for ZCU216 Board
+    filesets : [tcl_pre, board_216_tcl, tcl_post, board_216_xdc]
+    tools:
+      vivado:
+        part : xczu49dr-ffvf1760-2-e
+    toplevel: d_1_wrapper
+
+  qick_tprocv2_216_standard:
+    default_tool: vivado
+    description : QICK tProc_v2 for ZCU216 Board + RFBv2
+    filesets : [tcl_pre, board_216_rfbv2_tcl, tcl_post, board_216_rfbv2_xdc]
+    tools:
+      vivado:
+        part : xczu49dr-ffvf1760-2-e
+    toplevel: d_1_wrapper
+
+

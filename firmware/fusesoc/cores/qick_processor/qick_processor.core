@@ -1,0 +1,61 @@
+CAPI=2:
+name: qick:ip:qick_processor:2.0.0
+description: QICK tProcessor V2
+
+filesets:
+  hdl:
+    files:
+      - hdl/_qproc_defines.svh: {is_include_file: true}
+      - hdl/qproc_core.sv
+      - hdl/qproc_ctrl.sv
+      - hdl/qproc_dispatcher.sv
+      - hdl/qproc_time_ctrl.sv
+      - hdl/qproc_mem_ctrl.v
+      - hdl/qproc_axi_reg.sv
+      - hdl/qproc_inport_reg.sv
+      - hdl/qcore_cpu.sv
+      - hdl/qcore_ctrl_hazard.sv
+      - hdl/qcore_mem.v
+      - hdl/qcore_reg_bank.sv
+      - hdl/qick_processor.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - test/qick_processor_tc00.sv
+      - test/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:global:sim_base
+      - qick:ip:qick_pkg
+
+  lint_files:
+    depend:
+      - qick:global:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - test/qick_processor_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl, lint_files]
+    toplevel: qick_processor
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+
+  test:
+    <<: *default
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

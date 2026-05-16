@@ -1,0 +1,25 @@
+CAPI=2:
+
+name: qick:global:sim_base:0.1.1
+description: Base package for simulations
+
+filesets:
+  rtl:
+    depend: 
+      - qick:global:clk_gen
+      - svunit
+      - qick:global:svunit_assert_macros
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  lint:
+    <<: *default
+    default_tool: verilator
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
