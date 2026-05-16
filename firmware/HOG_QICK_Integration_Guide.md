@@ -135,8 +135,8 @@ Look at `projects/<name>/proj.tcl` to find:
 | qick_tprocv1_111_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2022-1.tcl |
 | qick_tprocv1_111_rfbv1_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2020-2.tcl |
 | qick_tprocv1_111_rfbv2_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2020-2.tcl |
-| qick_tprocv2_4x2_standard | xczu48dr-ffvg1517-2-e | xilinx.com:rfsoc4x2:part0:1.1 | bd_2023-1.tcl |
-| qick_tprocv1_4x2_standard | xczu48dr-ffvg1517-2-e | xilinx.com:rfsoc4x2:part0:1.1 | bd_2022-1.tcl |
+| qick_tprocv2_4x2_standard | xczu48dr-ffvg1517-2-e | realdigital.org:rfsoc4x2:part0:1.0 | bd_2023-1.tcl |
+| qick_tprocv1_4x2_standard | xczu48dr-ffvg1517-2-e | realdigital.org:rfsoc4x2:part0:1.0 | bd_2022-1.tcl |
 
 ### 3.2 Create the Top/ directory structure
 
@@ -184,6 +184,8 @@ create_root_design ""
 
 ```bash
 cat > Top/${PROJECT}/hog.conf << 'EOF'
+# vivado 2023.1
+
 [main]
 BOARD_PART=xilinx.com:zcu216:part0:2.0
 IP_REPO_PATHS=ip
