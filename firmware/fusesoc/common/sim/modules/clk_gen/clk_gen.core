@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:global:clk_gen:0.1.0
+name: qick:common:clk_gen:0.1.0
 description: clock generator with configurable frequency, phase and duty cycle intended for simulations
 
 filesets:

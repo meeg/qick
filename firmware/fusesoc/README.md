@@ -1,88 +1,263 @@
-# QICK\_FUSED Environment Setup
+# FuseSoC — IP Development and Simulation
 
-## Dependencies
-Pip and virtualenv are necessary in Python.
+This directory provides a [FuseSoC](https://fusesoc.readthedocs.io)-based environment
+for developing and simulating QICK IP cores independently of the full Vivado project.
 
-On Ubuntu:
+## How it works
 
-# apt install python3-venv python3-pip
+RTL sources live in `ip/` and are **shared** between HOG (for bitfile builds) and
+FuseSoC (for simulation). No files are duplicated — each IP core in `fusesoc/cores/`
+contains a symlink `hdl/ → ../../../ip/<name>/src/` pointing to the single RTL source.
 
-On Arch:
+```
+firmware/
+├── ip/
+│   └── my_ip/
+│       └── src/          ← single source of truth for RTL
+│           └── my_ip.sv
+└── fusesoc/
+    └── cores/
+        └── my_ip/
+            ├── hdl -> ../../../ip/my_ip/src   ← symlink, not a copy
+            ├── my_ip.core                      ← FuseSoC descriptor
+            └── test/
+                └── my_ip_tc00.sv              ← SVUnit testbench
+```
 
-# pacman -S python-pip python-virtualenv
+---
 
-PyXSI requires [fmt](https://github.com/fmtlib/fmt)
+## Prerequisites
 
-On Ubuntu:
+- Python 3.10+
+- Vivado 2023.1 in `$PATH` (required for xsim):
 
-# apt install libfmt-dev
+```bash
+source /path/to/Vivado/2023.1/settings64.sh
+export LD_LIBRARY_PATH=/path/to/Vivado/2023.1/lib/lnx64.o
+```
 
-On Arch:
+---
 
-# pacman -S fmt
+## Setup
 
-GTKWave must be installed for simulation visualization:
+Run once after cloning:
 
-On Ubuntu:
+```bash
+cd firmware/fusesoc
+make setup_environment
+```
 
-# apt install gtkwave
+This creates a Python virtual environment in `venv/`, installs FuseSoC and
+dependencies, clones the SVUnit library, and creates symlinks from
+`fusesoc/cores/*/hdl` to `ip/*/src`.
 
-On Arch:
+---
 
-# pacman -S gtkwave
+## Daily usage
 
+Activate the virtual environment first:
 
-## Environment Variables
-Vivado tools need to be in the $PATH (PyXSI to xelab, for example). To do this, you can run:
+```bash
+cd firmware/fusesoc
+source venv/bin/activate
+```
 
-$ source [VIVADO_INSTALLATION_PATH]/settings64.sh
+**Simulate a single IP:**
 
-Additionally, PyXSI uses the Vivado dynamic library:
+```bash
+make sim IP=qick_processor
+```
 
-$ export LD_LIBRARY_PATH=[VIVADO_INSTALLATION_PATH]/lib/lnx64.o
+**Run all SVUnit tests across all IPs:**
 
-To keep these variables permanently, both lines can be added to the .bashrc file (generally found in the terminal's default directory).
-Note: New terminals automatically read .bashrc and incorporate environment variables, but if we want the change to apply to an already open terminal, we must execute:
+```bash
+make sim_svunit
+```
 
-$ source .bashrc
+**Lint a single IP:**
 
-## Python Packages
+```bash
+make lint IP=qick_processor
+```
 
-Create a virtual environment:
+**List all available cores:**
 
-$ python3 -m venv venv
+```bash
+fusesoc --cores-root cores --cores-root common --cores-root generators list-cores
+```
 
-Access it:
+---
 
-$ source venv/bin/activate
+## Adding a new IP
 
-Update pip and install dependencies:
+### 1. Write the RTL in `ip/`
 
-$ pip install --upgrade pip && pip install -r requirements.txt
+```bash
+mkdir -p ../ip/my_new_ip/src/
+vim ../ip/my_new_ip/src/my_new_ip.sv
+```
 
-## Execution
-Unit tests, co-simulation with Python, and synthesis are run 
-using FuseSoC targets.
+HOG will pick it up from `ip/` automatically when you add it to a project.
 
-Information about the targets each block has, such as the sources 
-that compose it and dependencies on other blocks, is contained 
-in a .core file. A set of .core files is called a library.
+### 2. Create the FuseSoC core
 
-FuseSoC needs to know where to look for libraries. To do this, 
-use the fusesoc\_setup.sh script:
+```bash
+mkdir -p cores/my_new_ip/{test,data}
 
-$ source fusesoc\_setup.sh
+# Create symlink to RTL — no duplication
+ln -s ../../../ip/my_new_ip/src cores/my_new_ip/hdl
+```
 
-Or manually with the fusesoc library add command, for example:
+Create `cores/my_new_ip/my_new_ip.core`:
 
-$ fusesoc library add --location $PWD/.fusesoc\_libraries/svunit-lib svunit-lib https://github.com/ivanvig/svunit.git
+```yaml
+CAPI=2:
+name: qick:ip:my_new_ip:1.0.0
+description: Brief description
 
-Example
-The DDS has a sim target that runs a co-simulation in Python, 
-generating stimuli and reading port outputs to generate some plots.
+filesets:
+  hdl:
+    files:
+      - hdl/my_new_ip.sv
+    file_type: systemVerilogSource
 
-To run this target, the command is:
+  tb:
+    files:
+      - test/my_new_ip_tc00.sv
+      - test/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
 
-$ fusesoc --cores-root . run --build --target sim fnal:qick:dds
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - test/my_new_ip_tc00.sv
 
-For more information, documentation for FuseSoC and Edalize is available.
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: my_new_ip
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+
+  test:
+    <<: *default
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+```
+
+### 3. Write the SVUnit testbench
+
+`cores/my_new_ip/test/my_new_ip_tc00.sv`:
+
+```systemverilog
+`include "svunit_defines.svh"
+
+module my_new_ip_unit_test;
+  import svunit_pkg::svunit_testcase;
+
+  string name = "my_new_ip_ut";
+  svunit_testcase svunit_ut;
+
+  logic clk  = 0;
+  logic rstn = 1;
+  always #2 clk = ~clk;   // 250 MHz
+
+  // instantiate DUT here
+  // my_new_ip u_dut ( .clk(clk), .rstn(rstn), ... );
+
+  function void build();
+    svunit_ut = new(name);
+  endfunction
+
+  task setup();
+    svunit_ut.setup();
+    rstn = 0; repeat(4) @(posedge clk);
+    rstn = 1; repeat(4) @(posedge clk);
+  endtask
+
+  task teardown();
+    svunit_ut.teardown();
+  endtask
+
+  `SVUNIT_TESTS_BEGIN
+
+  `SVTEST(test00_reset)
+    repeat(10) @(posedge clk);
+    `ASSERT_EQUAL(1, 1)   // replace with real assertions
+  `SVTEST_END
+
+  `SVUNIT_TESTS_END
+
+endmodule
+```
+
+`cores/my_new_ip/test/tests.sv`:
+
+```systemverilog
+`include "my_new_ip_unit_test.sv"
+```
+
+### 4. Simulate
+
+```bash
+make sim IP=my_new_ip
+```
+
+---
+
+## Directory structure
+
+```
+fusesoc/
+├── common/                  Shared simulation infrastructure
+│   ├── sim/                 SVUnit runner, clk_gen module
+│   │   ├── sim_base.core
+│   │   ├── include/svunit_assert_macros/
+│   │   └── modules/clk_gen/
+│   ├── xilinx/              Xilinx glbl module (needed for XPM simulation)
+│   └── lint/                Verible lint rules
+├── cores/                   One subdirectory per IP
+│   ├── qick_pkg/            Shared QICK package (dependency for most cores)
+│   └── qick_processor/      tProcessor V2 example core
+├── projects/                Multi-IP simulation projects
+├── generators/              FuseSoC code generators (SVUnit runner, IP gen)
+├── scripts/
+│   ├── tests/svunit_test/   pytest runner for CI
+│   └── utils/               setup scripts
+├── Makefile
+├── requirements.txt
+└── fusesoc.conf             Auto-generated by make setup_environment
+```
+
+---
+
+## Core naming convention
+
+All QICK cores follow the namespace `qick:<group>:<name>:<version>`:
+
+| Namespace | Contents |
+|-----------|----------|
+| `qick:ip:*` | QICK IP cores (`qick_processor`, `qick_pkg`, …) |
+| `qick:common:*` | Shared sim infrastructure (`sim_base`, `clk_gen`, `lint`, …) |
+
+---
+
+## Notes on IPs with Xilinx sub-IPs
+
+Some IPs in `ip/` contain Vivado-generated sub-IPs (directories like `dds_compiler_0/`,
+`fir_compiler_0/`) that require Vivado to generate their sources before simulation.
+These IPs can only be built through HOG/Vivado and do not have a FuseSoC `test` target.
+Purely RTL IPs (like `qick_processor`) can be simulated directly with FuseSoC.

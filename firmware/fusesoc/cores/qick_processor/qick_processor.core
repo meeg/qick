@@ -26,12 +26,12 @@ filesets:
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - qick:global:sim_base
+      - qick:common:sim_base
       - qick:ip:qick_pkg
 
   lint_files:
     depend:
-      - qick:global:lint
+      - qick:common:lint
 
 generate:
   testrunner_gen:

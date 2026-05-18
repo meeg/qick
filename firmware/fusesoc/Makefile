@@ -1,6 +1,6 @@
 FUSESOC_CORES := --cores-root cores \
                  --cores-root projects \
-                 --cores-root global \
+                 --cores-root common \
                  --cores-root generators
 
 setup_environment:

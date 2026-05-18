@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:global:glbl:1.0.0
+name: qick:common:xilinx:1.0.0
 description: glbl sources from Xilinx needed to simulate XPM modules
 
 filesets:

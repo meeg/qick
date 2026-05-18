@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:global:lint:0.1.0
+name: qick:common:lint:0.1.0
 description: Common rules and/or waives for Linting tools
 filesets:
   files_veriblelint:

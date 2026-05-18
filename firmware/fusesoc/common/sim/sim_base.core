@@ -1,14 +1,14 @@
 CAPI=2:
 
-name: qick:global:sim_base:0.1.1
+name: qick:common:sim_base:0.1.1
 description: Base package for simulations
 
 filesets:
   rtl:
     depend: 
-      - qick:global:clk_gen
+      - qick:common:clk_gen
       - svunit
-      - qick:global:svunit_assert_macros
+      - qick:common:svunit_assert_macros
 
 targets:
   default: &default

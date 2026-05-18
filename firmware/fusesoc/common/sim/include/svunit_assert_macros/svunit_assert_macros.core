@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:global:svunit_assert_macros:0.1.0
+name: qick:common:svunit_assert_macros:0.1.0
 description: SystemVerilog assertion macros for SVUNIT
 
 filesets:
