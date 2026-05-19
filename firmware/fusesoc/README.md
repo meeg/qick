@@ -215,6 +215,59 @@ endmodule
 ```bash
 make sim IP=my_new_ip
 ```
+---
+
+## Packaging an IP for Vivado Block Design
+
+Once the RTL is ready and tested with `make sim`, package it for use in HOG projects:
+
+```bash
+make package IP=my_new_ip
+```
+
+This runs Vivado in batch mode and generates:
+- `ip/my_new_ip/component.xml` — IP descriptor (interfaces, parameters)
+- `ip/my_new_ip/xgui/my_new_ip_v1_0.tcl` — Parameter GUI for Vivado
+
+The IP is then automatically available in any HOG project because `hog.conf`
+already sets `IP_REPO_PATHS=ip`. After packaging, recreate the Vivado project:
+
+```bash
+cd firmware
+./Hog/Do CREATE qick_tprocv2_216_standard
+```
+
+The IP appears in the Vivado IP catalog under **QICK** and can be dragged
+into the Block Design.
+
+### Port naming conventions for AXI auto-inference
+
+Vivado's `ipx::infer_bus_interfaces` recognizes these naming patterns:
+
+| Interface type | Port prefix example |
+|---|---|
+| AXI4-Lite slave | `s_axi_*` |
+| AXI4-Stream slave | `s_axis_*` or `s0_axis_*` |
+| AXI4-Stream master | `m_axis_*` or `m0_axis_*` |
+| AXI4 full (memory-mapped) | `m_axi_*` |
+| Clock | `*_clk*` or `*_aclk*` |
+| Reset | `*_aresetn*` or `*_resetn*` |
+
+Following these conventions means `make package` works without any manual
+interface mapping.
+
+### Complete IP development workflow
+
+```
+1. Write RTL          →  firmware/ip/my_ip/src/my_ip.sv
+2. Write testbench    →  firmware/fusesoc/cores/my_ip/test/my_ip_tc00.sv
+3. Simulate           →  make sim IP=my_ip
+4. Fix RTL, re-sim   →  make sim IP=my_ip
+5. Package for Vivado →  make package IP=my_ip
+6. Recreate project   →  cd .. && ./Hog/Do CREATE my_project
+7. Open Vivado        →  vivado Projects/my_project/my_project.xpr
+8. Instantiate IP     →  drag from IP catalog → Block Design
+```
 
 ---
 
