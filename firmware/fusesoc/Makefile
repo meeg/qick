@@ -10,11 +10,18 @@
 ## Package all IPs
 #make package-all
 #
+# View core info
+#make core-info IP=xcom
+#
+# View recursive dependencies
+#make deps-recursive IP=xcom
+#
 ## View xcom dependencies
 #make deps IP=xcom
 #
 ## List all available cores
 #make list-cores
+
 
 FUSESOC_CORES := --cores-root cores \
                  --cores-root projects \
@@ -102,25 +109,57 @@ package-dry:
 clean:
 	rm -rf build report_pytest vivado* .Xil .fusesoc_libraries
 
-# Show information about an IP core
-info:
+# Show dependency tree recursively for an IP
+deps-recursive:
 	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make info IP=<ip_name>"; \
+		echo "Usage: make deps-recursive IP=<ip_name>"; \
 		exit 1; \
 	fi
 	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) info qick:ip:$(IP)
+	@echo "=== Dependencies for qick:ip:$(IP) ==="; \
+	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) | grep -E "depend|depends" -A 20 || true
 
 # List all available cores
 list-cores:
 	. venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) list-cores
 
-# Show dependency tree for an IP
+# Show core info
+core-info:
+	@if [ -z "$(CORE)" ]; then \
+		echo "Usage: make core-info CORE=<core_name>"; \
+		echo "Example: make core-info CORE=qick:ip:xcom"; \
+		exit 1; \
+	fi
+	. venv/bin/activate; \
+	fusesoc $(FUSESOC_CORES) core-info $(CORE)
+
+# Show dependency tree
 deps:
 	@if [ -z "$(IP)" ]; then \
 		echo "Usage: make deps IP=<ip_name>"; \
 		exit 1; \
 	fi
 	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) info qick:ip:$(IP) | grep -A 50 "Dependencies:"
+	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) | grep -A 30 "Dependencies:"
+
+# Verify core structure
+verify-core:
+	@if [ -z "$(IP)" ]; then \
+		echo "Usage: make verify-core IP=<ip_name>"; \
+		exit 1; \
+	fi
+	@echo "=== Verifying core: qick:ip:$(IP) ==="
+	@if [ -d "cores/ip/$(IP)" ]; then \
+		echo " Core directory exists: cores/ip/$(IP)"; \
+	else \
+		echo " Core directory missing: cores/ip/$(IP)"; \
+	fi
+	@if [ -d "../ip/$(IP)/src" ]; then \
+		echo " IP source directory exists: ../ip/$(IP)/src"; \
+	else \
+		echo "!  IP source directory missing: ../ip/$(IP)/src (run make package first)"; \
+	fi
+	@echo ""
+	@echo "=== Dependencies ==="
+	$(MAKE) --no-print-directory deps IP=$(IP)
