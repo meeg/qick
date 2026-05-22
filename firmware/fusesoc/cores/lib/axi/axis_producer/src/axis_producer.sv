@@ -23,8 +23,11 @@ module axis_producer
 
     generate
         if (NB_DATA != MEM_NB_DATA) begin : g_check_parameter
-            $fatal(1, "Different bus size for producer output NB_DATA=%0d and \
-memory data bus MEM_NB_DATA=%0d currently not supported", NB_DATA, MEM_NB_DATA);
+            $fatal(1, {"Different bus size for producer output NB_DATA=",
+                       $sformatf("%0d", NB_DATA),
+                       " and memory data bus MEM_NB_DATA=",
+                       $sformatf("%0d", MEM_NB_DATA),
+                       " currently not supported"});
         end
     endgenerate
 

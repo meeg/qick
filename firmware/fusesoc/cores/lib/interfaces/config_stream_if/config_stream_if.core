@@ -5,7 +5,7 @@ description: config-Stream interface definition (includes master & slave modport
 filesets:
   rtl:
     files:
-      - src/config_stream_if.sv
+      - hdl/config_stream_if.sv
     file_type: systemVerilogSource
     depend:
       - "tool_xsim ? (qick:sim:svunit_assert_macros)"

@@ -1,25 +1,25 @@
 CAPI=2:
-name: qick:utils:hwtest_axis_producer:0.1.0
+name: qick:axi:axis_producer:0.1.0
 filesets:
   rtl:
     files:
       - src/axis_producer.sv
     file_type: systemVerilogSource
     depend:
-      - qick:global:bram
+      - qick:utils:bram
 
   test_files:
     files: &test_files
       - tests/axis_producer_unit_test.sv
     file_type: systemVerilogSource
     depend:
-      - qick:global:sim_base
+      - qick:common:sim_base
 
   lint_files:
       # files:
         # - 
     depend:
-      - qick:lint:common
+      - qick:common:lint
 
 generate:
   testrunner_gen:

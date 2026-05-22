@@ -6,7 +6,7 @@
 //
 // Module: axis_pipe.sv
 // Project: QICK
-// Description: 
+// Description:
 // AXI-Stream pipeline stage
 //
 //

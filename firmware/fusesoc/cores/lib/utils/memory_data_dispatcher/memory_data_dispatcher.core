@@ -7,9 +7,9 @@ filesets:
       - hdl/memory_data_dispatcher.sv
     file_type: systemVerilogSource
     depend:
-      - qick:interfaces:data_stream
-      - qick:interfaces:axi4_stream
-      - qick:global:common_counter
+      - qick:interfaces:data_stream_if
+      - qick:interfaces:axi4_stream_if
+      - qick:utils:common_counter
       - qick:interfaces:bram_if
       - :hdl:bram_linked
 

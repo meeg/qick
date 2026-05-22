@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:utils:axis_data_concat:0.1.0
+name: qick:axi:axis_data_concat:0.1.0
 description: Elastic pipeline primitive
 
 filesets:
@@ -14,11 +14,11 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
-      - qick:global:sim_base
+      - qick:common:sim_base
 
   lint_files:
     depend:
-      - qick:global:lint
+      - qick:common:lint
 
 generate:
   testrunner_gen:
