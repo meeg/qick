@@ -24,23 +24,43 @@ IP/*/*
 BD/*
 !BD/*.bd
 
-## OS
+## IDEs & Herramientas locales
+.idea/*
+.vscode/
+settings.json
+
+## OS & Temporales
 .DS_Store
 .DS_Store?
 .Trashes
 **.Trashes
 ehthumbs.db
 Thumbs.db
+*.tmp
+**.tmp
+*~
+
+## Python & Jupyter
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.installed.cfg
+*.egg
+.ipynb_checkpoints/
+
+## Sphinx documentation
+build/
+dist/
+*_build/
+*_autosummary/
 
 ## MISCELLANEA
-**.tmp
 !/.gitignore
+!/README.md
 bin
 gitk
-*~
-**.pyc
 Doc/*
-**.log
 DCPs/
 
 ## CERNbox
@@ -52,11 +72,12 @@ DCPs/
 .project
 .settings
 
-## Xilinx Vivado
+## Xilinx Vivado (General & Outputs de Hog + QICK)
 **.str
 **.jou
 .Xil/
 .Xilinx/
+.Xil/
 Projects/
 output/
 lastbuilt.txt
@@ -64,11 +85,34 @@ credentials.sh
 VivadoProject
 SimulationLib
 profpga
+firmware/Projects/
+firmware/bin/
+firmware/Top/qick_testbench/list/sim_1.sim
+
+# Vivado auto-generated files
+*.log
+**.log
+*.os
+*.pb
+*.wdb
+*.sim/
+vivado_pid*.str
+*.cache
+*.hw
+
+# IP output files (only .xci is tracked)
+firmware/ip/*/*/
+!firmware/ip/*/*.xci
+
+# Block Design outputs (only .bd is tracked)
+firmware/bd/*/*/
+!firmware/bd/*/*.bd
 
 ## Intel Quartus Prime
 Projects
 SimulationLib_quartus
 *.bak
+**.bak
 
 ## Software building
 **.depend
@@ -83,12 +127,10 @@ compile*
 transcript*
 work/
 .cxl*
-# .cxl.modelsim.version # .cxl.ip/
 _*
 _Alert.txt
 _Log.txt
 _info
-**.bak
 **.mti
 **.mtp
 **.mpf
@@ -97,33 +139,3 @@ _info
 **.qdb
 **.qpg
 **.qtl
-
-# HOG + QICK firmware outputs
-firmware/Projects/
-firmware/bin/
-
-# Vivado auto-generated files
-*.log
-*.os
-*.pb
-*.wdb
-*.sim/
-.Xil/
-vivado_pid*.str
-*.cache
-*.hw
-
-# IP output files (only .xci is tracked)
-firmware/ip/*/*/
-!firmware/ip/*/*.xci
-
-# Block Design outputs (only .bd is tracked)
-firmware/bd/*/*/
-!firmware/bd/*/*.bd
-
-#VSCode
-.vscode
-settings.json
-
-#Python checkpoints
-.ipynb_checkpoints
