@@ -5,35 +5,50 @@ for developing and simulating QICK IP cores independently of the full Vivado pro
 
 ## How it works
 
-RTL sources live in `ip/` and are **shared** between HOG (for bitfile builds) and
-FuseSoC (for simulation). No files are duplicated — each IP core in `fusesoc/cores/`
-contains a symlink `hdl/ → ../../../ip/<name>/src/` pointing to the single RTL source.
+RTL sources are organized in two locations:
+
+- **`../rtl_lib/`** — Shared modules (AXI, CDC, interfaces, utilities)
+- **`../ip/`** — QICK IP cores that use modules from `rtl_lib`
+
+FuseSoC cores in `cores/` contain symlinks pointing to the RTL sources in `ip/`
+and rely on `qick:common:sim_base` to include `rtl_lib/` paths.
 
 ```
 firmware/
+├── rtl_lib/                     ← Shared RTL (source of truth)
+│   ├── axi/
+│   ├── cdc/
+│   ├── interfaces/
+│   ├── pkg/
+│   │   └── qick_pkg.sv
+│   └── utils/
 ├── ip/
 │   └── my_ip/
-│       └── src/          ← single source of truth for RTL
+│       └── src/                 ← IP-specific RTL
 │           └── my_ip.sv
 └── fusesoc/
-    └── cores/
-        └── my_ip/
-            ├── hdl -> ../../../ip/my_ip/src   ← symlink, not a copy
-            ├── my_ip.core                      ← FuseSoC descriptor
-            └── test/
-                └── my_ip_tc00.sv              ← SVUnit testbench
+    ├── cores/
+    │   └── my_ip/
+    │       ├── hdl -> ../../../ip/my_ip/src   ← symlink
+    │       ├── my_ip.core
+    │       └── test/
+    │           └── my_ip_tc00.sv
+    ├── common/
+    │   └── sim/                 ← sim_base.core (includes rtl_lib/)
+    ├── Makefile
+    └── requirements.txt
 ```
 
 ---
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.8+ (3.10+ recommended)
 - Vivado 2023.1 in `$PATH` (required for xsim):
 
 ```bash
-source /path/to/Vivado/2023.1/settings64.sh
-export LD_LIBRARY_PATH=/path/to/Vivado/2023.1/lib/lnx64.o
+source /tools/Xilinx/Vivado/2023.1/settings64.sh
+export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2023.1/lib/lnx64.o:$LD_LIBRARY_PATH
 ```
 
 ---
@@ -45,66 +60,99 @@ Run once after cloning:
 ```bash
 cd firmware/fusesoc
 make setup_environment
+cd ..
 ```
 
-This creates a Python virtual environment in `venv/`, installs FuseSoC and
-dependencies, clones the SVUnit library, and creates symlinks from
-`fusesoc/cores/*/hdl` to `ip/*/src`.
+This creates:
+- Python virtual environment in `venv/`
+- Symlinks from `cores/*/hdl` to `../ip/*/src`
+- Clones SVUnit library
 
 ---
 
 ## Daily usage
 
-Activate the virtual environment first:
+Activate the virtual environment:
 
 ```bash
 cd firmware/fusesoc
 source venv/bin/activate
 ```
 
-**Simulate a single IP:**
+### Simulate a single IP:
 
 ```bash
 make sim IP=qick_processor
 ```
 
-**Run all SVUnit tests across all IPs:**
+### Run all SVUnit tests:
 
 ```bash
 make sim_svunit
 ```
 
-**Lint a single IP:**
+### Lint a single IP:
 
 ```bash
 make lint IP=qick_processor
 ```
 
-**List all available cores:**
+### List all available cores:
 
 ```bash
-fusesoc --cores-root cores --cores-root common --cores-root generators list-cores
+make list-cores
+```
+
+### Show dependencies:
+
+```bash
+make deps IP=qick_processor
+make deps-recursive IP=qick_processor
+```
+
+### Clean build artifacts:
+
+```bash
+make clean
 ```
 
 ---
 
 ## Adding a new IP
 
-### 1. Write the RTL in `ip/`
+### 1. Write the RTL in `../ip/`
 
 ```bash
 mkdir -p ../ip/my_new_ip/src/
 vim ../ip/my_new_ip/src/my_new_ip.sv
 ```
 
-HOG will pick it up from `ip/` automatically when you add it to a project.
+Your IP can use modules from `rtl_lib/`:
+
+```systemverilog
+// my_new_ip.sv
+`include "qick_pkg.sv"
+import qick_pkg::*;
+
+module my_new_ip (
+  input logic clk,
+  input logic rstn,
+  // Use AXI interface from rtl_lib/interfaces/
+  axi4_stream_if.slave s_axis,
+  axi4_stream_if.master m_axis
+);
+  // Use utility from rtl_lib/utils/
+  rising_edge_det u_redet ( .clk(clk), .in(signal), .out(edge) );
+endmodule
+```
 
 ### 2. Create the FuseSoC core
 
 ```bash
-mkdir -p cores/my_new_ip/{test,data}
+cd firmware/fusesoc
+mkdir -p cores/my_new_ip/test
 
-# Create symlink to RTL — no duplication
+# Create symlink to IP source
 ln -s ../../../ip/my_new_ip/src cores/my_new_ip/hdl
 ```
 
@@ -120,6 +168,8 @@ filesets:
     files:
       - hdl/my_new_ip.sv
     file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base   # Provides rtl_lib/ paths and qick_pkg
 
   tb:
     files:
@@ -164,9 +214,11 @@ targets:
 
 ```systemverilog
 `include "svunit_defines.svh"
+`include "qick_pkg.sv"   // if needed
 
 module my_new_ip_unit_test;
   import svunit_pkg::svunit_testcase;
+  import qick_pkg::*;    // if needed
 
   string name = "my_new_ip_ut";
   svunit_testcase svunit_ut;
@@ -175,8 +227,17 @@ module my_new_ip_unit_test;
   logic rstn = 1;
   always #2 clk = ~clk;   // 250 MHz
 
-  // instantiate DUT here
-  // my_new_ip u_dut ( .clk(clk), .rstn(rstn), ... );
+  // Use interfaces from rtl_lib/interfaces/
+  axi4_stream_if #(.DATA_WIDTH(32), .USER_EN(0)) axis_master ();
+  axi4_stream_if #(.DATA_WIDTH(32), .USER_EN(0)) axis_slave ();
+
+  // Instantiate DUT
+  my_new_ip u_dut (
+    .clk(clk),
+    .rstn(rstn),
+    .s_axis(axis_master),
+    .m_axis(axis_slave)
+  );
 
   function void build();
     svunit_ut = new(name);
@@ -196,7 +257,7 @@ module my_new_ip_unit_test;
 
   `SVTEST(test00_reset)
     repeat(10) @(posedge clk);
-    `ASSERT_EQUAL(1, 1)   // replace with real assertions
+    `ASSERT_EQUAL(1, 1)
   `SVTEST_END
 
   `SVUNIT_TESTS_END
@@ -204,68 +265,66 @@ module my_new_ip_unit_test;
 endmodule
 ```
 
-`cores/my_new_ip/test/tests.sv`:
-
-```systemverilog
-`include "my_new_ip_unit_test.sv"
-```
-
 ### 4. Simulate
 
 ```bash
 make sim IP=my_new_ip
 ```
+
 ---
 
 ## Packaging an IP for Vivado Block Design
 
-Once the RTL is ready and tested with `make sim`, package it for use in HOG projects:
+Once the RTL is ready and tested:
 
 ```bash
+# Basic packaging
 make package IP=my_new_ip
+
+# With dependencies
+make package IP=my_new_ip RESOLVE_DEPS=1
+
+# Package all IPs
+make package-all
 ```
 
-This runs Vivado in batch mode and generates:
-- `ip/my_new_ip/component.xml` — IP descriptor (interfaces, parameters)
-- `ip/my_new_ip/xgui/my_new_ip_v1_0.tcl` — Parameter GUI for Vivado
+This generates:
+- `../ip/my_new_ip/component.xml`
+- `../ip/my_new_ip/xgui/my_new_ip_v1_0.tcl`
 
-The IP is then automatically available in any HOG project because `hog.conf`
-already sets `IP_REPO_PATHS=ip`. After packaging, recreate the Vivado project:
+After packaging, the IP is available in HOG projects. Recreate the project:
 
 ```bash
 cd firmware
-./Hog/Do CREATE qick_tprocv2_216_standard
+./Hog/Do CREATE 216/tpv2_std
 ```
 
-The IP appears in the Vivado IP catalog under **QICK** and can be dragged
-into the Block Design.
+---
 
-### Port naming conventions for AXI auto-inference
+## Port naming conventions for AXI auto-inference
 
-Vivado's `ipx::infer_bus_interfaces` recognizes these naming patterns:
+Vivado's `ipx::infer_bus_interfaces` recognizes:
 
-| Interface type | Port prefix example |
+| Interface type | Port prefix |
 |---|---|
 | AXI4-Lite slave | `s_axi_*` |
 | AXI4-Stream slave | `s_axis_*` or `s0_axis_*` |
 | AXI4-Stream master | `m_axis_*` or `m0_axis_*` |
-| AXI4 full (memory-mapped) | `m_axi_*` |
 | Clock | `*_clk*` or `*_aclk*` |
 | Reset | `*_aresetn*` or `*_resetn*` |
 
-Following these conventions means `make package` works without any manual
-interface mapping.
+---
 
-### Complete IP development workflow
+## Complete IP development workflow
 
 ```
-1. Write RTL          →  firmware/ip/my_ip/src/my_ip.sv
-2. Write testbench    →  firmware/fusesoc/cores/my_ip/test/my_ip_tc00.sv
+1. Write RTL          →  ../ip/my_ip/src/my_ip.sv (uses rtl_lib/)
+2. Write testbench    →  cores/my_ip/test/my_ip_tc00.sv
 3. Simulate           →  make sim IP=my_ip
 4. Fix RTL, re-sim   →  make sim IP=my_ip
 5. Package for Vivado →  make package IP=my_ip
-6. Recreate project   →  cd .. && ./Hog/Do CREATE my_project
-7. Open Vivado        →  vivado Projects/my_project/my_project.xpr
+6. Recreate project   →  cd ../.. && ./Hog/Do CREATE 216/tpv2_std
+7. Open Vivado        →  vivado Projects/tpv2_std/tpv2_std.xpr
 8. Instantiate IP     →  drag from IP catalog → Block Design
 ```
 
@@ -276,41 +335,36 @@ interface mapping.
 ```
 fusesoc/
 ├── common/                  Shared simulation infrastructure
-│   ├── sim/                 SVUnit runner, clk_gen module
-│   │   ├── sim_base.core
-│   │   ├── include/svunit_assert_macros/
-│   │   └── modules/clk_gen/
-│   ├── xilinx/              Xilinx glbl module (needed for XPM simulation)
+│   ├── sim/                 sim_base.core (includes rtl_lib/)
+│   ├── xilinx/              Xilinx glbl module (for XPM)
 │   └── lint/                Verible lint rules
 ├── cores/                   One subdirectory per IP
-│   ├── qick_pkg/            Shared QICK package (dependency for most cores)
-│   └── qick_processor/      tProcessor V2 example core
+│   ├── qick_pkg/            Shared QICK package (wrapper for rtl_lib/pkg/)
+│   ├── qick_processor/      tProcessor V2 example
+│   └── my_new_ip/           Your new IP
 ├── projects/                Multi-IP simulation projects
-├── generators/              FuseSoC code generators (SVUnit runner, IP gen)
-├── scripts/
-│   ├── tests/svunit_test/   pytest runner for CI
-│   └── utils/               setup scripts
+├── generators/              FuseSoC code generators
+├── scripts/                 Setup and test scripts
 ├── Makefile
-├── requirements.txt
-└── fusesoc.conf             Auto-generated by make setup_environment
+└── requirements.txt
 ```
 
 ---
 
 ## Core naming convention
 
-All QICK cores follow the namespace `qick:<group>:<name>:<version>`:
-
 | Namespace | Contents |
 |-----------|----------|
-| `qick:ip:*` | QICK IP cores (`qick_processor`, `qick_pkg`, …) |
-| `qick:common:*` | Shared sim infrastructure (`sim_base`, `clk_gen`, `lint`, …) |
+| `qick:ip:*` | QICK IP cores (use rtl_lib/) |
+| `qick:common:*` | Shared infrastructure (sim_base, clk_gen, lint) |
 
 ---
 
-## Notes on IPs with Xilinx sub-IPs
+## Notes
 
-Some IPs in `ip/` contain Vivado-generated sub-IPs (directories like `dds_compiler_0/`,
-`fir_compiler_0/`) that require Vivado to generate their sources before simulation.
-These IPs can only be built through HOG/Vivado and do not have a FuseSoC `test` target.
-Purely RTL IPs (like `qick_processor`) can be simulated directly with FuseSoC.
+- **`rtl_lib/` is the source of truth** for shared RTL modules
+- **`qick:common:sim_base`** includes `rtl_lib/` paths automatically
+- IPs with Xilinx sub-IPs (DDS, FIR, etc.) require Vivado and cannot be simulated with FuseSoC
+- Pure RTL IPs (like `qick_processor`) can be simulated directly
+
+---

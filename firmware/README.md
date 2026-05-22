@@ -8,12 +8,37 @@ For a full description of the firmware architecture see the
 
 ---
 
+## Repository structure
+
+```
+firmware/
+├── Hog/              HOG submodule — build system
+├── Top/              HOG project definitions (source of truth for each project)
+│   ├── 111/          ZCU111 projects
+│   ├── 216/          ZCU216 projects
+│   ├── 4x2/          RFSoC4x2 projects
+│   └── qick_testbench/ Simulation testbench project
+├── rtl_lib/          Source of truth for shared RTL modules
+│   ├── axi/          AXI4/AXI4-Lite/AXI4-Stream utilities
+│   ├── cdc/          Clock domain crossing modules
+│   ├── interfaces/   SystemVerilog interfaces (AXI, BRAM, etc.)
+│   ├── pkg/          Shared packages (qick_pkg.sv)
+│   └── utils/        Utility modules (FIFOs, buffers, command handlers)
+├── ip/               Custom QICK IP cores (use modules from rtl_lib)
+├── Projects/         Vivado generated projects — gitignored, recreated with HOG
+├── bin/              Bitfile outputs — gitignored
+└── fusesoc/          IP development and simulation environment
+```
+
+---
+
 ## Quick start — build a standard bitfile
 
 ### Prerequisites
 
 - Vivado 2023.1 installed and licensed for your board.
 - Git with submodule support.
+- Python 3.8+ with venv (for FuseSoC simulation).
 
 ### 1. Clone the repo
 
@@ -29,32 +54,44 @@ If you already cloned without it:
 git submodule update --init --recursive
 ```
 
-### 2. Pick your project
-
-| Board | Project name | Vivado version |
-|-------|-------------|----------------|
-| ZCU216 | `qick_tprocv2_216_standard` | 2023.1 |
-| ZCU216 (demo) | `qick_tprocv2_216_demo` | 2023.1 |
-| ZCU111 | `qick_tprocv2_111_standard` | 2023.1 |
-| RFSoC4x2 | `qick_tprocv2_4x2_standard` | 2023.1 |
-
-### 3. Recreate the Vivado project
+### 2. Set up the Python environment (for FuseSoC simulation, optional)
 
 ```bash
-./Hog/Do CREATE qick_tprocv2_216_standard
+cd fusesoc
+make setup_environment
+cd ..
+```
+
+### 3. Pick your project
+
+Projects are organized by board type in `Top/`:
+
+| Board | Project path | Vivado version |
+|-------|-------------|----------------|
+| ZCU216 | `Top/216/tpv2_std` | 2023.1 |
+| ZCU216 (demo) | `Top/216/tpv2_demo` | 2023.1 |
+| ZCU111 | `Top/111/tpv2_std` | 2023.1 |
+| RFSoC4x2 | `Top/4x2/tpv2_std` | 2023.1 |
+| ZCU111 (RFBv1) | `Top/111/tpv1_rfbv1_std` | 2023.1 |
+| ZCU111 (RFBv2) | `Top/111/tpv1_rfbv2_std` | 2023.1 |
+
+### 4. Recreate the Vivado project
+
+```bash
+./Hog/Do CREATE 216/tpv2_std
 ```
 
 This recreates the project from scratch in `firmware/Projects/`.
 Open it in Vivado to inspect the design:
 
 ```bash
-vivado Projects/qick_tprocv2_216_standard/qick_tprocv2_216_standard.xpr
+vivado Projects/tpv2_std/tpv2_std.xpr
 ```
 
-### 4. Build the bitfile
+### 5. Build the bitfile
 
 ```bash
-./Hog/Do W qick_tprocv2_216_standard
+./Hog/Do W 216/tpv2_std
 ```
 
 The bitfile appears in `firmware/bin/`.
@@ -66,18 +103,22 @@ The bitfile appears in `firmware/bin/`.
 After modifying the block design in Vivado, export the TCL script before closing:
 
 ```
-File → Export → Export Block Design → save to Top/<project>/bd_2023-1.tcl
+File → Export → Export Block Design → save to Top/<project_path>/bd_2023-1.tcl
+```
+
+For example:
+```
+File → Export → Export Block Design → save to Top/216/tpv2_std/bd_2023-1.tcl
 ```
 
 Then commit it:
 
 ```bash
-git add Top/qick_tprocv2_216_standard/bd_2023-1.tcl
+git add Top/216/tpv2_std/bd_2023-1.tcl
 git commit -m "Update BD with <description of change>"
 ```
 
-> HOG only processes committed files. Always commit before running
-> `./Hog/Do W`.
+> **IMPORTANT**: HOG only processes committed files. Always commit before running `./Hog/Do W`.
 
 ---
 
@@ -85,44 +126,95 @@ git commit -m "Update BD with <description of change>"
 
 | Command | Description |
 |---------|-------------|
-| `./Hog/Do CREATE <project>` | Recreate Vivado project from scratch |
-| `./Hog/Do W <project>` | Full build: synthesis + implementation + bitstream |
-| `./Hog/Do S <project>` | Synthesis only |
-| `./Hog/Do I <project>` | Implementation only |
-| `./Hog/Do B <project>` | Bitstream only |
+| `./Hog/Do CREATE <project_path>` | Recreate Vivado project from scratch |
+| `./Hog/Do W <project_path>` | Full build: synthesis + implementation + bitstream |
+| `./Hog/Do S <project_path>` | Synthesis only |
+| `./Hog/Do I <project_path>` | Implementation only |
+| `./Hog/Do B <project_path>` | Bitstream only |
+
+**Note:** `<project_path>` is relative to `firmware/Top/`. Examples:
+- `216/tpv2_std`
+- `111/tpv2_std`
+- `4x2/tpv2_std`
 
 ---
 
-## Directory structure
-
-```
-firmware/
-├── Hog/           HOG submodule — build system
-├── Top/           HOG project definitions (source of truth for each project)
-├── ip/            Custom QICK IP cores (RTL source)
-├── projects/      Original project scripts (reference, not used by HOG)
-├── Projects/      Vivado generated projects — gitignored, recreated with HOG
-├── bin/           Bitfile outputs — gitignored
-└── fusesoc/       IP development and simulation environment
-```
-
----
-
-## IP development and simulation
+## IP development and simulation with FuseSoC
 
 The `fusesoc/` directory provides a [FuseSoC](https://fusesoc.readthedocs.io)-based
-environment for developing and simulating individual IP cores with
-[SVUnit](https://svunit.github.io) unit tests, independently of the full Vivado project.
+environment for developing and simulating individual IP cores.
 
-RTL sources live in `ip/` and are shared between HOG and FuseSoC — no duplication.
+RTL sources are organized as:
+- `rtl_lib/` — Shared modules (AXI, CDC, interfaces, utilities)
+- `ip/` — QICK IP cores that use modules from `rtl_lib`
 
-→ See [`fusesoc/README.md`](fusesoc/README.md) for setup and usage.
+### Available Makefile commands in `fusesoc/`
+
+| Command | Description |
+|---------|-------------|
+| `make setup_environment` | Initialize submodules, create venv, install dependencies |
+| `make sim IP=<ip_name>` | Run simulation for a specific IP |
+| `make sim_svunit` | Run all SVUnit unit tests |
+| `make lint IP=<ip_name>` | Run linter on an IP |
+| `make list-cores` | List all available cores |
+| `make core-info CORE=<core_name>` | Show detailed core information |
+| `make deps IP=<ip_name>` | Show dependencies of an IP |
+| `make package IP=<ip_name>` | Package an IP for Vivado Block Design |
+
+**Examples:**
+```bash
+cd firmware/fusesoc
+source venv/bin/activate
+
+# Simulate an IP
+make sim IP=qick_processor
+
+# Run all tests
+make sim_svunit
+
+# Package an IP for Vivado
+make package IP=xcom RESOLVE_DEPS=1
+```
+
+For detailed FuseSoC documentation, see `fusesoc/README.md`.
 
 ---
 
-## Advanced topics
+## Two workflows: HOG vs FuseSoC
 
-For detailed instructions on adding new projects to HOG, troubleshooting,
-and the full development workflow, see:
+| Task | Tool | Command |
+|------|------|---------|
+| Full bitstream build | HOG | `./Hog/Do W 216/tpv2_std` |
+| Single IP simulation | FuseSoC | `cd fusesoc && make sim IP=qick_processor` |
+| Unit tests | FuseSoC | `cd fusesoc && make sim_svunit` |
+| IP packaging | FuseSoC | `cd fusesoc && make package IP=xcom` |
 
-→ [`HOG_QICK_Integration_Guide.md`](HOG_QICK_Integration_Guide.md)
+The RTL sources are shared:
+- `rtl_lib/` → common modules used by both HOG and FuseSoC
+- `ip/` → QICK IP cores
+
+---
+
+## Troubleshooting
+
+**"Git working directory not clean" critical warning**
+HOG cannot embed a valid SHA if there are uncommitted changes. Commit all
+files under `Top/<project>/` before running `./Hog/Do W`.
+
+**"Invalid Top Module" dialog when opening in Vivado**
+Verify that `post-creation.tcl` exists and is committed. It should contain:
+```tcl
+set_property top "d_1_wrapper" [get_filesets sources_1]
+```
+
+**VHDL modules not found in Block Design**
+Make sure VHDL files are listed in `list/src.src` with the library name:
+```
+../../hdl/lo_spi_mux_v2.vhd work
+```
+
+**HOG ignores my files**
+HOG only processes committed files. Run `git status` and commit any untracked
+files in `Top/<project>/` before running HOG commands.
+
+---

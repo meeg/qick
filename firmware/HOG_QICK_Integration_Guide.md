@@ -2,7 +2,7 @@
 
 Complete guide to integrate [HOG (HDL on Git)](https://cern.ch/hog) into the
 `qick_internal` repository. Based on real integration experience with
-`qick_tprocv2_216_standard`.
+`216/tpv2_std`.
 
 ---
 
@@ -23,21 +23,23 @@ qick_internal/
 └── firmware/
     ├── Hog/                          ← HOG submodule (at firmware level)
     ├── Top/                          ← HOG project definitions
-    │   └── <project_name>/
-    │       ├── hog.conf              ← Board/part/tool configuration
-    │       ├── bd_<version>.tcl      ← Block Design TCL (copied from projects/)
-    │       ├── ios.xdc               ← IO constraints (copied from projects/)
-    │       ├── timing.xdc            ← Timing constraints (copied from projects/)
-    │       ├── proj.tcl              ← Sourced by HOG via others.src
-    │       ├── post-creation.tcl     ← Sets the top module after HOG finishes
-    │       └── list/
-    │           ├── src.src           ← Empty (wrapper generated in proj.tcl)
-    │           ├── ips.src           ← Empty (IPs are inside the Block Design)
-    │           ├── others.src        ← Tells HOG to source proj.tcl
-    │           └── constraints.con   ← Points to ios.xdc and timing.xdc
+    │   ├── 111/                      ← ZCU111 projects
+    │   │   ├── tpv1_rfbv1_std/
+    │   │   ├── tpv1_rfbv2_std/
+    │   │   ├── tpv1_std/
+    │   │   └── tpv2_std/
+    │   ├── 216/                      ← ZCU216 projects
+    │   │   ├── tpv1_std/
+    │   │   ├── tpv2_demo/
+    │   │   └── tpv2_std/
+    │   ├── 4x2/                      ← RFSoC4x2 projects
+    │   │   ├── tpv1_std/
+    │   │   └── tpv2_std/
+    │   └── qick_testbench/           ← Simulation testbench
     ├── ip/                           ← Custom QICK IP cores
-    ├── projects/                     ← Original project scripts (reference only)
-    └── Projects/                     ← Vivado generated projects (gitignored)
+    ├── Projects/                     ← Vivado generated projects (gitignored)
+    ├── bin/                          ← Bitfile outputs (gitignored)
+    └── fusesoc/                      ← FuseSoC simulation environment
 ```
 
 ---
@@ -116,53 +118,129 @@ git commit -m "FEATURE: Add HOG gitignore rules"
 ## STEP 3 — Add a new project to HOG
 
 Repeat this section for each project. The example uses
-`qick_tprocv2_216_standard` — replace with your project name throughout.
+`216/tpv2_std` — replace with your project path throughout.
 
 ### 3.1 Identify board parameters
 
-Look at `projects/<name>/proj.tcl` to find:
+Look at the project's `proj.tcl` or `hog.conf` to find:
 - `-part` → FPGA part number
 - `board_part` → board identifier
 - BD TCL filename → tells you the Vivado version
 
-| Project | PART | BOARD_PART | BD TCL |
-|---------|------|------------|--------|
-| qick_tprocv2_216_standard | xczu49dr-ffvf1760-2-e | xilinx.com:zcu216:part0:2.0 | bd_2023-1.tcl |
-| qick_tprocv2_216_demo | xczu49dr-ffvf1760-2-e | xilinx.com:zcu216:part0:2.0 | bd_2023-1.tcl |
-| qick_tprocv2_216_rfbv2_standard | xczu49dr-ffvf1760-2-e | xilinx.com:zcu216:part0:2.0 | bd_2023-1.tcl |
-| qick_tprocv1_216_standard | xczu49dr-ffvf1760-2-e | xilinx.com:zcu216:part0:2.0 | bd_2022-1.tcl |
-| qick_tprocv2_111_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2023-1.tcl |
-| qick_tprocv1_111_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2022-1.tcl |
-| qick_tprocv1_111_rfbv1_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2020-2.tcl |
-| qick_tprocv1_111_rfbv2_standard | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2020-2.tcl |
-| qick_tprocv2_4x2_standard | xczu48dr-ffvg1517-2-e | realdigital.org:rfsoc4x2:part0:1.0 | bd_2023-1.tcl |
-| qick_tprocv1_4x2_standard | xczu48dr-ffvg1517-2-e | realdigital.org:rfsoc4x2:part0:1.0 | bd_2022-1.tcl |
+| Project Path | PART | BOARD_PART | BD TCL |
+|--------------|------|------------|--------|
+| `216/tpv2_std` | xczu49dr-ffvf1760-2-e | xilinx.com:zcu216:part0:2.0 | bd_2023-1.tcl |
+| `216/tpv2_demo` | xczu49dr-ffvf1760-2-e | xilinx.com:zcu216:part0:2.0 | bd_2023-1.tcl |
+| `111/tpv2_std` | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2023-1.tcl |
+| `111/tpv1_std` | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2022-1.tcl |
+| `111/tpv1_rfbv1_std` | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2020-2.tcl |
+| `111/tpv1_rfbv2_std` | xczu28dr-ffvg1517-2-e | xilinx.com:zcu111:part0:1.4 | bd_2020-2.tcl |
+| `4x2/tpv2_std` | xczu48dr-ffvg1517-2-e | realdigital.org:rfsoc4x2:part0:1.0 | bd_2023-1.tcl |
+| `4x2/tpv1_std` | xczu48dr-ffvg1517-2-e | realdigital.org:rfsoc4x2:part0:1.0 | bd_2022-1.tcl |
 
 ### 3.2 Create the Top/ directory structure
 
 ```bash
 cd qick_internal/firmware
-PROJECT=qick_tprocv2_216_standard   # change this for each project
+PROJECT_PATH=216/tpv2_std   # change this for each project
 
-mkdir -p Top/${PROJECT}/list
+mkdir -p Top/${PROJECT_PATH}/list
 ```
 
-### 3.3 Copy source files from projects/
+### 3.3 Create hog.conf
 
 ```bash
-cp projects/${PROJECT}/bd_*.tcl  Top/${PROJECT}/
-cp projects/${PROJECT}/ios.xdc   Top/${PROJECT}/
-cp projects/${PROJECT}/timing.xdc Top/${PROJECT}/
+cat > Top/${PROJECT_PATH}/hog.conf << 'EOF'
+# vivado 2023.1
+
+[main]
+BOARD_PART=xilinx.com:zcu216:part0:2.0
+IP_REPO_PATHS=ip
+PART=xczu49dr-ffvf1760-2-e
+SIM.USE_IP_COMPILED_LIBS=0
+TARGET_LANGUAGE=Verilog
+EOF
 ```
 
-### 3.4 Check that bd_*.tcl ends correctly
+Adjust `BOARD_PART` and `PART` for the target board using the table in 3.1.
+Do not add `TOP` here — it is set in `post-creation.tcl`.
+
+### 3.4 Create proj.tcl
+
+`proj.tcl` is sourced by HOG via `others.src` after the project exists.
+Its only jobs are: source the BD TCL, generate the wrapper, and set
+synthesis/implementation strategies. It must not call `create_project`.
+
+```bash
+cat > Top/${PROJECT_PATH}/proj.tcl << 'EOF'
+# Sourced by HOG via others.src after the project is created.
+# DO NOT call create_project here — HOG already did it.
+
+set origin_dir [file dirname [info script]]
+if { [info exists ::origin_dir_loc] } {
+  set origin_dir $::origin_dir_loc
+}
+
+# Source the Block Design TCL
+source [file normalize "$origin_dir/bd_2023-1.tcl"]
+
+# Generate the BD wrapper — Vivado writes it to the project .gen/ directory
+make_wrapper -files [get_files d_1.bd] -top
+
+# Add the wrapper from the Vivado-generated location (not from Top/)
+set wrapper [get_files -of_objects [get_filesets sources_1] \
+    -filter {NAME =~ "*/d_1/hdl/d_1_wrapper.v"}]
+if {$wrapper eq ""} {
+    set proj_dir  [get_property DIRECTORY [current_project]]
+    set proj_name [get_property NAME      [current_project]]
+    set wrapper_path [file normalize \
+        "$proj_dir/${proj_name}.gen/sources_1/bd/d_1/hdl/d_1_wrapper.v"]
+    add_files -norecurse -fileset [get_filesets sources_1] $wrapper_path
+}
+
+# Synthesis and implementation strategies
+set_property strategy "Flow_PerfOptimized_high"   [get_runs synth_1]
+set_property strategy "Performance_NetDelay_high" [get_runs impl_1]
+EOF
+```
+
+### 3.5 Create post-creation.tcl
+
+HOG runs this script last, after setting its default top module name.
+Use it to override the top with the BD wrapper.
+
+```bash
+cat > Top/${PROJECT_PATH}/post-creation.tcl << 'EOF'
+# HOG runs this script at the very end of CreateProject,
+# after setting its default top module name.
+# Override it with the BD wrapper, which is the actual design top.
+
+set_property top "d_1_wrapper" [get_filesets sources_1]
+update_compile_order -fileset sources_1
+EOF
+```
+
+### 3.6 Copy BD TCL and constraint files
+
+If you have existing BD TCL and constraints from an older project, copy them:
+
+```bash
+# If you have existing files
+cp path/to/bd_*.tcl  Top/${PROJECT_PATH}/
+cp path/to/ios.xdc   Top/${PROJECT_PATH}/
+cp path/to/timing.xdc Top/${PROJECT_PATH}/
+```
+
+If starting from scratch, create the BD in Vivado first, then export the TCL.
+
+### 3.7 Check that bd_*.tcl ends correctly
 
 The BD TCL must end with `create_root_design ""` and nothing after it.
 The original files sometimes have extra lines that add the wrapper or import
 constraints — those belong in `proj.tcl`, not in the BD TCL.
 
 ```bash
-tail -10 Top/${PROJECT}/bd_*.tcl
+tail -10 Top/${PROJECT_PATH}/bd_*.tcl
 ```
 
 Remove these lines if present at the end of the BD TCL:
@@ -180,125 +258,60 @@ The file must end with exactly:
 create_root_design ""
 ```
 
-### 3.5 Create hog.conf
-
-```bash
-cat > Top/${PROJECT}/hog.conf << 'EOF'
-# vivado 2023.1
-
-[main]
-BOARD_PART=xilinx.com:zcu216:part0:2.0
-IP_REPO_PATHS=ip
-PART=xczu49dr-ffvf1760-2-e
-SIM.USE_IP_COMPILED_LIBS=0
-TARGET_LANGUAGE=Verilog
-EOF
-```
-
-Adjust `BOARD_PART` and `PART` for the target board using the table in 3.1.
-Do not add `TOP` here — it is set in `post-creation.tcl`.
-
-### 3.6 Create proj.tcl
-
-`proj.tcl` is sourced by HOG via `others.src` after the project exists.
-Its only jobs are: source the BD TCL, generate the wrapper, and set
-synthesis/implementation strategies. It must not call `create_project`.
-
-```bash
-BD_TCL=$(ls projects/${PROJECT}/bd_*.tcl | xargs basename)
-
-cat > Top/${PROJECT}/proj.tcl << EOF
-# Sourced by HOG via others.src after the project is created.
-# DO NOT call create_project here — HOG already did it.
-
-set origin_dir [file dirname [info script]]
-if { [info exists ::origin_dir_loc] } {
-  set origin_dir \$::origin_dir_loc
-}
-
-# Source the Block Design TCL
-source [file normalize "\$origin_dir/${BD_TCL}"]
-
-# Generate the BD wrapper — Vivado writes it to the project .gen/ directory
-make_wrapper -files [get_files d_1.bd] -top
-
-# Add the wrapper from the Vivado-generated location (not from Top/)
-set wrapper [get_files -of_objects [get_filesets sources_1] \\
-    -filter {NAME =~ "*/d_1/hdl/d_1_wrapper.v"}]
-if {\$wrapper eq ""} {
-    set proj_dir  [get_property DIRECTORY [current_project]]
-    set proj_name [get_property NAME      [current_project]]
-    set wrapper_path [file normalize \\
-        "\$proj_dir/\${proj_name}.gen/sources_1/bd/d_1/hdl/d_1_wrapper.v"]
-    add_files -norecurse -fileset [get_filesets sources_1] \$wrapper_path
-}
-
-# Synthesis and implementation strategies
-set_property strategy "Flow_PerfOptimized_high"   [get_runs synth_1]
-set_property strategy "Performance_NetDelay_high" [get_runs impl_1]
-EOF
-```
-
-### 3.7 Create post-creation.tcl
-
-HOG runs this script last, after setting its default top module name.
-Use it to override the top with the BD wrapper.
-
-```bash
-cat > Top/${PROJECT}/post-creation.tcl << 'EOF'
-# HOG runs this script at the very end of CreateProject,
-# after setting its default top module name.
-# Override it with the BD wrapper, which is the actual design top.
-
-set_property top "d_1_wrapper" [get_filesets sources_1]
-update_compile_order -fileset sources_1
-EOF
-```
-
 ### 3.8 Create the list files
 
 ```bash
 # src.src — empty, wrapper is added in proj.tcl
-cat > Top/${PROJECT}/list/src.src << 'EOF'
+cat > Top/${PROJECT_PATH}/list/src.src << 'EOF'
 # Empty — d_1_wrapper.v is generated and added in proj.tcl
 EOF
 
 # ips.src — empty, all IPs live inside the Block Design
-cat > Top/${PROJECT}/list/ips.src << 'EOF'
+cat > Top/${PROJECT_PATH}/list/ips.src << 'EOF'
 # Empty — all IPs are instantiated inside the Block Design (bd_*.tcl)
 EOF
 
 # others.src — tells HOG to source proj.tcl
-cat > Top/${PROJECT}/list/others.src << EOF
+cat > Top/${PROJECT_PATH}/list/others.src << EOF
 # proj.tcl sources the BD and generates the wrapper.
 # It runs after HOG creates the project, which is the correct order.
-Top/${PROJECT}/proj.tcl source
+${PROJECT_PATH}/proj.tcl source
 EOF
 
 # constraints.con — xdc files
-cat > Top/${PROJECT}/list/constraints.con << EOF
-Top/${PROJECT}/ios.xdc
-Top/${PROJECT}/timing.xdc
+cat > Top/${PROJECT_PATH}/list/constraints.con << EOF
+${PROJECT_PATH}/ios.xdc
+${PROJECT_PATH}/timing.xdc
 EOF
 ```
 
-### 3.9 Commit everything
+### 3.9 Handle VHDL files (if any)
+
+If your project uses VHDL files, add them to `list/src.src` with the library:
+
+```bash
+cat >> Top/${PROJECT_PATH}/list/src.src << 'EOF'
+../../hdl/lo_spi_mux_v2.vhd work
+EOF
+```
+
+### 3.10 Commit everything
 
 HOG ignores files that are not committed to git. This step is mandatory.
 
 ```bash
-git add Top/${PROJECT}/
-git commit -m "FEATURE: Add HOG project structure for ${PROJECT}"
+git add Top/${PROJECT_PATH}/
+git commit -m "FEATURE: Add HOG project structure for ${PROJECT_PATH}"
 ```
 
-### 3.10 Create the Vivado project
+### 3.11 Create the Vivado project
 
 ```bash
 cd qick_internal/firmware
-./Hog/Do CREATE ${PROJECT}
+./Hog/Do CREATE ${PROJECT_PATH}
 ```
 
-The project is created in `firmware/Projects/${PROJECT}/`.
+The project is created in `firmware/Projects/tpv2_std/` (the base name of the project).
 Open it in Vivado to verify the BD and top module are correct.
 
 ---
@@ -311,21 +324,21 @@ git clone --recursive <url_of_qick_internal>
 cd qick_internal/firmware
 
 # Recreate a Vivado project from scratch
-./Hog/Do CREATE qick_tprocv2_216_standard
+./Hog/Do CREATE 216/tpv2_std
 
 # Open in Vivado and work normally
-vivado Projects/qick_tprocv2_216_standard/qick_tprocv2_216_standard.xpr
+vivado Projects/tpv2_std/tpv2_std.xpr
 
 # After modifying the BD: export the BD TCL from Vivado
-# File → Export → Export Block Design → save to Top/<project>/bd_*.tcl
+# File → Export → Export Block Design → save to Top/216/tpv2_std/bd_2023-1.tcl
 
 # Commit changes before synthesizing
-git add Top/qick_tprocv2_216_standard/bd_2023-1.tcl
+git add Top/216/tpv2_std/bd_2023-1.tcl
 git commit -m "FEATURE: Update BD with new readout chain"
 
 # Full build: synthesis + implementation + bitstream
 # HOG embeds the git SHA into the bitstream automatically
-./Hog/Do W qick_tprocv2_216_standard
+./Hog/Do W 216/tpv2_std
 # Bitstream appears in: firmware/bin/
 ```
 
@@ -335,11 +348,19 @@ git commit -m "FEATURE: Update BD with new readout chain"
 
 | Command | Description |
 |---------|-------------|
-| `./Hog/Do CREATE <project>` | Create the Vivado project from scratch |
-| `./Hog/Do W <project>` | Full build: synthesis + implementation + bitstream |
-| `./Hog/Do S <project>` | Synthesis only |
-| `./Hog/Do I <project>` | Implementation only |
-| `./Hog/Do B <project>` | Bitstream generation only |
+| `./Hog/Do CREATE <project_path>` | Create the Vivado project from scratch |
+| `./Hog/Do W <project_path>` | Full build: synthesis + implementation + bitstream |
+| `./Hog/Do S <project_path>` | Synthesis only |
+| `./Hog/Do I <project_path>` | Implementation only |
+| `./Hog/Do B <project_path>` | Bitstream generation only |
+
+**Examples:**
+```bash
+./Hog/Do CREATE 216/tpv2_std
+./Hog/Do W 216/tpv2_std
+./Hog/Do CREATE 111/tpv2_std
+./Hog/Do W 4x2/tpv2_std
+```
 
 ---
 
@@ -352,12 +373,19 @@ exists and is committed to git — HOG ignores untracked files.
 
 **`proj.tcl` is not executed / "No IPs found"**
 HOG only sources files listed in `others.src` if they are committed to git.
-Run `git status Top/<project>/` and commit any untracked files before
+Run `git status Top/<project_path>/` and commit any untracked files before
 running `./Hog/Do CREATE`.
+
+**VHDL modules not found in Block Design**
+Make sure VHDL files are listed in `list/src.src` with the library name:
+```
+../../hdl/lo_spi_mux_v2.vhd work
+```
+Also ensure the entity name in the VHDL file matches exactly what the BD expects.
 
 **"Git working directory not clean" critical warning**
 HOG cannot embed a valid SHA if there are uncommitted changes. Commit all
-files under `Top/<project>/` before running `./Hog/Do W`.
+files under `Top/<project_path>/` before running `./Hog/Do W`.
 
 **Tag format warning**
 ```
@@ -370,3 +398,33 @@ embedded in the bitstream will be 0. To fix it:
 git tag -a v2.4.1 -m "HOG compatible release tag"
 git push origin v2.4.1
 ```
+
+**HOG cannot find my files**
+HOG resolves paths relative to `firmware/` (the directory containing `Hog/`).
+Make sure all paths in `list/*.src` are correct relative to `firmware/`.
+
+---
+
+## FuseSoC integration (simulation and IP development)
+
+The `fusesoc/` directory provides a complementary workflow for IP development.
+See `fusesoc/README.md` for detailed FuseSoC setup and usage.
+
+Quick FuseSoC commands:
+```bash
+cd firmware/fusesoc
+
+# Setup (one time)
+make setup_environment
+
+# Simulate an IP
+make sim IP=axis_signal_gen_v6
+
+# Run unit tests
+make sim_svunit
+
+# Package an IP for Vivado
+make package IP=xcom RESOLVE_DEPS=1
+```
+
+---
