@@ -16,6 +16,6 @@ targets:
 
 provider:
   name    : github
-  user    : leoechevarria
+  user    : larnaldi
   repo    : verilog-axis
   version : v1.1

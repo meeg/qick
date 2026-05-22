@@ -1,0 +1,1 @@
+/home/larnaldi/.cache/fusesoc/qick_axi_axis_fifo_1.0.0/rtl/axis_fifo.v
