@@ -1,0 +1,15 @@
+CAPI=2:
+name: qick:interfaces:axi4_lite_if:0.2.0
+description: AXI4 Lite interface definition (includes master & slave modports)
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi4_lite_if.sv
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+

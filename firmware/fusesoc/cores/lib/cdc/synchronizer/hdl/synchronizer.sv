@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/cdc/synchronizer.sv

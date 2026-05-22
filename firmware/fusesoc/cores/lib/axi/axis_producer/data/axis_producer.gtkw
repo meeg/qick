@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Sun Jan 18 02:28:56 2026
+[*]
+[dumpfile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/build/fnal_utils_hwtest_axis_producer_0.1.0/test-xsim/test.vcd"
+[dumpfile_mtime] "Sun Jan 18 02:26:00 2026"
+[dumpfile_size] 31015
+[savefile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/cores/contrib/axis_producer/data/axis_producer.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-18.097372 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_producer_ut.
+[sst_width] 206
+[signals_width] 166
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.axis_producer_ut.dut.i_clk
+[color] 3
+testrunner.__ts.axis_producer_ut.dut.i_rst
+[color] 3
+testrunner.__ts.axis_producer_ut.dut.i_maxi_ready
+testrunner.__ts.axis_producer_ut.dut.maxi_valid
+testrunner.__ts.axis_producer_ut.dut.init_state
+testrunner.__ts.axis_producer_ut.dut.last_addr_sr[1:0]
+@22
+testrunner.__ts.axis_producer_ut.dut.mem_rd_addr[3:0]
+testrunner.__ts.axis_producer_ut.dut.mem_rd_data[31:0]
+@28
+testrunner.__ts.axis_producer_ut.dut.mem_rd_enb
+testrunner.__ts.axis_producer_ut.dut.transaction
+@29
+[color] 6
+testrunner.__ts.axis_producer_ut.dut.o_maxi_valid
+@23
+[color] 6
+testrunner.__ts.axis_producer_ut.dut.o_maxi_data[31:0]
+@29
+[color] 6
+testrunner.__ts.axis_producer_ut.dut.o_event_last_addr
+[pattern_trace] 1
+[pattern_trace] 0

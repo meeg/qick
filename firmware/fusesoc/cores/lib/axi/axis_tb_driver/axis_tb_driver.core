@@ -1,0 +1,32 @@
+CAPI=2:
+name: qick:utils:axis_tb_driver:0.1.0
+description: Module with AXI4-Stream tasks
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_tb_driver.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
+
+  lint_files:
+    depend:
+      - qick:global:lint
+
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - lint_files
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: [in_buffer]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+

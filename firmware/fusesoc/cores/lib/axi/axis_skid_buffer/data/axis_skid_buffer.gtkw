@@ -1,0 +1,42 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Feb  2 16:32:20 2026
+[*]
+[dumpfile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/build/fnal_utils_axis_skid_buffer_1.2.0/test-xsim/skid_buffer.vcd"
+[dumpfile_mtime] "Mon Feb  2 16:22:48 2026"
+[dumpfile_size] 2099483
+[savefile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/cores/contrib/axis_skid_buffer/data/axis_skid_buffer.gtkw"
+[timestart] 301903000
+[size] 1920 1165
+[pos] -1 -1
+*-19.292459 305017000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_skid_buffer_ut.
+[sst_width] 206
+[signals_width] 190
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@28
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.i_clk
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.i_rstn
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.in_fire
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_fire
+@22
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_tdata[7:0]
+@28
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_tkeep[0]
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_tlast
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_tstrb[0]
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_tuser[0]
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.out_valid
+@22
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.skid_tdata[7:0]
+@28
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.skid_tkeep[0]
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.skid_tlast
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.skid_tstrb[0]
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.skid_tuser[0]
+testrunner.__ts.axis_skid_buffer_ut.u_skid_buffer.skid_valid
+[pattern_trace] 1
+[pattern_trace] 0

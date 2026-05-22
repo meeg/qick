@@ -1,0 +1,45 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jan 22 16:16:42 2026
+[*]
+[dumpfile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/build/fnal_global_out_buffer_0.1.0/test-xsim/out_buffer.vcd"
+[dumpfile_mtime] "Thu Jan 22 15:41:37 2026"
+[dumpfile_size] 5760
+[savefile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/cores/contrib/out_buffer/data/out_buffer.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-15.167871 246000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.out_buffer_ut.
+[sst_width] 206
+[signals_width] 216
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@28
+[color] 3
+testrunner.__ts.out_buffer_ut.u_out_buffer.i_clk
+[color] 3
+testrunner.__ts.out_buffer_ut.u_out_buffer.i_rstn
+[color] 3
+testrunner.__ts.out_buffer_ut.u_out_buffer.i_ready
+[color] 3
+testrunner.__ts.out_buffer_ut.u_out_buffer.i_valid
+@420
+[color] 3
+testrunner.__ts.out_buffer_ut.u_out_buffer.i_data[31:0]
+testrunner.__ts.out_buffer_ut.u_out_buffer.data_reg[31:0]
+@28
+testrunner.__ts.out_buffer_ut.u_out_buffer.ready_s
+testrunner.__ts.out_buffer_ut.u_out_buffer.valid_next
+testrunner.__ts.out_buffer_ut.u_out_buffer.valid_reg
+[color] 6
+testrunner.__ts.out_buffer_ut.u_out_buffer.o_valid
+[color] 6
+testrunner.__ts.out_buffer_ut.u_out_buffer.o_ready
+@421
+[color] 6
+testrunner.__ts.out_buffer_ut.u_out_buffer.o_data[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

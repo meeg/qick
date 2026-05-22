@@ -1,0 +1,59 @@
+CAPI=2:
+name: qick:axi:axil_ram_wr:0.1.0
+description: Write interface for DP-BRAM. Has an interface AXI4-Lite to write a DP-BRAM
+
+filesets:
+  hdl:
+    files:
+      - hdl/axil_ram_wr.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_lite_if
+      - qick:interfaces:bram_if
+      - qick:utils:in_buffer
+      - qick:utils:out_buffer
+
+  tb:
+    files: &tb_files
+      - tests/axil_ram_wr_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/axil_ram_wr_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: axil_ram_wr
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

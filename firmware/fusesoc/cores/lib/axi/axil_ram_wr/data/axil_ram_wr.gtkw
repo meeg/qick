@@ -1,0 +1,97 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Sun Jan 18 02:07:52 2026
+[*]
+[dumpfile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/build/fnal_global_axil_ram_wr_0.1.0/test-xsim/axil_ram_wr.vcd"
+[dumpfile_mtime] "Sun Jan 18 02:02:38 2026"
+[dumpfile_size] 32440
+[savefile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/cores/contrib/axil_ram_wr/data/axil_ram_wr.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-16.903816 598000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axil_ram_wr_ut.
+[sst_width] 206
+[signals_width] 203
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@c00200
+-axil_if
+@22
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.ARADDR[15:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.ARPROT[2:0]
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.ARREADY
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.ARVALID
+@22
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.AWADDR[15:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.AWPROT[2:0]
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.AWREADY
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.AWVALID
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.BREADY
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.BRESP[1:0]
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.BVALID
+@22
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.RDATA[31:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.RREADY
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.RRESP[1:0]
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.RVALID
+@22
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.WDATA[31:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.WREADY
+@22
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.WSTRB[3:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.WVALID
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.i_clk
+testrunner.__ts.axil_ram_wr_ut.axi4_lite_in_if.i_rst
+@1401200
+-axil_if
+@28
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.i_clk
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.i_rst
+@24
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.awaddr_s[15:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.awready_s
+@29
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.awvalid_s
+@28
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.bready_s
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.bvalid_s
+@22
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.wdata_s[31:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.wready_s
+@22
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.wstrb_s[3:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.u_axil_ram_wr.wvalid_s
+@800200
+-bram_if
+@28
+testrunner.__ts.axil_ram_wr_ut.bram_out_if.i_clk
+testrunner.__ts.axil_ram_wr_ut.bram_out_if.i_rst
+@22
+testrunner.__ts.axil_ram_wr_ut.bram_out_if.addr[9:0]
+testrunner.__ts.axil_ram_wr_ut.bram_out_if.data[31:0]
+@28
+testrunner.__ts.axil_ram_wr_ut.bram_out_if.re
+@c00022
+testrunner.__ts.axil_ram_wr_ut.bram_out_if.we[3:0]
+@28
+(0)testrunner.__ts.axil_ram_wr_ut.bram_out_if.we[3:0]
+(1)testrunner.__ts.axil_ram_wr_ut.bram_out_if.we[3:0]
+(2)testrunner.__ts.axil_ram_wr_ut.bram_out_if.we[3:0]
+(3)testrunner.__ts.axil_ram_wr_ut.bram_out_if.we[3:0]
+@1401200
+-group_end
+@1000200
+-bram_if
+[pattern_trace] 1
+[pattern_trace] 0
