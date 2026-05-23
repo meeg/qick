@@ -12,4 +12,5 @@
 #   2. Order matters: depends on hierarchy (include children before parents) 
 #   3. For VHDL with libraries: firmware/src/my_pkg.vhd works 
 # Set 'sources_1' fileset object
-hdl/vect2bits_16.v
+#hdl/lo_spi_mux.sv
+#hdl/vect2bits_16.v
