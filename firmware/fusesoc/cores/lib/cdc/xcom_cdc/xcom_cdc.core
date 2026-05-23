@@ -8,7 +8,7 @@ filesets:
       - hdl/xcom_cdc.sv
     file_type: systemVerilogSource
     depend:
-      - qick:utils:qick_pkg
+      - qick:pkg:qick_pkg
       - qick:cdc:synchronizer
       - qick:utils:wide_en_signal
 

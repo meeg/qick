@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """
 Package QICK RTL into a Vivado IP (component.xml + xgui/).
-Can be called standalone or via FuseSoC generator interface.
 
-Supports:
-    - Automatic collection of RTL from dependencies
-    - Flattened source tree in ip/<ip_name>/src/
-    - Library resolution from fusesoc/cores/lib/
+Automatically resolves all dependencies recursively from the .core file
+and copies all RTL sources from rtl_lib/ to ip/<ip_name>/src/
 
 Usage:
-    python3 ip_packager.py --ip-name <name> [options]
-    python3 ip_packager.py --core-file <path/to/ip.core>
+    python3 ip_packager.py --ip-name xcom
 """
 import os
 import sys
@@ -32,36 +28,12 @@ def find_firmware_root(start: Path) -> Path:
     raise RuntimeError("Could not find firmware root (directory with ip/ and Hog/)")
 
 
-def find_fusesoc_cores_root(firmware_root: Path) -> Path:
-    """Find the fusesoc/cores directory."""
-    return firmware_root / "fusesoc" / "cores"
-
-
-def collect_dependencies(core_name: str, cores_root: Path, collected: set = None) -> set:
-    """
-    Recursively collect all dependency cores for a given core.
-    Returns a set of core names (e.g., 'qick:axi:axil_slv').
-    """
-    if collected is None:
-        collected = set()
-    
-    core_file = find_core_file(core_name, cores_root)
-    if not core_file:
-        return collected
-    
-    # Parse core file to find dependencies
-    import yaml
-    with open(core_file) as f:
-        core_data = yaml.safe_load(f)
-    
-    # Check for dependencies in CAPI2 format
-    if 'depend' in core_data:
-        for dep in core_data['depend']:
-            if dep not in collected:
-                collected.add(dep)
-                collect_dependencies(dep, cores_root, collected)
-    
-    return collected
+def parse_core_name(core_name: str):
+    """Parse core name like 'qick:ip:xcom' into (vendor, category, name)."""
+    parts = core_name.split(':')
+    if len(parts) >= 3:
+        return parts[0], parts[1], parts[2]
+    return None, None, None
 
 
 def find_core_file(core_name: str, cores_root: Path) -> Path | None:
@@ -69,25 +41,25 @@ def find_core_file(core_name: str, cores_root: Path) -> Path | None:
     Find the .core file for a given core name.
     Supports names like 'qick:ip:xcom', 'qick:axi:axil_slv', etc.
     """
-    # Convert namespace to path: qick:ip:xcom -> ip/xcom
-    parts = core_name.split(':')
-    if len(parts) >= 3:
-        # qick:ip:xcom -> ip/xcom
-        # qick:axi:axil_slv -> lib/axi/axil_slv
-        if parts[1] == 'ip':
-            core_path = cores_root / 'ip' / parts[2]
-        else:
-            core_path = cores_root / 'lib' / parts[1] / parts[2]
-    else:
-        # Fallback: search
-        core_path = cores_root / core_name.replace(':', '_')
+    vendor, category, name = parse_core_name(core_name)
     
-    core_file = core_path / f"{core_path.name}.core"
+    if category == 'ip':
+        core_path = cores_root / 'ip' / name
+    elif category == 'common':
+        core_path = cores_root / 'common' / name
+    elif category == 'pkg':
+        core_path = cores_root / 'pkg' / name
+    elif category:
+        core_path = cores_root / 'lib' / category / name
+    else:
+        return None
+    
+    core_file = core_path / f"{name}.core"
     if core_file.exists():
         return core_file
     
-    # Search recursively
-    for core_file in cores_root.rglob(f"*.core"):
+    # Search recursively as fallback
+    for core_file in cores_root.rglob("*.core"):
         try:
             import yaml
             with open(core_file) as f:
@@ -100,58 +72,124 @@ def find_core_file(core_name: str, cores_root: Path) -> Path | None:
     return None
 
 
-def get_rtl_sources_from_core(core_name: str, cores_root: Path) -> list:
+def read_core_dependencies_recursive(core_name: str, cores_root: Path, visited: set = None) -> set:
     """
-    Get all RTL source files from a core and its dependencies.
-    Returns list of (source_path, destination_filename) tuples.
+    Recursively read all dependencies from .core file (DFS).
+    Returns a set of all dependency core names.
     """
-    sources = []
+    if visited is None:
+        visited = set()
     
-    # Find the core directory
-    parts = core_name.split(':')
-    if len(parts) >= 3:
-        if parts[1] == 'ip':
-            core_dir = cores_root / 'ip' / parts[2]
-        else:
-            core_dir = cores_root / 'lib' / parts[1] / parts[2]
-    else:
-        core_dir = cores_root / core_name.replace(':', '_')
+    if core_name in visited:
+        return visited
     
-    # Look for hdl symlink or directory
-    hdl_dir = core_dir / 'hdl'
-    if not hdl_dir.exists():
-        hdl_dir = core_dir / 'src'
+    visited.add(core_name)
     
-    if hdl_dir.exists():
-        # Collect all RTL files
-        for ext in ['.sv', '.v', '.vhd', '.vhdl']:
-            for f in hdl_dir.glob(f"*{ext}"):
-                if not f.name.startswith('tb_') and 'test' not in str(f):
-                    # Use filename as destination (flatten)
-                    sources.append((f, f.name))
+    core_file = find_core_file(core_name, cores_root)
+    if not core_file:
+        # Skip missing core files (like sim_base, lint, etc. - they don't have RTL)
+        return visited
     
-    return sources
+    import yaml
+    try:
+        with open(core_file) as f:
+            core_data = yaml.safe_load(f)
+    except Exception:
+        return visited
+    
+    # Check for dependencies in filesets
+    if 'filesets' in core_data:
+        for fileset_name, fileset in core_data['filesets'].items():
+            if isinstance(fileset, dict) and 'depend' in fileset:
+                for dep in fileset['depend']:
+                    if dep not in visited:
+                        read_core_dependencies_recursive(dep, cores_root, visited)
+    
+    return visited
 
 
-def resolve_dependencies(core_name: str, cores_root: Path) -> dict:
+def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Path | None:
     """
-    Resolve all dependencies for a core and return collected RTL sources.
+    Resolve RTL file path for a dependency from rtl_lib/.
+    Example: qick:axi:xcom_axil_slv -> rtl_lib/axi/xcom_axil_slv.sv
+    """
+    vendor, category, name = parse_core_name(dep_name)
+    
+    if not category:
+        return None
+    
+    # Skip common and pkg categories (they don't have RTL)
+    if category in ['common', 'pkg']:
+        return None
+    
+    # Look for the RTL file in rtl_lib/<category>/<name>.sv
+    rtl_file = rtl_lib_root / category / f"{name}.sv"
+    if rtl_file.exists():
+        return rtl_file
+    
+    # Also try with .v extension
+    rtl_file = rtl_lib_root / category / f"{name}.v"
+    if rtl_file.exists():
+        return rtl_file
+    
+    return None
+
+
+def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: Path) -> dict:
+    """
+    Collect all RTL sources for an IP core and its recursive dependencies.
     Returns dict mapping source_path -> destination_filename.
     """
     all_sources = {}
     
-    # Get the main core's sources
-    main_sources = get_rtl_sources_from_core(core_name, cores_root)
-    for src, dst in main_sources:
-        all_sources[str(src)] = dst
+    # 1. Get all dependencies recursively
+    print(f"\n  Resolving dependencies recursively...")
+    deps = read_core_dependencies_recursive(ip_core_name, cores_root)
+    # Remove the IP itself from dependencies
+    deps.discard(ip_core_name)
     
-    # Get dependencies
-    deps = collect_dependencies(core_name, cores_root)
-    for dep in deps:
-        dep_sources = get_rtl_sources_from_core(dep, cores_root)
-        for src, dst in dep_sources:
-            if dst not in all_sources.values():
-                all_sources[str(src)] = dst
+    # Filter out common/pkg dependencies (they don't have RTL)
+    rtl_deps = [d for d in deps if not d.startswith('qick:common:') and not d.startswith('qick:pkg:')]
+    
+    print(f"  Found {len(rtl_deps)} RTL dependency(ies):")
+    for dep in sorted(rtl_deps):
+        print(f"    - {dep}")
+    
+    # 2. Resolve RTL for each dependency
+    print(f"\n  Resolving RTL files from rtl_lib/...")
+    for dep in rtl_deps:
+        rtl_file = resolve_rtl_from_dependency(dep, rtl_lib_root)
+        if rtl_file and rtl_file.exists():
+            if rtl_file.name not in all_sources.values():
+                all_sources[str(rtl_file)] = rtl_file.name
+                print(f"    {dep} -> {rtl_file.name}")
+        else:
+            print(f"    !  RTL not found for: {dep}")
+    
+    # 3. Get the main IP RTL
+    vendor, category, name = parse_core_name(ip_core_name)
+    
+    # Look for main IP RTL in various locations
+    possible_locations = [
+        rtl_lib_root / 'ip' / f"{name}.sv",           # rtl_lib/ip/xcom.sv
+        rtl_lib_root / 'ip' / name / f"{name}.sv",    # rtl_lib/ip/xcom/xcom.sv
+        rtl_lib_root / f"{name}.sv",                   # rtl_lib/xcom.sv
+    ]
+    
+    print(f"\n  Looking for main IP RTL...")
+    main_rtl = None
+    for loc in possible_locations:
+        if loc.exists():
+            main_rtl = loc
+            print(f"    Found: {loc}")
+            break
+    
+    if main_rtl:
+        if main_rtl.name not in all_sources.values():
+            all_sources[str(main_rtl)] = main_rtl.name
+    else:
+        print(f"    ! Main IP RTL not found in any expected location")
+        print(f"    Expected: {rtl_lib_root}/ip/{name}.sv")
     
     return all_sources
 
@@ -170,7 +208,6 @@ def collect_hdl_files(src_dir: Path) -> list:
         if not p.is_file():
             continue
 
-        # exclude directories
         rel_path = p.relative_to(src_dir)
         if any(part in exclude_dirs for part in rel_path.parts):
             continue
@@ -184,10 +221,9 @@ def collect_hdl_files(src_dir: Path) -> list:
         if any(p.name.endswith(x) for x in exclude_suffix):
             continue
 
-        # use relative path
         files.append(str(rel_path))
 
-    return files
+    return sorted(files)
 
 
 def collect_xci_files(src_dir: Path) -> list:
@@ -206,29 +242,27 @@ def collect_ooc_xdc(src_dir: Path) -> list:
     return [p.name for p in src_dir.glob("*_ooc.xdc")]
 
 
-def copy_dependency_sources(ip_dir: Path, sources: dict):
+def copy_rtl_sources(ip_dir: Path, sources: dict):
     """
-    Copy all resolved dependency sources to ip/<ip_name>/src/
-    Returns list of copied filenames (relative to src_dir).
+    Copy all resolved RTL sources to ip/<ip_name>/src/
     """
     src_dir = ip_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
     
+    print(f"\n  Copying to: {src_dir}")
     copied_files = []
+    
     for src_path, dst_name in sources.items():
         src_path = Path(src_path)
         dst_path = src_dir / dst_name
         
-        # Copy file, skip if already exists and identical
-        if dst_path.exists():
-            with open(src_path, 'rb') as f1, open(dst_path, 'rb') as f2:
-                if f1.read() == f2.read():
-                    copied_files.append(dst_name)
-                    continue
+        if not src_path.exists():
+            print(f"    !  Source not found: {src_path}")
+            continue
         
         shutil.copy2(src_path, dst_path)
         copied_files.append(dst_name)
-        print(f"  Copied: {src_path.name} -> {dst_path}")
+        print(f"    Copied: {src_path.name}")
     
     return copied_files
 
@@ -255,7 +289,12 @@ def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
         print(f"[dry-run] TCL script written to: {tcl_script}")
         return
 
-    rc = subprocess.call(["vivado", "-mode", "batch", "-source", str(tcl_script)])
+    try:
+        rc = subprocess.call(["vivado", "-mode", "batch", "-source", str(tcl_script)])
+    except FileNotFoundError:
+        print("\n Vivado not found in PATH. Make sure Vivado is installed and sourced.")
+        print("   source /path/to/Xilinx/Vivado/2023.1/settings64.sh")
+        sys.exit(1)
 
     # Cleanup Vivado logs
     for pattern in ("vivado*.log", "vivado*.jou", ".Xil", ".*_pid*"):
@@ -271,10 +310,10 @@ def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
     tcl_script.unlink(missing_ok=True)
 
     if rc != 0:
-        print(f"\nERROR: Vivado failed (exit code {rc})", file=sys.stderr)
+        print(f"\n Vivado failed with exit code {rc}", file=sys.stderr)
         sys.exit(rc)
 
-    print(f"\n✓ IP packaged successfully")
+    print(f"\n IP packaged successfully")
     print(f"  {cfg['ip_dir']}/component.xml")
     print(f"  {cfg['ip_dir']}/xgui/\n")
     print(f"Next steps:")
@@ -283,49 +322,67 @@ def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
 
 
 def run_standalone(args):
-    script_dir   = Path(__file__).parent
+    script_dir = Path(__file__).parent
     firmware_dir = find_firmware_root(script_dir)
-    cores_root   = find_fusesoc_cores_root(firmware_dir)
-    ip_name      = args.ip_name
-    src_dir      = firmware_dir / "ip" / ip_name / "src"
-    ip_dir       = firmware_dir / "ip" / ip_name
-
-    # Resolve dependencies and copy sources
-    if args.resolve_deps:
-        print(f"Resolving dependencies for {ip_name}...")
-        core_name = f"qick:ip:{ip_name}"
-        sources = resolve_dependencies(core_name, cores_root)
-        
-        if sources:
-            print(f"Found {len(sources)} source files from dependencies:")
-            copied = copy_dependency_sources(ip_dir, sources)
-            print(f"Copied {len(copied)} files to {src_dir}")
+    cores_root = firmware_dir / "fusesoc" / "cores"
+    rtl_lib_root = firmware_dir / "rtl_lib"
+    ip_name = args.ip_name
+    ip_dir = firmware_dir / "ip" / ip_name
+    src_dir = ip_dir / "src"
     
-    # Collect all RTL files from src_dir (including copied dependencies)
+    # Core name for resolution
+    core_name = f"qick:ip:{ip_name}"
+    
+    print(f"   Packaging IP: {core_name}")
+    print(f"   Firmware: {firmware_dir}")
+    print(f"   RTL lib:  {rtl_lib_root}")
+    print(f"   Cores:    {cores_root}")
+    
+    # ALWAYS resolve dependencies recursively
+    print(f"\n Resolving dependencies from .core file...")
+    
+    sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
+    
+    if sources:
+        print(f"\n  Total RTL files found: {len(sources)}")
+        copied = copy_rtl_sources(ip_dir, sources)
+        print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
+    else:
+        print(f"  !  No RTL sources found for {core_name}")
+    
+    # Verify source directory exists
     if not src_dir.is_dir():
-        print(f"ERROR: Source directory not found: {src_dir}", file=sys.stderr)
+        print(f" Source directory not found: {src_dir}", file=sys.stderr)
         sys.exit(1)
 
-    hdl_files    = args.hdl_files or collect_hdl_files(src_dir)
-    xci_files    = args.xci_files or collect_xci_files(src_dir)
-    ooc_xdc      = args.ooc_xdc   or collect_ooc_xdc(src_dir)
+    # Collect RTL files from src_dir
+    hdl_files = args.hdl_files or collect_hdl_files(src_dir)
+    xci_files = args.xci_files or collect_xci_files(src_dir)
+    ooc_xdc = args.ooc_xdc or collect_ooc_xdc(src_dir)
 
     if not hdl_files:
-        print(f"ERROR: No RTL files found in {src_dir}", file=sys.stderr)
+        print(f" No RTL files found in {src_dir}", file=sys.stderr)
         sys.exit(1)
 
+    print(f"\n Found {len(hdl_files)} RTL file(s) to package:")
+    for f in hdl_files[:5]:
+        print(f"     - {f}")
+    if len(hdl_files) > 5:
+        print(f"     ... and {len(hdl_files) - 5} more")
+
+    # Prepare configuration for template
     cfg = {
-        "module_name":   args.module_name or ip_name,
-        "version":       args.version,
-        "vendor":        args.vendor,
-        "library":       args.library,
-        "display_name":  args.display_name or ip_name,
-        "description":   args.description,
-        "part":          args.part,
-        "ip_dir":        str(ip_dir.resolve()),
-        "src_dir":       str(src_dir.resolve()),
-        "hdl_files":     hdl_files,
-        "xci_files":     xci_files,
+        "module_name": args.module_name or ip_name,
+        "version": args.version,
+        "vendor": args.vendor,
+        "library": args.library,
+        "display_name": args.display_name or ip_name,
+        "description": args.description,
+        "part": args.part,
+        "ip_dir": str(ip_dir.resolve()),
+        "src_dir": str(src_dir.resolve()),
+        "hdl_files": hdl_files,
+        "xci_files": xci_files,
         "ooc_xdc_files": ooc_xdc,
         "clock_domains": {},
     }
@@ -333,8 +390,8 @@ def run_standalone(args):
     top = args.module_name or ip_name
     top_file_candidates = [f for f in hdl_files if Path(f).stem == top]
     if not top_file_candidates:
-        print(f"WARNING: No HDL file matches top module '{top}'")
-        print(f"  Available files: {[Path(f).stem for f in hdl_files]}")
+        print(f"!  WARNING: No HDL file matches top module '{top}'")
+        print(f"   Available tops: {[Path(f).stem for f in hdl_files]}")
 
     render_and_run(cfg, script_dir, dry_run=args.dry_run)
 
@@ -343,83 +400,33 @@ def main():
     parser = argparse.ArgumentParser(
         description="Package QICK RTL into a Vivado IP (component.xml + xgui/)"
     )
-    parser.add_argument("--ip-name",      required=True,
-                        help="IP directory name under ip/ (e.g. qick_processor)")
-    parser.add_argument("--module-name",  default=None,
+    parser.add_argument("--ip-name", required=True,
+                        help="IP directory name under ip/ (e.g., xcom)")
+    parser.add_argument("--module-name", default=None,
                         help="Top-level module name if different from ip-name")
-    parser.add_argument("--version",      default="1.0",
+    parser.add_argument("--version", default="1.0",
                         help="IP version string (default: 1.0)")
-    parser.add_argument("--vendor",       default="qick")
-    parser.add_argument("--library",      default="ip")
+    parser.add_argument("--vendor", default="qick",
+                        help="Vendor name (default: qick)")
+    parser.add_argument("--library", default="ip",
+                        help="Library name (default: ip)")
     parser.add_argument("--display-name", default=None,
                         help="Human-readable name in Vivado catalog")
-    parser.add_argument("--description",  default="")
-    parser.add_argument("--part",         default="xczu49dr-ffvf1760-2-e",
+    parser.add_argument("--description", default="",
+                        help="IP description")
+    parser.add_argument("--part", default="xczu49dr-ffvf1760-2-e",
                         help="Target FPGA part for IP inference")
-    parser.add_argument("--hdl-files",    nargs="*", default=None,
+    parser.add_argument("--hdl-files", nargs="*", default=None,
                         help="RTL files to include (auto-discovered if omitted)")
-    parser.add_argument("--xci-files",    nargs="*", default=None,
+    parser.add_argument("--xci-files", nargs="*", default=None,
                         help="Xilinx sub-IP .xci files (auto-discovered if omitted)")
-    parser.add_argument("--ooc-xdc",      nargs="*", default=None,
+    parser.add_argument("--ooc-xdc", nargs="*", default=None,
                         help="Out-of-context XDC files (auto-discovered if omitted)")
-    parser.add_argument("--resolve-deps", action="store_true",
-                        help="Resolve and copy dependencies from fusesoc/cores/")
-    parser.add_argument("--dry-run",      action="store_true",
+    parser.add_argument("--dry-run", action="store_true",
                         help="Generate TCL but do not run Vivado")
 
     args = parser.parse_args()
     run_standalone(args)
-
-
-# ── FuseSoC Generator interface ──────────────────────────────
-try:
-    from fusesoc.capi2.generator import Generator
-
-    class IPPackagerGenerator(Generator):
-        def run(self):
-            script_dir = Path(__file__).parent
-            firmware_dir = find_firmware_root(script_dir)
-            cores_root = find_fusesoc_cores_root(firmware_dir)
-            
-            cfg = self.config
-            files_root = Path(self.files_root)
-            core_name = cfg.get("name", files_root.name)
-            
-            # Resolve dependencies and copy sources
-            if cfg.get("resolve_deps", True):
-                sources = resolve_dependencies(core_name, cores_root)
-                ip_dir = firmware_dir / "ip" / files_root.name
-                copy_dependency_sources(ip_dir, sources)
-            
-            # Use the core's hdl directory as source
-            src_dir = files_root / "hdl"
-            ip_dir = firmware_dir / "ip" / files_root.name
-            
-            render_cfg = {
-                "module_name":   cfg.get("module_name",  files_root.name),
-                "version":       cfg.get("version",      "1.0"),
-                "vendor":        cfg.get("vendor",       "qick"),
-                "library":       cfg.get("library",      "ip"),
-                "display_name":  cfg.get("display_name", cfg.get("module_name", files_root.name)),
-                "description":   cfg.get("description",  ""),
-                "part":          cfg.get("part",         "xczu49dr-ffvf1760-2-e"),
-                "ip_dir":        str(ip_dir.resolve()),
-                "src_dir":       str(src_dir.resolve()),
-                "hdl_files":     cfg.get("hdl_files",    []),
-                "xci_files":     cfg.get("xci_files",    []),
-                "ooc_xdc_files": cfg.get("ooc_xdc_files", []),
-                "clock_domains": cfg.get("clock_domains", {}),
-            }
-            
-            # Auto-discover hdl_files if not specified
-            if not render_cfg["hdl_files"] and src_dir.exists():
-                render_cfg["hdl_files"] = collect_hdl_files(src_dir)
-            
-            render_and_run(render_cfg, script_dir)
-            self.add_files([])
-
-except ImportError:
-    pass
 
 
 if __name__ == "__main__":

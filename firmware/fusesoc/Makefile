@@ -1,39 +1,36 @@
-# Package xcom without resolving dependencies (uses what is already in ip/xcom/src/)
-#make package IP=xcom
+# ============================================================================
+# QICK FuseSoC Makefile
+# ============================================================================
 #
-## Package xcom while resolving dependencies from fusesoc/cores/lib/
-#make package IP=xcom RESOLVE_DEPS=1
+# Usage examples:
+#   make package IP=xcom                    # Package IP (always resolves deps)
+#   make package IP=xcom VERSION=2.0        # Package with specific version
+#   make package-all                        # Package all IPs
+#   make sim IP=xcom                        # Simulate IP
+#   make lint IP=xcom                       # Lint IP
+#   make list-cores                         # List all available cores
+#   make core-info CORE=qick:ip:xcom        # Show core info
+#   make deps IP=xcom                       # Show dependencies
 #
-## Use the shortcut
-#make package-full IP=xcom VERSION=2.0
-#
-## Package all IPs
-#make package-all
-#
-# View core info
-#make core-info IP=xcom
-#
-# View recursive dependencies
-#make deps-recursive IP=xcom
-#
-## View xcom dependencies
-#make deps IP=xcom
-#
-## List all available cores
-#make list-cores
-
+# ============================================================================
 
 FUSESOC_CORES := --cores-root cores \
                  --cores-root projects \
                  --cores-root common \
                  --cores-root generators
 
+# ----------------------------------------------------------------------------
+# Environment Setup
+# ----------------------------------------------------------------------------
 setup_environment:
 	git submodule init && git submodule update
 	bash scripts/utils/build_virtualenv.sh
 	bash scripts/utils/build_fusesocenv.sh
 	bash scripts/utils/create_symlinks.sh
 
+# ----------------------------------------------------------------------------
+# Simulation and Testing
+# ----------------------------------------------------------------------------
 sim_svunit: clean
 	mkdir -p report_pytest
 	. venv/bin/activate; \
@@ -49,19 +46,20 @@ lint:
 	. venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) run --target lint $(IP)
 
-# Package an IP for Vivado Block Design
-# Usage: make package IP=<ip_name> [VERSION=1.0] [PART=xczu49dr-ffvf1760-2-e] [RESOLVE_DEPS=1]
-# Example: make package IP=xcom VERSION=2.0 RESOLVE_DEPS=1
+# ----------------------------------------------------------------------------
+# IP Packaging (always resolves dependencies from rtl_lib/)
+# ----------------------------------------------------------------------------
 package:
 	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make package IP=<ip_name> [VERSION=1.0] [PART=xczu49dr-ffvf1760-2-e] [RESOLVE_DEPS=1]"; \
+		echo " Usage: make package IP=<ip_name> [VERSION=1.0] [PART=<part>]"; \
 		echo ""; \
 		echo "Examples:"; \
 		echo "  make package IP=xcom"; \
 		echo "  make package IP=xcom VERSION=2.0"; \
-		echo "  make package IP=xcom RESOLVE_DEPS=1  # Copy dependencies from fusesoc/cores/lib/"; \
+		echo "  make package IP=xcom PART=xczu28dr-ffvg1517-2-e"; \
 		exit 1; \
 	fi
+	@echo " Packaging IP: $(IP)"
 	. venv/bin/activate; \
 	mkdir -p build/package_$(IP); \
 	cd build/package_$(IP) && \
@@ -69,33 +67,24 @@ package:
 		--ip-name    $(IP) \
 		--version    $(or $(VERSION),1.0) \
 		--part       $(or $(PART),xczu49dr-ffvf1760-2-e) \
-		--display-name "$(or $(DISPLAY_NAME),$(IP))" \
-		$(if $(RESOLVE_DEPS),--resolve-deps)
+		--display-name "$(or $(DISPLAY_NAME),$(IP))"
 
-# Package an IP and automatically resolve dependencies (shortcut)
-package-full:
-	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make package-full IP=<ip_name> [VERSION=1.0]"; \
-		exit 1; \
-	fi
-	$(MAKE) package IP=$(IP) VERSION=$(VERSION) RESOLVE_DEPS=1
-
-# Package all IPs that have a .core file in cores/ip/
+# Package all IPs found in cores/ip/
 package-all:
-	@echo "Packaging all IPs in cores/ip/..."
+	@echo " Packaging all IPs in cores/ip/..."
 	@for ip_dir in cores/ip/*/; do \
 		ip=$$(basename $$ip_dir); \
 		echo ""; \
 		echo "=== Packaging $$ip ==="; \
-		$(MAKE) package IP=$$ip RESOLVE_DEPS=1; \
+		$(MAKE) package IP=$$ip; \
 	done
 	@echo ""
-	@echo "All IPs packaged successfully!"
+	@echo " All IPs packaged successfully!"
 
 # Dry-run: generate TCL without running Vivado
 package-dry:
 	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make package-dry IP=<ip_name>"; \
+		echo " Usage: make package-dry IP=<ip_name>"; \
 		exit 1; \
 	fi
 	. venv/bin/activate; \
@@ -103,50 +92,44 @@ package-dry:
 	cd build/package_$(IP) && \
 	python3 ../../generators/ip_gen/ip_packager.py \
 		--ip-name $(IP) \
-		--dry-run \
-		$(if $(RESOLVE_DEPS),--resolve-deps)
+		--dry-run
 
+# ----------------------------------------------------------------------------
+# Cleanup
+# ----------------------------------------------------------------------------
 clean:
 	rm -rf build report_pytest vivado* .Xil .fusesoc_libraries
 
-# Show dependency tree recursively for an IP
-deps-recursive:
-	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make deps-recursive IP=<ip_name>"; \
-		exit 1; \
-	fi
-	. venv/bin/activate; \
-	@echo "=== Dependencies for qick:ip:$(IP) ==="; \
-	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) | grep -E "depend|depends" -A 20 || true
-
-# List all available cores
+# ----------------------------------------------------------------------------
+# Core Information and Inspection
+# ----------------------------------------------------------------------------
 list-cores:
 	. venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) list-cores
 
-# Show core info
 core-info:
 	@if [ -z "$(CORE)" ]; then \
-		echo "Usage: make core-info CORE=<core_name>"; \
+		echo " Usage: make core-info CORE=<core_name>"; \
 		echo "Example: make core-info CORE=qick:ip:xcom"; \
 		exit 1; \
 	fi
 	. venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) core-info $(CORE)
 
-# Show dependency tree
 deps:
 	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make deps IP=<ip_name>"; \
+		echo " Usage: make deps IP=<ip_name>"; \
+		echo "Example: make deps IP=xcom"; \
 		exit 1; \
 	fi
 	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) | grep -A 30 "Dependencies:"
+	echo "=== Dependencies for qick:ip:$(IP) ==="; \
+	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) 2>&1 | grep -E "depend|depends" -A 20 || \
+	echo "No dependencies found or core not found"
 
-# Verify core structure
 verify-core:
 	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make verify-core IP=<ip_name>"; \
+		echo " Usage: make verify-core IP=<ip_name>"; \
 		exit 1; \
 	fi
 	@echo "=== Verifying core: qick:ip:$(IP) ==="
@@ -155,10 +138,20 @@ verify-core:
 	else \
 		echo " Core directory missing: cores/ip/$(IP)"; \
 	fi
-	@if [ -d "../ip/$(IP)/src" ]; then \
-		echo " IP source directory exists: ../ip/$(IP)/src"; \
+	@if [ -f "cores/ip/$(IP)/$(IP).core" ]; then \
+		echo " Core file exists: cores/ip/$(IP)/$(IP).core"; \
 	else \
-		echo "!  IP source directory missing: ../ip/$(IP)/src (run make package first)"; \
+		echo " Core file missing: cores/ip/$(IP)/$(IP).core"; \
+	fi
+	@if [ -d "../rtl_lib/ip/$(IP)" ]; then \
+		echo " RTL source exists: ../rtl_lib/ip/$(IP)/"; \
+	else \
+		echo "  RTL source missing: ../rtl_lib/ip/$(IP)/ (create it!)"; \
+	fi
+	@if [ -d "../ip/$(IP)/src" ]; then \
+		echo " Packaged IP source exists: ../ip/$(IP)/src"; \
+	else \
+		echo "  IP not packaged yet (run 'make package IP=$(IP)')"; \
 	fi
 	@echo ""
 	@echo "=== Dependencies ==="
