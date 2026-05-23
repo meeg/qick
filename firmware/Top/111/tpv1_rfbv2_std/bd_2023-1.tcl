@@ -173,7 +173,7 @@ xilinx.com:ip:zynq_ultra_ps_e:3.5\
 ##################################################################
 # CHECK Modules
 ##################################################################
-set bCheckModules 1
+set bCheckModules 0
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 lo_spi_mux_v2\

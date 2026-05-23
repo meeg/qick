@@ -3,14 +3,6 @@ if { [info exists ::origin_dir_loc] } {
   set origin_dir $::origin_dir_loc
 }
 
-set fw_dir [file normalize "$origin_dir/../../.."]
-
-# Add HDL sources BEFORE sourcing the BD TCL
-# The BD TCL checks for these modules at creation time
-set obj [get_filesets sources_1]
-add_files -norecurse -fileset $obj [file normalize "$fw_dir/hdl/lo_spi_mux.sv"]
-add_files -norecurse -fileset $obj [file normalize "$fw_dir/hdl/vect2bits_16.v"]
-
 # Source the Block Design TCL
 source [file normalize "$origin_dir/bd_2023-1.tcl"]
 
