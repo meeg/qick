@@ -1,3 +1,20 @@
+///////////////////////////////////////////////////////////////////////////////
+// vim:set shiftwidth=3 softtabstop=3 expandtab:
+//
+// Fermi National Accelerator Laboratory
+//
+// Module: sync_nxm.sv
+// Project: QICK
+// Description: N-stage, M-bit data synchronizer.
+// This block is intended to use to sync gray coded vectors. 
+// NOTE: Do not use with generic vector data, as it may result 
+// in corrupted re-sync data.
+
+// Change history: 04/29/25 - Created by @lharnaldi
+//
+//////////////////////////////////////////////////////////////////////////
+
+
 module sync_nxm#(
     parameter int N = 2,  // number of stages
     parameter int M = 8   // data width
