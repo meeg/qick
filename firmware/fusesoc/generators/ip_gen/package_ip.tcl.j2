@@ -85,6 +85,43 @@ set_property type xdc \
             -of_objects [ipx::current_core]]]
 {% endfor %}
 
+# ── Create utility view and add logo ─────────────────────────
+# ── Create utility view and add logo ─────────────────────────
+{% if has_logo %}
+set logo_path [file normalize ${ip_dir}/../../common_ip_files/ip_logos/logoQICK_128x128.png]
+if { [file exists $logo_path] } {
+    # Create the utility view (ignore if it already exists)
+    catch {
+        set utility_view [ipx::add_view xilinx_utilityxitfiles [ipx::current_core]]
+        set_property display_name "Utility XIT/TTCL" $utility_view
+        set_property envIdentifier ":vivado.xilinx.com:xit.util" $utility_view
+        set_property language "SystemVerilog" $utility_view
+        set_property model_name [get_property name [ipx::current_core]] $utility_view
+    }
+    
+    # Create the file group (ignore if it already exists)
+    catch {
+        set logo_fg [ipx::add_file_group xilinx_utilityxitfiles [ipx::current_core]]
+    }
+    
+    # Add file set reference (ignore if it already exists)
+    catch {
+        set utility_view [ipx::get_views -of_objects [ipx::current_core] xilinx_utilityxitfiles]
+        ipx::add_file_set_ref xilinx_utilityxitfiles $utility_view
+    }
+    
+    # Add the logo file (ignore if it already exists)
+    catch {
+        set logo_fg [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
+        ipx::add_file $logo_path $logo_fg
+        set_property user_file_type LOGO [ipx::get_files $logo_path -of_objects $logo_fg]
+    }
+    puts "  Logo added: ../../common_ip_files/ip_logos/logoQICK_128x128.png"
+} else {
+    puts "  WARNING: Logo file not found at $logo_path"
+}
+{% endif %}
+
 # ── Save component.xml to ip_dir ─────────────────────────────
 set_property core_revision 1 [ipx::current_core]
 ipx::create_xgui_files       [ipx::current_core]

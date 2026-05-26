@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
 Package QICK RTL into a Vivado IP (component.xml + xgui/).
-
 Automatically resolves all dependencies recursively from the .core file
 and copies all RTL sources from rtl_lib/ to ip/<ip_name>/src/
-
 Usage:
     python3 ip_packager.py --ip-name xcom
 """
@@ -17,16 +15,14 @@ import shutil
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-
 def find_firmware_root(start: Path) -> Path:
     """Walk up from start until we find the firmware/ directory."""
     p = start.resolve()
     while p != p.parent:
-        if (p / "ip").is_dir() and (p / "Hog").is_dir():
+        if (p / "ip").is_dir() and (p / "common_ip_files").is_dir():
             return p
         p = p.parent
-    raise RuntimeError("Could not find firmware root (directory with ip/ and Hog/)")
-
+    raise RuntimeError("Could not find firmware root (directory with ip/ and common_ip_files/)")
 
 def parse_core_name(core_name: str):
     """Parse core name like 'qick:ip:xcom' into (vendor, category, name)."""
@@ -35,14 +31,12 @@ def parse_core_name(core_name: str):
         return parts[0], parts[1], parts[2]
     return None, None, None
 
-
 def find_core_file(core_name: str, cores_root: Path) -> Path | None:
     """
     Find the .core file for a given core name.
     Supports names like 'qick:ip:xcom', 'qick:axi:axil_slv', etc.
     """
     vendor, category, name = parse_core_name(core_name)
-    
     if category == 'ip':
         core_path = cores_root / 'ip' / name
     elif category == 'common':
@@ -53,11 +47,9 @@ def find_core_file(core_name: str, cores_root: Path) -> Path | None:
         core_path = cores_root / 'lib' / category / name
     else:
         return None
-    
     core_file = core_path / f"{name}.core"
     if core_file.exists():
         return core_file
-    
     # Search recursively as fallback
     for core_file in cores_root.rglob("*.core"):
         try:
@@ -68,9 +60,7 @@ def find_core_file(core_name: str, cores_root: Path) -> Path | None:
                     return core_file
         except:
             continue
-    
     return None
-
 
 def read_core_dependencies_recursive(core_name: str, cores_root: Path, visited: set = None) -> set:
     """
@@ -79,24 +69,19 @@ def read_core_dependencies_recursive(core_name: str, cores_root: Path, visited: 
     """
     if visited is None:
         visited = set()
-    
     if core_name in visited:
         return visited
-    
     visited.add(core_name)
-    
     core_file = find_core_file(core_name, cores_root)
     if not core_file:
         # Skip missing core files (like sim_base, lint, etc. - they don't have RTL)
         return visited
-    
     import yaml
     try:
         with open(core_file) as f:
             core_data = yaml.safe_load(f)
     except Exception:
         return visited
-    
     # Check for dependencies in filesets
     if 'filesets' in core_data:
         for fileset_name, fileset in core_data['filesets'].items():
@@ -104,9 +89,7 @@ def read_core_dependencies_recursive(core_name: str, cores_root: Path, visited: 
                 for dep in fileset['depend']:
                     if dep not in visited:
                         read_core_dependencies_recursive(dep, cores_root, visited)
-    
     return visited
-
 
 def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Path | None:
     """
@@ -114,26 +97,20 @@ def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Path | Non
     Example: qick:axi:xcom_axil_slv -> rtl_lib/axi/xcom_axil_slv.sv
     """
     vendor, category, name = parse_core_name(dep_name)
-    
     if not category:
         return None
-    
     # Skip common and pkg categories (they don't have RTL)
     if category in ['common', 'pkg']:
         return None
-    
     # Look for the RTL file in rtl_lib/<category>/<name>.sv
     rtl_file = rtl_lib_root / category / f"{name}.sv"
     if rtl_file.exists():
         return rtl_file
-    
     # Also try with .v extension
     rtl_file = rtl_lib_root / category / f"{name}.v"
     if rtl_file.exists():
         return rtl_file
-    
     return None
-
 
 def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: Path) -> dict:
     """
@@ -141,20 +118,16 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     Returns dict mapping source_path -> destination_filename.
     """
     all_sources = {}
-    
     # 1. Get all dependencies recursively
     print(f"\n  Resolving dependencies recursively...")
     deps = read_core_dependencies_recursive(ip_core_name, cores_root)
     # Remove the IP itself from dependencies
     deps.discard(ip_core_name)
-    
     # Filter out common/pkg dependencies (they don't have RTL)
     rtl_deps = [d for d in deps if not d.startswith('qick:common:') and not d.startswith('qick:pkg:')]
-    
     print(f"  Found {len(rtl_deps)} RTL dependency(ies):")
     for dep in sorted(rtl_deps):
         print(f"    - {dep}")
-    
     # 2. Resolve RTL for each dependency
     print(f"\n  Resolving RTL files from rtl_lib/...")
     for dep in rtl_deps:
@@ -165,17 +138,14 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
                 print(f"    {dep} -> {rtl_file.name}")
         else:
             print(f"    !  RTL not found for: {dep}")
-    
     # 3. Get the main IP RTL
     vendor, category, name = parse_core_name(ip_core_name)
-    
     # Look for main IP RTL in various locations
     possible_locations = [
         rtl_lib_root / 'ip' / f"{name}.sv",           # rtl_lib/ip/xcom.sv
         rtl_lib_root / 'ip' / name / f"{name}.sv",    # rtl_lib/ip/xcom/xcom.sv
         rtl_lib_root / f"{name}.sv",                   # rtl_lib/xcom.sv
     ]
-    
     print(f"\n  Looking for main IP RTL...")
     main_rtl = None
     for loc in possible_locations:
@@ -183,35 +153,28 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
             main_rtl = loc
             print(f"    Found: {loc}")
             break
-    
     if main_rtl:
         if main_rtl.name not in all_sources.values():
             all_sources[str(main_rtl)] = main_rtl.name
     else:
         print(f"    ! Main IP RTL not found in any expected location")
         print(f"    Expected: {rtl_lib_root}/ip/{name}.sv")
-    
     return all_sources
-
 
 def collect_hdl_files(src_dir: Path) -> list:
     """Auto-discover RTL files, excluding testbenches and non-synthesizable content."""
     extensions = {".sv", ".v", ".vhd", ".vhdl"}
-
     exclude_dirs   = {"tb", "sim", "testbench", "tests"}
     exclude_prefix = ("tb_", "glbl")
     exclude_suffix = ("_tb.sv", "_tb.v", "_tb.vhd")
     exclude_exact  = {"glbl.v"}
-
     files = []
     for p in src_dir.rglob("*"):
         if not p.is_file():
             continue
-
         rel_path = p.relative_to(src_dir)
         if any(part in exclude_dirs for part in rel_path.parts):
             continue
-
         if p.suffix not in extensions:
             continue
         if p.name in exclude_exact:
@@ -220,11 +183,8 @@ def collect_hdl_files(src_dir: Path) -> list:
             continue
         if any(p.name.endswith(x) for x in exclude_suffix):
             continue
-
         files.append(str(rel_path))
-
     return sorted(files)
-
 
 def collect_xci_files(src_dir: Path) -> list:
     """Find Xilinx sub-IP .xci files, excluding testbench directories."""
@@ -236,11 +196,19 @@ def collect_xci_files(src_dir: Path) -> list:
             xci.append(str(p.relative_to(src_dir)))
     return xci
 
-
 def collect_ooc_xdc(src_dir: Path) -> list:
     """Find out-of-context XDC files."""
     return [p.name for p in src_dir.glob("*_ooc.xdc")]
 
+def find_logo_file(firmware_dir: Path) -> Path | None:
+    """
+    Find the logo file in common_ip_files/ip_logos/
+    Returns None if not found.
+    """
+    logo_path = firmware_dir / "common_ip_files" / "ip_logos" / "logoQICK_128x128.png"
+    if logo_path.exists():
+        return logo_path
+    return None
 
 def copy_rtl_sources(ip_dir: Path, sources: dict):
     """
@@ -248,24 +216,18 @@ def copy_rtl_sources(ip_dir: Path, sources: dict):
     """
     src_dir = ip_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
-    
     print(f"\n  Copying to: {src_dir}")
     copied_files = []
-    
     for src_path, dst_name in sources.items():
         src_path = Path(src_path)
         dst_path = src_dir / dst_name
-        
         if not src_path.exists():
             print(f"    !  Source not found: {src_path}")
             continue
-        
         shutil.copy2(src_path, dst_path)
         copied_files.append(dst_name)
         print(f"    Copied: {src_path.name}")
-    
     return copied_files
-
 
 def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
     """Render the TCL template and run Vivado in batch mode."""
@@ -277,25 +239,21 @@ def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
     template = env.get_template("package_ip.tcl.j2")
     tcl_script = Path("package_ip_run.tcl")
     template.stream(**cfg).dump(str(tcl_script))
-
     print(f"\n{'='*60}")
     print(f"  Packaging IP: {cfg['module_name']} v{cfg['version']}")
     print(f"  Source:       {cfg['src_dir']}")
     print(f"  Output:       {cfg['ip_dir']}/component.xml")
     print(f"{'='*60}\n")
-
     if dry_run:
         print(f"[dry-run] Would execute: vivado -mode batch -source {tcl_script}")
         print(f"[dry-run] TCL script written to: {tcl_script}")
         return
-
     try:
         rc = subprocess.call(["vivado", "-mode", "batch", "-source", str(tcl_script)])
     except FileNotFoundError:
         print("\n Vivado not found in PATH. Make sure Vivado is installed and sourced.")
         print("   source /path/to/Xilinx/Vivado/2023.1/settings64.sh")
         sys.exit(1)
-
     # Cleanup Vivado logs
     for pattern in ("vivado*.log", "vivado*.jou", ".Xil", ".*_pid*"):
         for f in glob.glob(pattern):
@@ -306,13 +264,10 @@ def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
                     os.remove(f)
             except Exception:
                 pass
-
     tcl_script.unlink(missing_ok=True)
-
     if rc != 0:
         print(f"\n Vivado failed with exit code {rc}", file=sys.stderr)
         sys.exit(rc)
-
     print(f"\n IP packaged successfully")
     print(f"  {cfg['ip_dir']}/component.xml")
     print(f"  {cfg['ip_dir']}/xgui/\n")
@@ -320,6 +275,75 @@ def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
     print(f"  1. Commit: git add {cfg['ip_dir']}/")
     print(f"  2. Recreate project: cd .. && ./Hog/Do CREATE <project>\n")
 
+def get_relative_logo_path(ip_dir: Path, firmware_dir: Path) -> str:
+    """Calculate relative path from IP directory to common logo"""
+    logo_abs = firmware_dir / "common_ip_files" / "ip_logos" / "logoQICK_128x128.png"
+    if not logo_abs.exists():
+        return None
+    # Calculate relative path
+    rel_path = os.path.relpath(logo_abs, ip_dir)
+    return rel_path
+
+def add_logo_to_component_xml(ip_dir: Path, firmware_dir: Path) -> bool:
+    """
+    Add logo reference to component.xml after IP packaging.
+    This completely bypasses Vivado's restrictions.
+    """
+    import xml.etree.ElementTree as ET
+    import re
+
+    component_xml = ip_dir / "component.xml"
+    if not component_xml.exists():
+        print(f"  WARNING: component.xml not found")
+        return False
+
+    # Logo path relative to IP directory
+    logo_rel_path = "../../common_ip_files/ip_logos/logoQICK_128x128.png"
+    logo_abs = firmware_dir / "common_ip_files" / "ip_logos" / "logoQICK_128x128.png"
+
+    if not logo_abs.exists():
+        print(f"  WARNING: Logo file not found at {logo_abs}")
+        return False
+
+    try:
+        # Read the file
+        with open(component_xml, 'r') as f:
+            content = f.read()
+
+        # Check if logo already exists
+        if 'xilinx_utilityxitfiles_view_fileset' in content and 'LOGO' in content:
+            print(f"  Logo already present in component.xml")
+            return True
+
+        # Find the closing </spirit:fileSets> tag
+        file_sets_close = '</spirit:fileSets>'
+        if file_sets_close not in content:
+            # Try without namespace
+            file_sets_close = '</fileSets>'
+
+        # Create the logo fileSet XML
+        logo_xml = '''    <spirit:fileSet>
+      <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>''' + logo_rel_path + '''</spirit:name>
+        <spirit:userFileType>LOGO</spirit:userFileType>
+      </spirit:file>
+    </spirit:fileSet>
+  </spirit:fileSets>'''
+
+        # Replace the closing tag with the new content
+        new_content = content.replace(file_sets_close, logo_xml)
+
+        # Write back
+        with open(component_xml, 'w') as f:
+            f.write(new_content)
+
+        print(f"  Logo added to component.xml: {logo_rel_path}")
+        return True
+
+    except Exception as e:
+        print(f"  ERROR: {e}")
+        return False
 
 def run_standalone(args):
     script_dir = Path(__file__).parent
@@ -329,47 +353,49 @@ def run_standalone(args):
     ip_name = args.ip_name
     ip_dir = firmware_dir / "ip" / ip_name
     src_dir = ip_dir / "src"
-    
     # Core name for resolution
     core_name = f"qick:ip:{ip_name}"
-    
     print(f"   Packaging IP: {core_name}")
     print(f"   Firmware: {firmware_dir}")
     print(f"   RTL lib:  {rtl_lib_root}")
     print(f"   Cores:    {cores_root}")
-    
     # ALWAYS resolve dependencies recursively
     print(f"\n Resolving dependencies from .core file...")
-    
     sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
-    
     if sources:
         print(f"\n  Total RTL files found: {len(sources)}")
         copied = copy_rtl_sources(ip_dir, sources)
         print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
     else:
         print(f"  !  No RTL sources found for {core_name}")
-    
     # Verify source directory exists
     if not src_dir.is_dir():
         print(f" Source directory not found: {src_dir}", file=sys.stderr)
         sys.exit(1)
-
     # Collect RTL files from src_dir
     hdl_files = args.hdl_files or collect_hdl_files(src_dir)
     xci_files = args.xci_files or collect_xci_files(src_dir)
     ooc_xdc = args.ooc_xdc or collect_ooc_xdc(src_dir)
-
     if not hdl_files:
         print(f" No RTL files found in {src_dir}", file=sys.stderr)
         sys.exit(1)
-
     print(f"\n Found {len(hdl_files)} RTL file(s) to package:")
     for f in hdl_files[:5]:
         print(f"     - {f}")
     if len(hdl_files) > 5:
         print(f"     ... and {len(hdl_files) - 5} more")
+    logo_path = None
+    if not args.no_logo:
+        logo_path = find_logo_file(firmware_dir)
+        if logo_path:
+            print(f"\n  Logo found: {logo_path}")
+        else:
+            print(f"\n  ! Logo not found: firmware/common_ip_files/ip_logos/logoQICK_128x128.png")
+            if not args.no_logo_warning:
+                print("    Use --no-logo to suppress this warning")
 
+    #logo_rel_path = get_relative_logo_path(ip_dir, firmware_dir)
+    logo_rel_path = "../../common_ip_files/ip_logos/logoQICK_128x128.png" if logo_path else None
     # Prepare configuration for template
     cfg = {
         "module_name": args.module_name or ip_name,
@@ -385,16 +411,13 @@ def run_standalone(args):
         "xci_files": xci_files,
         "ooc_xdc_files": ooc_xdc,
         "clock_domains": {},
+        "logo_relative_path": logo_rel_path,
+        "has_logo": logo_rel_path is not None,
     }
-    
-    top = args.module_name or ip_name
-    top_file_candidates = [f for f in hdl_files if Path(f).stem == top]
-    if not top_file_candidates:
-        print(f"!  WARNING: No HDL file matches top module '{top}'")
-        print(f"   Available tops: {[Path(f).stem for f in hdl_files]}")
-
     render_and_run(cfg, script_dir, dry_run=args.dry_run)
-
+    # After packaging, add logo to component.xml (if needed)
+    if not args.no_logo:
+        add_logo_to_component_xml(ip_dir, firmware_dir)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -424,10 +447,12 @@ def main():
                         help="Out-of-context XDC files (auto-discovered if omitted)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Generate TCL but do not run Vivado")
-
+    parser.add_argument("--no-logo", action="store_true",
+                        help="Skip adding logo to component.xml")
+    parser.add_argument("--no-logo-warning", action="store_true",
+                        help="Suppress warning when logo not found")
     args = parser.parse_args()
     run_standalone(args)
-
 
 if __name__ == "__main__":
     main()
