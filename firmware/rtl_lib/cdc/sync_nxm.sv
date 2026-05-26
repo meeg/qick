@@ -8,12 +8,9 @@ module sync_nxm#(
     output logic [M-1:0] o_d
   );
 
-  logic [M-1:0] d_r [N];
-  logic [M-1:0] d_n [N];
-
   // ASYNC_REG attribute for proper CDC placement (Vivado)
-  (* ASYNC_REG = "TRUE" *) logic [M-1:0] d_r_async [N];
-  assign d_r_async = d_r;
+  (* ASYNC_REG = "TRUE" *) logic [M-1:0] d_r [N];
+  logic [M-1:0] d_n [N];
 
   always_ff @(posedge i_clk)
   begin
@@ -27,19 +24,12 @@ module sync_nxm#(
     end
   end
 
-  if (N == 1)
+  always_comb
   begin
-    assign d_n[0] = i_d;
-  end
-  else
-  begin
-    always_comb
+    d_n[0] = i_d;
+    for (int i = 1; i < N; i++)
     begin
-      d_n[0] = i_d;
-      for (int i = 1; i < N; i++)
-      begin
-        d_n[i] = d_r[i-1];
-      end
+      d_n[i] = d_r[i-1];
     end
   end
 
