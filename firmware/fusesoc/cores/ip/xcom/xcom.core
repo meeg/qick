@@ -15,6 +15,8 @@ filesets:
       - qick:utils:xcom_link_rx
       - qick:utils:xcom_link_tx
       - qick:utils:xcom_qctrl
+      - qick:utils:diff_in_nb
+      - qick:utils:diff_out_nb
 
   tcl:
     files:         
