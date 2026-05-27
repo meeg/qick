@@ -364,33 +364,33 @@ module xcom import qick_pkg::*;
     .o_dbg_data        ( s_dbg_debug        )
   );
 
-  i_diff_nb #(
+  diff_in_nb #(
     .NB( NCH )
-  ) dt_i_diff_nb(
+  ) dt_diff_in_nb(
     .i_diff_p( i_xcom_data_p ),
     .i_diff_n( i_xcom_data_n ),
     .o_se    ( si_xcom_data  )
   );
 
-  i_diff_nb #(
+  diff_in_nb #(
     .NB( NCH )
-  ) ck_i_diff_nb(
+  ) ck_diff_in_nb(
     .i_diff_p( i_xcom_clk_p ),
     .i_diff_n( i_xcom_clk_n ),
     .o_se    ( si_xcom_clk  )
   );
 
-  o_diff_nb #(
+  diff_out_nb #(
     .NB( 1 )
-  ) dt_o_diff_nb(
+  ) dt_diff_out_nb(
     .o_diff_p( o_xcom_data_p ),
     .o_diff_n( o_xcom_data_n ),
     .i_se    ( so_xcom_data  )
   );
 
-  o_diff_nb #(
+  diff_out_nb #(
     .NB( 1 )
-  ) ck_o_diff_nb(
+  ) ck_diff_out_nb(
     .o_diff_p( o_xcom_clk_p ),
     .o_diff_n( o_xcom_clk_n ),
     .i_se    ( so_xcom_clk  )
