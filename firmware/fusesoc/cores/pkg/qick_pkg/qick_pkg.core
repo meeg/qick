@@ -4,7 +4,11 @@ description: QICK shared package and interface definitions
 
 filesets:
   hdl:
+    files:
+      - hdl/qick_pkg.sv
     file_type: systemVerilogSource
+    depend:
+      - qick:pkg:fxp_pkg
 
 targets:
   default:
