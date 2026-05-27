@@ -11,3 +11,4 @@
 #   1. List all your .v, .sv, or .vhd files here 
 #   2. Order matters: depends on hierarchy (include children before parents) 
 #   3. For VHDL with libraries: firmware/src/my_pkg.vhd works 
+hdl/vect2bits_16.v
