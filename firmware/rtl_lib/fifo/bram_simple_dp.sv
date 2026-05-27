@@ -1,6 +1,5 @@
 // bram_simple_dp.sv - Exact VHDL behavior
 
-`timescale 1ns / 1ps
 
 module bram_simple_dp #(
     parameter int N = 16,

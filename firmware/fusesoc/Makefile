@@ -19,6 +19,9 @@ FUSESOC_CORES := --cores-root cores \
                  --cores-root common \
                  --cores-root generators
 
+# Default tool for simulation and linting
+TOOL ?= verilator
+
 # ----------------------------------------------------------------------------
 # Environment Setup
 # ----------------------------------------------------------------------------
@@ -41,10 +44,12 @@ sim_svunit: clean
 sim:
 	. venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) run --target test $(IP)
+	#fusesoc $(FUSESOC_CORES) run --target test --tool $(TOOL) $(IP)
 
 lint:
 	. venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) run --target lint $(IP)
+	#fusesoc $(FUSESOC_CORES) run --target lint --tool $(TOOL) $(IP)
 
 # ----------------------------------------------------------------------------
 # IP Packaging (always resolves dependencies from rtl_lib/)
