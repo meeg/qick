@@ -1,0 +1,83 @@
+CAPI=2:
+name: qick:fifo:fifo_async:1.0.0
+description: FIFO implementation using XPM async FIFO.
+
+filesets:
+  hdl:
+    files:
+      - hdl/fifo_async.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - test/fifo_async_tc00.sv
+      - test/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx 
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - test/fifo_async_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: fifo_async
+    parameters:
+      - NB
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fifo_async
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ns]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      modelsim:
+        vlog_options: [-timescale=1ns/1ns -L xpm]              # XPM library
+      icarus:
+        iverilog_options:
+          - -g2012              # Doen't support XPM
+
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+
+    tools:
+      vivado:
+        part: xc7z020clg400-1   # PYNQ-Z2
+        synth_options:
+          - -include_dirs $XILINX_VIVADO/data/ip/xpm
+
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam
