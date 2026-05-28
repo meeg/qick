@@ -1,6 +1,6 @@
 CAPI=2:
-name: qick:fifo:bram_simple_dp:1.0.0
-description: Binary to Gray code converter.
+name: qick:mem:bram_simple_dp:1.0.0
+description: Single-clock dual-port BRAM 
 
 filesets:
   hdl:

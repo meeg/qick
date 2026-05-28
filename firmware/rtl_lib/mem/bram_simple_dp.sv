@@ -1,6 +1,3 @@
-// bram_simple_dp.sv - Exact VHDL behavior
-
-
 module bram_simple_dp #(
     parameter int N = 16,
     parameter int B = 16

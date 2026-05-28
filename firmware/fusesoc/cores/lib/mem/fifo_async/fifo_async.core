@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:fifo:fifo_async:1.0.0
+name: qick:mem:fifo_async:1.0.0
 description: FIFO implementation using XPM async FIFO.
 
 filesets:

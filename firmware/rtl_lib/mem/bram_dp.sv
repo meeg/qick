@@ -1,8 +1,3 @@
-// bram_dp.sv
-// Dual Port BRAM
-
-`timescale 1ns / 1ps
-
 module bram_dp #(
     parameter int N = 16,  // Memory address size (2^N depth)
     parameter int B = 16   // Data width

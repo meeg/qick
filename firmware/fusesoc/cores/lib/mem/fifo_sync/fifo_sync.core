@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:fifo:fifo_sync:1.0.0
+name: qick:mem:fifo_sync:1.0.0
 description: FIFO implementation.
 
 filesets:
