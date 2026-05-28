@@ -1,0 +1,78 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu May 28 21:29:50 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_math_avg_1.0.0/test-xsim/avg.vcd"
+[dumpfile_mtime] "Thu May 28 21:22:31 2026"
+[dumpfile_size] 35856
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/math/avg/data/avg.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-17.809072 35000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.avg_ut.
+[sst_width] 206
+[signals_width] 261
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@24
+[color] 3
+testrunner.__ts.avg_ut.u_avg.start_reg
+[color] 3
+testrunner.__ts.avg_ut.u_avg.len_reg[31:0]
+[color] 3
+testrunner.__ts.avg_ut.u_avg.addr_reg[9:0]
+[color] 3
+testrunner.__ts.avg_ut.u_avg.photon_mode_reg
+[color] 3
+testrunner.__ts.avg_ut.u_avg.h_thrsh_reg[15:0]
+[color] 3
+testrunner.__ts.avg_ut.u_avg.l_thrsh_reg[15:0]
+@28
+[color] 3
+testrunner.__ts.avg_ut.u_avg.clk
+[color] 3
+testrunner.__ts.avg_ut.u_avg.rstn
+[color] 3
+testrunner.__ts.avg_ut.u_avg.trigger_i
+[color] 3
+testrunner.__ts.avg_ut.u_avg.din_valid_i
+@421
+[color] 3
+testrunner.__ts.avg_ut.u_avg.din_i[31:0]
+@22
+testrunner.__ts.avg_ut.u_avg.acc_i[31:0]
+testrunner.__ts.avg_ut.u_avg.acc_photon[63:0]
+testrunner.__ts.avg_ut.u_avg.acc_q[31:0]
+testrunner.__ts.avg_ut.u_avg.addr_r[9:0]
+@28
+testrunner.__ts.avg_ut.u_avg.avg_state
+@22
+testrunner.__ts.avg_ut.u_avg.cnt[31:0]
+testrunner.__ts.avg_ut.u_avg.din_ii[15:0]
+testrunner.__ts.avg_ut.u_avg.din_qq[15:0]
+testrunner.__ts.avg_ut.u_avg.h_thrsh_r[15:0]
+@28
+testrunner.__ts.avg_ut.u_avg.high_state
+testrunner.__ts.avg_ut.u_avg.high_state_reg
+@22
+testrunner.__ts.avg_ut.u_avg.l_thrsh_r[15:0]
+testrunner.__ts.avg_ut.u_avg.len_r[31:0]
+testrunner.__ts.avg_ut.u_avg.out_result_r[63:0]
+@28
+testrunner.__ts.avg_ut.u_avg.photon_mode_r
+testrunner.__ts.avg_ut.u_avg.start_state
+testrunner.__ts.avg_ut.u_avg.state[2:0]
+testrunner.__ts.avg_ut.u_avg.trigger_state
+testrunner.__ts.avg_ut.u_avg.write_mem_state
+[color] 6
+testrunner.__ts.avg_ut.u_avg.mem_we_o
+@22
+[color] 6
+testrunner.__ts.avg_ut.u_avg.mem_addr_o[9:0]
+[color] 6
+testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
+[pattern_trace] 1
+[pattern_trace] 0
