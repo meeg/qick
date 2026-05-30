@@ -21,8 +21,8 @@ module synchronizer #(
     output logic [NB-1:0] o_sync
 );
 
-    logic [NB-1:0] meta_r, meta_n;
-    logic [NB-1:0] sync_r, sync_n;
+    (* ASYNC_REG = "TRUE" *) logic [NB-1:0] meta_r, sync_r;
+    logic [NB-1:0] meta_n, sync_n;
 
     //two D FFs
     always_ff @ (posedge i_clk) begin
