@@ -40,18 +40,18 @@ module fifo_sync #(
   // =========================================================================
   // NOTE ON EFFECTIVE FIFO DEPTH (FWFT Mode Capacity)
   // =========================================================================
-  // When configured in First-Word Fall-Through (FWFT) mode ("READ_MODE = fwft" 
-  // and "FIFO_READ_LATENCY = 0"), the XPM FIFO allocates additional internal 
-  // pipeline registers to expose the first written word immediately at 'dout' 
+  // When configured in First-Word Fall-Through (FWFT) mode ("READ_MODE = fwft"
+  // and "FIFO_READ_LATENCY = 0"), the XPM FIFO allocates additional internal
+  // pipeline registers to expose the first written word immediately at 'dout'
   // without compromising timing closure.
   //
-  // As a result, the effective storage capacity of the FIFO increases beyond 
-  // the user-specified parameter N (FIFO_WRITE_DEPTH). For instance, with N=16, 
-  // the FIFO actually stores up to N + 2 (18) words before asserting the 'full' 
-  // flag. 
+  // As a result, the effective storage capacity of the FIFO increases beyond
+  // the user-specified parameter N (FIFO_WRITE_DEPTH). For instance, with N=16,
+  // the FIFO actually stores up to N + 2 (18) words before asserting the 'full'
+  // flag.
   //
-  // This is the expected, native behavior of the Xilinx XPM memory macro. 
-  // Testbenches and downstream logic must dynamically rely on the 'full' and 
+  // This is the expected, native behavior of the Xilinx XPM memory macro.
+  // Testbenches and downstream logic must dynamically rely on the 'full' and
   // 'empty' status flags rather than assuming a hardcoded capacity of exactly N.
   // =========================================================================
 

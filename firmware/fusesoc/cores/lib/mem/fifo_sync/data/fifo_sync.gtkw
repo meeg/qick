@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Wed May 27 21:58:09 2026
+[*] Sat May 30 15:02:34 2026
 [*]
-[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_fifo_fifo_sync_1.0.0/test-xsim/fifo_sync_waveform.vcd"
-[dumpfile_mtime] "Wed May 27 21:52:25 2026"
-[dumpfile_size] 83812
-[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/fifo/fifo_sync/data/fifo_sync.gtkw"
-[timestart] 408800
-[size] 1920 1165
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_fifo_sync_1.0.0/test-xsim/fifo_sync_waveform.vcd"
+[dumpfile_mtime] "Sat May 30 14:54:45 2026"
+[dumpfile_size] 106172
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/fifo_sync/data/fifo_sync.gtkw"
+[timestart] 1701410
+[size] 1920 1140
 [pos] -1 -1
-*-14.348698 502000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-13.911458 1778000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.fifo_sync_ut.
@@ -18,7 +18,7 @@
 [sst_width] 206
 [signals_width] 168
 [sst_expanded] 1
-[sst_vpaned_height] 410
+[sst_vpaned_height] 767
 @28
 [color] 3
 testrunner.__ts.fifo_sync_ut.dut.clk
