@@ -1,0 +1,127 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun  2 20:20:41 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_math_avg_top_1.0.0/test-xsim/avg_top.vcd"
+[dumpfile_mtime] "Tue Jun  2 20:20:17 2026"
+[dumpfile_size] 71286256
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/math/avg_top/data/avg_top.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-23.564192 310000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.avg_top_ut.
+[treeopen] testrunner.__ts.avg_top_ut.u_avg_top.
+[sst_width] 252
+[signals_width] 325
+[sst_expanded] 1
+[sst_vpaned_height] 401
+@28
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.avg_start_reg
+@24
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.avg_addr_reg[9:0]
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.avg_len_reg[31:0]
+@28
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.avg_photon_mode_reg
+@24
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.avg_h_thrsh_reg[15:0]
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.avg_l_thrsh_reg[15:0]
+@28
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.dr_start_reg
+@24
+[color] 2
+testrunner.__ts.avg_top_ut.tb_dr_len_reg[10:0]
+[color] 2
+testrunner.__ts.avg_top_ut.u_avg_top.dr_addr_reg[9:0]
+@28
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.clk
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.rstn
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.trigger_i
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.din_valid_i
+@24
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.din_i[31:0]
+@28
+[color] 4
+testrunner.__ts.avg_top_ut.u_avg_top.avg_start_reg_resync
+testrunner.__ts.avg_top_ut.u_avg_top.dr_start_reg_resync
+testrunner.__ts.avg_top_ut.u_avg_top.fifo_empty
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.m_axis_aclk
+[color] 3
+testrunner.__ts.avg_top_ut.u_avg_top.m_axis_aresetn
+[color] 5
+testrunner.__ts.avg_top_ut.u_avg_top.m0_axis_tlast
+[color] 5
+testrunner.__ts.avg_top_ut.u_avg_top.m0_axis_tready
+[color] 5
+testrunner.__ts.avg_top_ut.u_avg_top.m0_axis_tvalid
+@24
+[color] 5
+testrunner.__ts.avg_top_ut.u_avg_top.m0_axis_tdata[63:0]
+[color] 7
+testrunner.__ts.avg_top_ut.u_avg_top.m1_axis_tdata[63:0]
+@28
+[color] 7
+testrunner.__ts.avg_top_ut.u_avg_top.m1_axis_tready
+[color] 7
+testrunner.__ts.avg_top_ut.u_avg_top.m1_axis_tvalid
+@24
+testrunner.__ts.avg_top_ut.u_avg_top.mem_addra_int[9:0]
+testrunner.__ts.avg_top_ut.u_avg_top.mem_addrb_int[9:0]
+testrunner.__ts.avg_top_ut.u_avg_top.mem_di_int[63:0]
+testrunner.__ts.avg_top_ut.u_avg_top.mem_do_int[63:0]
+@28
+testrunner.__ts.avg_top_ut.u_avg_top.mem_en_int
+testrunner.__ts.avg_top_ut.u_avg_top.mem_we_int
+@800200
+-avg
+@2028
+[color] 2
+^1 /home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/math/avg_top/data/avg_states.txt
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.state[2:0]
+@24
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.cnt[31:0]
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.addr_r[9:0]
+@28
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.din_valid_i
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.mem_we_o
+@24
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.mem_addr_o[9:0]
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.mem_di_o[63:0]
+@28
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.rstn
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.start_reg
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.trigger_state
+testrunner.__ts.avg_top_ut.u_avg_top.avg_i.write_mem_state
+@1000200
+-avg
+@800200
+-data_reader
+@28
+testrunner.__ts.avg_top_ut.u_avg_top.data_reader_i.start_reg
+@2028
+[color] 2
+^2 /home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/math/avg_top/data/data_reader_states.txt
+testrunner.__ts.avg_top_ut.u_avg_top.data_reader_i.current_state[2:0]
+@25
+testrunner.__ts.avg_top_ut.u_avg_top.data_reader_i.cnt_wr[10:0]
+@24
+testrunner.__ts.avg_top_ut.u_avg_top.data_reader_i.cnt_rd[10:0]
+@1000200
+-data_reader
+[pattern_trace] 1
+[pattern_trace] 0
