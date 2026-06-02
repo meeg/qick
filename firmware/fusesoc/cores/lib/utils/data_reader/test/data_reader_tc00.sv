@@ -38,7 +38,7 @@ module data_reader_unit_test;
 
     logic            tb_start_reg = 1'b0;
     logic [N-1:0]    tb_addr_reg  = '0;
-    logic [N-1:0]    tb_len_reg   = '0;
+    logic [N:0]      tb_len_reg   = '0;
 
     // =========================================================================
     // Mock memory — 1-cycle registered read latency (matches real BRAM)
@@ -131,34 +131,10 @@ module data_reader_unit_test;
     );
         cb.tb_addr_reg  <= addr;
         cb.tb_len_reg   <= len;
+        @(cb);
         cb.tb_start_reg <= 1'b1;
         @(cb);
         cb.tb_start_reg <= 1'b0;
-    endtask
-
-    // wait_for_idle: keep dready=1 until dvalid drops (FSM back in IDLE_ST).
-    // This drains any outstanding data and ensures the FSM has fully completed.
-    // Must be called with dready driven by the caller if data is not being
-    // collected — use after read_all_data or between consecutive transfers.
-    task automatic wait_for_idle(output int timed_out);
-        int timeout;
-        timed_out = 0;
-        timeout   = 0;
-        // Keep dready=1 so the FSM can complete its last handshake
-        tb_dready <= 1'b1;
-        @(cb); // allow one cycle for dvalid to potentially rise
-        while (tb_dvalid) begin
-            @(cb);
-            timeout++;
-            if (timeout > 100) begin
-                timed_out = 1;
-                return;
-            end
-        end
-        // One extra settle cycle
-        @(cb);
-        tb_dready <= 1'b0;
-        @(cb);
     endtask
 
     // read_all_data: collect expected_count words from the AXI stream.
@@ -203,6 +179,31 @@ module data_reader_unit_test;
             end
         end
 
+        tb_dready <= 1'b0;
+        @(cb);
+    endtask
+
+    // wait_for_idle: keep dready=1 until dvalid drops (FSM back in IDLE_ST).
+    // This drains any outstanding data and ensures the FSM has fully completed.
+    // Must be called with dready driven by the caller if data is not being
+    // collected — use after read_all_data or between consecutive transfers.
+    task automatic wait_for_idle(output int timed_out);
+        int timeout;
+        timed_out = 0;
+        timeout   = 0;
+        // Keep dready=1 so the FSM can complete its last handshake
+        tb_dready <= 1'b1;
+        @(cb); // allow one cycle for dvalid to potentially rise
+        while (tb_dvalid) begin
+            @(cb);
+            timeout++;
+            if (timeout > 100) begin
+                timed_out = 1;
+                return;
+            end
+        end
+        // One extra settle cycle
+        @(cb);
         tb_dready <= 1'b0;
         @(cb);
     endtask
