@@ -19,7 +19,7 @@
 //   N : memory address width (depth = 2**N)
 //   B : sample data width in bits
 //
-// Data format on din_i: {Q[2B-1:B], I[B-1:0]}
+// Data format on din_i:   {Q[2B-1:B], I[B-1:0]}
 // Data format on mem_di_o: {acc_q[2B-1:0], acc_i[2B-1:0]} or acc_photon
 // ============================================================================
 
@@ -42,7 +42,7 @@ module avg #(
   output logic [N-1:0]      mem_addr_o,
   output logic [4*B-1:0]    mem_di_o,
 
-  // Configuration registers
+  // Configuration registers (must be held stable while start_reg=1)
   input  logic              start_reg,
   input  logic [N-1:0]      addr_reg,
   input  logic [31:0]       len_reg,
@@ -77,28 +77,28 @@ module avg #(
   // -------------------------------------------------------------------------
   // Internal registers
   // -------------------------------------------------------------------------
-  logic [31:0]              cnt;
-  logic [N-1:0]             addr_r;
-  logic [31:0]              len_r;
-  logic                     photon_mode_r;
-  logic signed [B-1:0]      h_thrsh_r;
-  logic signed [B-1:0]      l_thrsh_r;
+  logic [31:0]           cnt;
+  logic [N-1:0]          addr_r;
+  logic [31:0]           len_r;
+  logic                  photon_mode_r;
+  logic signed [B-1:0]   h_thrsh_r;
+  logic signed [B-1:0]   l_thrsh_r;
 
   // Accumulators
-  logic signed [2*B-1:0]    acc_i;
-  logic signed [2*B-1:0]    acc_q;
-  logic        [4*B-1:0]    acc_photon;
+  logic signed [2*B-1:0] acc_i;
+  logic signed [2*B-1:0] acc_q;
+  logic        [4*B-1:0] acc_photon;
 
   // Quantized output register
-  logic [4*B-1:0]           out_result_r;
+  logic [4*B-1:0]        out_result_r;
 
   // Photon edge detection
-  logic                     high_state;
-  logic                     high_state_reg;
+  logic                  high_state;
+  logic                  high_state_reg;
 
   // Input channel splits
-  logic signed [B-1:0]      din_ii;
-  logic signed [B-1:0]      din_qq;
+  logic signed [B-1:0]   din_ii;
+  logic signed [B-1:0]   din_qq;
 
   assign din_ii = din_i[B-1:0];
   assign din_qq = din_i[2*B-1:B];
@@ -106,10 +106,8 @@ module avg #(
   // -------------------------------------------------------------------------
   // FSM + datapath sequential block
   // -------------------------------------------------------------------------
-  always_ff @(posedge clk or negedge rstn)
-  begin
-    if (!rstn)
-    begin
+  always_ff @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
       state          <= INIT_ST;
       cnt            <= '0;
       addr_r         <= '0;
@@ -123,155 +121,125 @@ module avg #(
       acc_q          <= '0;
       acc_photon     <= '0;
       out_result_r   <= '0;
-    end
-    else
-    begin
+    end else begin
+
       // -----------------------------------------------------------------
       // FSM next-state logic
       // -----------------------------------------------------------------
       unique case (state)
-        INIT_ST:
-          begin
-            state <= START_ST;
-          end
+        INIT_ST: begin
+          state <= START_ST;
+        end
 
-        START_ST:
-          begin
-            if (start_reg)
-              state <= TRIGGER_ST;
-          end
+        START_ST: begin
+          if (start_reg) state <= TRIGGER_ST;
+        end
 
-        TRIGGER_ST:
-          begin
-            if (!start_reg)
-            begin
-              state <= START_ST;
-            end
-            else if (trigger_i)
-            begin
-              state <= AVG_ST;
-            end
-          end
+        TRIGGER_ST: begin
+          if (!start_reg)      state <= START_ST;
+          else if (trigger_i)  state <= AVG_ST;
+        end
 
-      AVG_ST:
-begin
-    if (din_valid_i)
-    begin
-        if (cnt == len_r - 1)  // Last data point
+        // Transition when the LAST valid sample has been processed.
+        // cnt is incremented in the same cycle as the valid sample,
+        // so after len_r samples cnt == len_r.
+        AVG_ST: begin
+          if (!start_reg) begin
+            state <= START_ST;   // abort capture if start_reg de-asserts
+          end else if (din_valid_i && cnt == len_r) begin
             state <= QOUT_ST;
-        // Continue accumulation
-    end
-end
-
-        QOUT_ST:
-          begin
-            state <= WRITE_MEM_ST;
           end
+        end
 
-        WRITE_MEM_ST:
-          begin
-            state <= WAIT_TRIGGER_ST;
-          end
+        QOUT_ST: begin
+          if (!start_reg) state <= START_ST;
+          else state <= WRITE_MEM_ST;
+        end
 
-        WAIT_TRIGGER_ST:
-          begin
-            if (!start_reg)
-            begin
-              state <= START_ST;
-            end
-            else if (!trigger_i)
-            begin
-              state <= TRIGGER_ST;
-            end
-          end
+        WRITE_MEM_ST: begin
+          if (!start_reg) state <= START_ST;
+          else state <= WAIT_TRIGGER_ST;
+        end
 
-        default:
-          begin
-            state <= INIT_ST;
-          end
+        WAIT_TRIGGER_ST: begin
+          if (!start_reg)   state <= START_ST;
+          else if (!trigger_i) state <= TRIGGER_ST;
+        end
+
+        default: begin
+          state <= INIT_ST;
+        end
       endcase
 
       // -----------------------------------------------------------------
-      // Sample counter — reset outside AVG_ST, increment on valid data
+      // Sample counter
+      // Reset in START_ST and TRIGGER_ST (preparing for new capture).
+      // Increment on each valid sample in AVG_ST.
       // -----------------------------------------------------------------
-      if (avg_state)
-      begin
-        if (din_valid_i)
+      if (start_state || trigger_state) begin
+        cnt <= '0;
+      end else if (avg_state) begin
+        if (!start_reg) begin
+          cnt <= '0;
+        end else if (din_valid_i) begin
           cnt <= cnt + 1;
-      end
-      else if (start_state || trigger_state)
-      begin
-        cnt <= '0; // Clear only when preparing for a new capture sequence
+        end
       end
 
       // -----------------------------------------------------------------
-      // Config register latch (START_ST) and address increment (post-write)
+      // Config register latch (START_ST); address auto-increment
       // -----------------------------------------------------------------
-      if (start_state)
-      begin
+      if (start_state) begin
         addr_r        <= addr_reg;
-        len_r         <= (len_reg == 0) ? 32'd1 : len_reg;  // Avoid len_r=0
+        len_r         <= (len_reg == '0) ? 32'd1 : len_reg - 1;
         photon_mode_r <= photon_mode_reg;
         h_thrsh_r     <= signed'(h_thrsh_reg);
         l_thrsh_r     <= signed'(l_thrsh_reg);
-      end
-      else if (write_mem_state)
-      begin
+      end else if (write_mem_state) begin
         addr_r <= addr_r + 1;
       end
 
       // -----------------------------------------------------------------
       // Accumulator reset (TRIGGER_ST) and accumulate (AVG_ST)
       // -----------------------------------------------------------------
-      if (trigger_state)
-      begin
+      if (trigger_state) begin
         acc_i          <= '0;
         acc_q          <= '0;
         acc_photon     <= '0;
         high_state     <= 1'b0;
         high_state_reg <= 1'b0;
-      end
-      else if (avg_state && din_valid_i)
-      begin
-        if (!photon_mode_r)
-        begin
-          acc_i <= acc_i + {{B{din_ii[B-1]}}, din_ii};
-          acc_q <= acc_q + {{B{din_qq[B-1]}}, din_qq};
-        end
-        else if (high_state && !high_state_reg)
-        begin
-          acc_photon <= acc_photon + 1;
-        end
-      end
-
-      // -----------------------------------------------------------------
-      // Photon edge detection (combinational threshold, registered edge)
-      // Runs every cycle regardless of avg_state so high_state tracks
-      // the input at all times, matching the original RTL behaviour.
-      // -----------------------------------------------------------------
-      if (din_valid_i)
-      begin
-        high_state_reg <= high_state;
-
-        if (din_ii > h_thrsh_r)
-          high_state <= 1;
-        else if (din_ii < l_thrsh_r)
-          high_state <= 0;
-      end
-      else if (!photon_mode_r)
-      begin
+      end else if (avg_state && !start_reg) begin
+        acc_i          <= '0;
+        acc_q          <= '0;
+        acc_photon     <= '0;
+        high_state     <= 1'b0;
         high_state_reg <= 1'b0;
-        high_state     <= high_state; // Hold last state until next valid sample, matching original RTL
+      end else if (avg_state && din_valid_i && !photon_mode_r) begin
+        acc_i <= acc_i + {{B{din_ii[B-1]}}, din_ii};
+        acc_q <= acc_q + {{B{din_qq[B-1]}}, din_qq};
+      end else if (avg_state && din_valid_i && photon_mode_r && high_state && !high_state_reg) begin
+        acc_photon <= acc_photon + 1;
       end
+
       // -----------------------------------------------------------------
-      // Output result register
+      // Photon edge detection — runs every cycle on valid samples only.
+      // high_state_reg is updated one cycle after high_state so that
+      // the rising edge (high_state=1, high_state_reg=0) is detected
+      // on the cycle AFTER the first sample crosses h_thrsh.
       // -----------------------------------------------------------------
-      if (!photon_mode_r)
-      begin
+      if (din_valid_i) begin
+        high_state_reg <= high_state;
+        if (din_ii > h_thrsh_r)      high_state <= 1'b1;
+        else if (din_ii < l_thrsh_r) high_state <= 1'b0;
+      end
+
+      // -----------------------------------------------------------------
+      // Output result register — updated every cycle so WRITE_MEM_ST
+      // sees the final accumulated value one cycle after QOUT_ST.
+      // -----------------------------------------------------------------
+      if (!photon_mode_r) begin
         out_result_r <= {acc_q, acc_i};
-      end
-      else
-      begin
+      end else begin
         out_result_r <= acc_photon;
       end
     end
@@ -280,32 +248,26 @@ end
   // -------------------------------------------------------------------------
   // FSM output decode (combinational)
   // -------------------------------------------------------------------------
-  always_comb
-  begin
+  always_comb begin
     start_state     = 1'b0;
     trigger_state   = 1'b0;
     avg_state       = 1'b0;
     write_mem_state = 1'b0;
 
     unique case (state)
-      START_ST:
-        start_state     = 1'b1;
-      TRIGGER_ST:
-        trigger_state   = 1'b1;
-      AVG_ST:
-        avg_state       = 1'b1;
-      WRITE_MEM_ST:
-        write_mem_state = 1'b1;
-      default:
-        ; // INIT_ST, QOUT_ST, WAIT_TRIGGER_ST: no outputs
+      START_ST:     start_state     = 1'b1;
+      TRIGGER_ST:   trigger_state   = 1'b1;
+      AVG_ST:       avg_state       = 1'b1;
+      WRITE_MEM_ST: write_mem_state = 1'b1;
+      default:      ; // INIT_ST, QOUT_ST, WAIT_TRIGGER_ST: no outputs
     endcase
   end
 
   // -------------------------------------------------------------------------
   // Output assignments
   // -------------------------------------------------------------------------
-  assign mem_we_o    = write_mem_state;
-  assign mem_addr_o  = addr_r;
-  assign mem_di_o    = out_result_r;
+  assign mem_we_o   = write_mem_state && start_reg; // only write when start_reg is still high (not aborted)
+  assign mem_addr_o = addr_r;
+  assign mem_di_o   = out_result_r;
 
 endmodule

@@ -1,34 +1,36 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Fri May 29 14:15:48 2026
+[*] Mon Jun  1 14:15:58 2026
 [*]
 [dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_math_avg_1.0.0/test-xsim/avg.vcd"
-[dumpfile_mtime] "Thu May 28 21:22:31 2026"
-[dumpfile_size] 35856
+[dumpfile_mtime] "Mon Jun  1 14:08:56 2026"
+[dumpfile_size] 35835
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/math/avg/data/avg.gtkw"
 [timestart] 0
-[size] 1920 1140
-[pos] -4324 24
-*-17.894629 1125000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[size] 1920 1165
+[pos] -1 -1
+*-13.894629 35000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.avg_ut.
 [sst_width] 206
-[signals_width] 281
+[signals_width] 280
 [sst_expanded] 1
 [sst_vpaned_height] 400
 @24
-[color] 3
+[color] 2
 testrunner.__ts.avg_ut.u_avg.start_reg
-[color] 3
-testrunner.__ts.avg_ut.u_avg.len_reg[31:0]
-[color] 3
+[color] 2
 testrunner.__ts.avg_ut.u_avg.addr_reg[9:0]
-[color] 3
+@25
+[color] 2
+testrunner.__ts.avg_ut.u_avg.len_reg[31:0]
+@24
+[color] 2
 testrunner.__ts.avg_ut.u_avg.photon_mode_reg
-[color] 3
+[color] 2
 testrunner.__ts.avg_ut.u_avg.h_thrsh_reg[15:0]
-[color] 3
+[color] 2
 testrunner.__ts.avg_ut.u_avg.l_thrsh_reg[15:0]
 @28
 [color] 3
@@ -57,7 +59,7 @@ testrunner.__ts.avg_ut.u_avg.h_thrsh_r[15:0]
 testrunner.__ts.avg_ut.u_avg.high_state_reg
 @22
 testrunner.__ts.avg_ut.u_avg.l_thrsh_r[15:0]
-@25
+@24
 testrunner.__ts.avg_ut.u_avg.len_r[31:0]
 @22
 testrunner.__ts.avg_ut.u_avg.out_result_r[63:0]
@@ -149,7 +151,7 @@ testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
 (30)testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
 [color] 6
 (31)testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
-@1401600
+@1401200
 -group_end
 @c00420
 [color] 6
@@ -219,7 +221,7 @@ testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
 (62)testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
 [color] 6
 (63)testrunner.__ts.avg_ut.u_avg.mem_di_o[63:0]
-@1401600
+@1401200
 -group_end
 @1001200
 -group_end
