@@ -28,7 +28,7 @@ module data_reader #(
     // Registers (Now in lowercase)
     input  logic         start_reg,
     input  logic [N-1:0] addr_reg,
-    input  logic [N-1:0] len_reg
+    input  logic [N:0]   len_reg
   );
 
   // -------------------------------------------------------------------------
@@ -56,10 +56,10 @@ module data_reader #(
   logic read_en;
 
   // Counters and Registers
-  logic [N-1:0] cnt_wr;
-  logic [N-1:0] cnt_rd;
+  logic [N:0] cnt_wr;
+  logic [N:0] cnt_rd;
   logic [N-1:0] addr_cnt;
-  logic [N-1:0] len_r;
+  logic [N:0] len_r;
 
   // FIFO signals
   logic         fifo_wr_en;
@@ -74,7 +74,9 @@ module data_reader #(
   // -------------------------------------------------------------------------
   fifo_sync #(
               .B (B),
-              .N (16)  // Changed from 4 to 16 to comply with the XPM requirement
+              .N (16),  // Changed from 4 to 16 to comply with the XPM requirement
+              .USE_ADV_FEATURES ("1707"),
+              .ENABLE_COUNTERS (1) // Enable counters to get accurate data counts
             ) fifo_i (
               .rstn  (rstn),
               .clk   (clk),
@@ -152,7 +154,7 @@ module data_reader #(
         cnt_wr <= cnt_wr + 1;
       end
 
-      if (fifo_rd_en && (addr_cnt > 0)) // Only decrement if there are more reads to be done
+      if (fifo_rd_en && (cnt_rd > 0)) // Only decrement if there are more reads to be done
       begin
         cnt_rd <= cnt_rd - 1;
       end
