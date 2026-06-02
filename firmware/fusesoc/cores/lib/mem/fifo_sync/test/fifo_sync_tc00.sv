@@ -34,7 +34,12 @@ module fifo_sync_unit_test;
   // ============================================================
   // Unit Under Test (DUT)
   // ============================================================
-  fifo_sync #(.B(B), .N(N)) dut (
+  fifo_sync #(
+    .B(B), 
+    .N(N), 
+    .USE_ADV_FEATURES("1707"), 
+    .ENABLE_COUNTERS(1)
+  ) dut (
     .clk(clk),
     .rstn(rstn),
     .wr_en(wr_en),
