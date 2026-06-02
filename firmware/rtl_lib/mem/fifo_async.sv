@@ -35,6 +35,9 @@ module fifo_async #(
     output logic               data_valid // same meaning as XPM's "valid"
 );
 
+    // Calculate the exact required width for data counters dynamically
+    localparam int CNT_WIDTH = $clog2(N) + 1;
+
     // -----------------------------------------------------------------
     //  Convert active‑low resets to the active‑high version required by
     //  XPM_FIFO_ASYNC (XPM uses a single reset input named "rst").
@@ -56,21 +59,21 @@ module fifo_async #(
         .CDC_SYNC_STAGES     (2),
         .DOUT_RESET_VALUE    ("0"),
         .ECC_MODE            ("no_ecc"),
-        .FIFO_MEMORY_TYPE    ("auto"),
+        .FIFO_MEMORY_TYPE    ("block"),
         .FIFO_READ_LATENCY   (1),          // one‑cycle read latency (STD mode)
         .FIFO_WRITE_DEPTH    (N),
         .FULL_RESET_VALUE    (0),
-        .PROG_EMPTY_THRESH   (10),
-        .PROG_FULL_THRESH    (10),
-        .RD_DATA_COUNT_WIDTH (1),
+        .PROG_EMPTY_THRESH   (5),
+        .PROG_FULL_THRESH    (N-5),
+        .RD_DATA_COUNT_WIDTH (CNT_WIDTH),
         .READ_DATA_WIDTH     (B),
         .READ_MODE           ("std"),      // matches the test‑bench expectations
         .RELATED_CLOCKS      (0),
         .SIM_ASSERT_CHK      (0),
-        .USE_ADV_FEATURES    ("0707"),
+        .USE_ADV_FEATURES    ("1707"),
         .WAKEUP_TIME         (0),
         .WRITE_DATA_WIDTH    (B),
-        .WR_DATA_COUNT_WIDTH (1)
+        .WR_DATA_COUNT_WIDTH (CNT_WIDTH)
     ) u_fifo_async (
         // -------------------------------------------------------------
         //  Global control
@@ -82,7 +85,7 @@ module fifo_async #(
         //  Write side
         // -------------------------------------------------------------
         .wr_clk       (wr_clk),
-        .wr_en        (wr_en & ~wr_rst_busy & ~full), // gated like in the original IP
+        .wr_en        (wr_en & ~wr_rst_busy), // gated like in the original IP
         .din          (din),
         .full         (full),
         .overflow     (wr_err),
@@ -95,7 +98,7 @@ module fifo_async #(
         //  Read side
         // -------------------------------------------------------------
         .rd_clk       (rd_clk),
-        .rd_en        (rd_en & ~rd_rst_busy & ~empty), // gated
+        .rd_en        (rd_en & ~rd_rst_busy), // gated
         .dout         (dout),
         .empty        (empty),
         .data_valid   (data_valid),   // XPM's "valid" → test‑bench name
