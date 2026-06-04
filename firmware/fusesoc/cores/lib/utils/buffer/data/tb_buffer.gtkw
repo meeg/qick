@@ -1,0 +1,55 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jun  4 20:29:13 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_utils_buffer_0.1.0/test-icarus/tb_buffer.vcd"
+[dumpfile_mtime] "Thu Jun  4 20:24:16 2026"
+[dumpfile_size] 60920
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/utils/buffer/data/tb_buffer.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-12.249970 1615 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb.
+[sst_width] 206
+[signals_width] 235
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@420
+[color] 2
+tb.DUT.B
+[color] 2
+tb.DUT.N
+@28
+tb.DUT.start_reg
+@22
+tb.DUT.addr_r[9:0]
+tb.DUT.addr_reg[9:0]
+@28
+tb.DUT.clk
+tb.DUT.rstn
+tb.DUT.trigger_i
+@22
+tb.DUT.cnt[9:0]
+tb.DUT.din_i[31:0]
+@28
+tb.DUT.din_valid_i
+@24
+tb.DUT.len_r[9:0]
+tb.DUT.len_reg[9:0]
+@29
+tb.DUT.memw_state
+@28
+tb.DUT.start_state
+@2028
+[color] 2
+^1 /home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/utils/buffer/data/states.txt
+tb.DUT.state[2:0]
+@28
+tb.DUT.trigger_state
+tb.DUT.mem_we_o
+@22
+tb.DUT.mem_addr_o[9:0]
+tb.DUT.mem_di_o[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
