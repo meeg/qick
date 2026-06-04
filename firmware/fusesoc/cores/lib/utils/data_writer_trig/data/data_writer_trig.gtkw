@@ -1,0 +1,92 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jun  4 15:10:54 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_utils_data_writer_trig_1.0.0/test-xsim/data_writer_trig.vcd"
+[dumpfile_mtime] "Thu Jun  4 15:10:40 2026"
+[dumpfile_size] 98455
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/utils/data_writer_trig/data/data_writer_trig.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-18.408508 185000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.data_writer_trig_ut.
+[treeopen] testrunner.__ts.data_writer_trig_ut.u_dut.
+[sst_width] 206
+[signals_width] 248
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 2
+testrunner.__ts.data_writer_trig_ut.u_dut.capture_reg
+[color] 3
+testrunner.__ts.data_writer_trig_ut.u_dut.clk
+[color] 3
+testrunner.__ts.data_writer_trig_ut.u_dut.rstn
+[color] 3
+testrunner.__ts.data_writer_trig_ut.u_dut.trigger
+[color] 6
+testrunner.__ts.data_writer_trig_ut.u_dut.s_axis_tready
+[color] 3
+testrunner.__ts.data_writer_trig_ut.u_dut.s_axis_tvalid
+@420
+[color] 3
+testrunner.__ts.data_writer_trig_ut.u_dut.s_axis_tdata[15:0]
+@2028
+[color] 2
+^1 /home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/utils/data_writer_trig/data/states.txt
+testrunner.__ts.data_writer_trig_ut.u_dut.current_state[1:0]
+@25
+testrunner.__ts.data_writer_trig_ut.u_dut.addr_cnt[3:0]
+@24
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_dout[15:0]
+@28
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_empty
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_full
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_rd_en
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_wr_en
+testrunner.__ts.data_writer_trig_ut.u_dut.write_en
+[color] 6
+testrunner.__ts.data_writer_trig_ut.u_dut.mem_en
+[color] 6
+testrunner.__ts.data_writer_trig_ut.u_dut.mem_we
+@24
+[color] 6
+testrunner.__ts.data_writer_trig_ut.u_dut.mem_addr[3:0]
+@420
+[color] 6
+testrunner.__ts.data_writer_trig_ut.u_dut.mem_di[15:0]
+@800200
+-fifo_sync
+@28
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.clk
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.rstn
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.wr_en
+@24
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.wr_data_count[4:0]
+@420
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.din[15:0]
+@28
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.rd_en
+@24
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.rd_data_count[4:0]
+@420
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.dout[15:0]
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.dout_i[15:0]
+@28
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.empty
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.empty_i
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.full
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.full_i
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.prog_empty
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.prog_full
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.rd_err
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.rd_rst_busy
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.wr_err
+testrunner.__ts.data_writer_trig_ut.u_dut.fifo_i.wr_rst_busy
+@1000200
+-fifo_sync
+[pattern_trace] 1
+[pattern_trace] 0
