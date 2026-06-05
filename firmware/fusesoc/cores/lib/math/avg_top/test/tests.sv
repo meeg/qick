@@ -194,7 +194,7 @@
 
     // --- Trigger 1 ---
     inject_data(3, {16'h0000, 16'h0001});
-    wait_for_wait_trigger_st();  // FSM completa WRITE_MEM_ST antes del siguiente trigger
+    wait_for_wait_trigger_st();  // FSM finish WRITE_MEM_ST before the next trigger
 
     // --- Trigger 2 ---
     pulse_trigger();
@@ -579,7 +579,7 @@
     sys_cb.tb_din_valid_i <= 1'b0;
     sys_cb.tb_din_i       <= '0;
 
-    // Reset mid-capture — reset_dut maneja todo el ciclo y estabilización
+    // Reset mid-capture — reset_dut manages the full cycle and stabilization
     sys_cb.tb_avg_start_reg  <= 1'b0;
     sys_cb.tb_avg_len_reg    <= '0;
     sys_cb.tb_avg_addr_reg   <= '0;
