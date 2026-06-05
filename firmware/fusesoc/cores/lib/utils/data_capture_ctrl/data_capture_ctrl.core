@@ -1,16 +1,16 @@
 CAPI=2:
-name: qick:utils:buffer:0.1.0
-description: Simple buffer for interface management
+name: qick:utils:data_capture_ctrl:0.1.0
+description: Simple data_capture_ctrl for interface management
 
 filesets:
   hdl:
     files:
-      - hdl/buffer.sv
+      - hdl/data_capture_ctrl.sv
     file_type: systemVerilogSource
 
   tb00:
     files: &tb_files
-      - tests/buffer_tc00.sv
+      - tests/data_capture_ctrl_tc00.sv
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
@@ -18,7 +18,7 @@ filesets:
 
   tb01:
     files:
-      - tests/tb_buffer.sv
+      - tests/tb_data_capture_ctrl.sv
     file_type: systemVerilogSource
   lint_files:
     depend:
@@ -29,7 +29,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - tests/buffer_tc00.sv
+          - tests/data_capture_ctrl_tc00.sv
 
 targets:
   default: &default
@@ -39,7 +39,7 @@ targets:
     <<: *default
     filesets_append: [lint_files]
     default_tool: veriblelint
-    toplevel: buffer
+    toplevel: data_capture_ctrl
     tools:
       verilator:
         mode: lint-only

@@ -1,16 +1,16 @@
 // ============================================================================
-// File: buffer_tc00.sv
-// Description: SVUnit testbench top-level for the buffer module.
+// File: data_capture_ctrl_tc00.sv
+// Description: SVUnit testbench top-level for the data_capture_ctrl module.
 // ============================================================================
 
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module buffer_unit_test;
+module data_capture_ctrl_unit_test;
 
     import svunit_pkg::svunit_testcase;
 
-    string name = "buffer_ut";
+    string name = "data_capture_ctrl_ut";
     svunit_testcase svunit_ut;
 
     localparam real CLOCK_FREQUENCY = 200e6;
@@ -42,7 +42,7 @@ module buffer_unit_test;
     // Waveform dump
     // -------------------------------------------------------------------------
     initial begin
-        $dumpfile("buffer.vcd");
+        $dumpfile("data_capture_ctrl.vcd");
         $dumpvars();
     end
 
@@ -76,10 +76,10 @@ module buffer_unit_test;
     // -------------------------------------------------------------------------
     // Unit Under Test
     // -------------------------------------------------------------------------
-    buffer #(
+    data_capture_ctrl #(
         .N (N),
         .B (B)
-    ) u_buffer (
+    ) u_data_capture_ctrl (
         .rstn        (tb_rstn),
         .clk         (tb_clk),
         .trigger_i   (tb_trigger_i),
