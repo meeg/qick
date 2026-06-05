@@ -76,6 +76,7 @@ module data_reader_unit_test;
     // Clocking block
     // =========================================================================
     default clocking cb @(posedge tb_clk);
+        default input #1step output #2;
         output tb_rstn;
         output tb_dready;
         output tb_start_reg;
