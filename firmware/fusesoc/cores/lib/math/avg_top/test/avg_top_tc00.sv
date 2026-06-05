@@ -82,6 +82,7 @@ module avg_top_unit_test;
     // Clocking blocks (One for each clock domain)
     // =========================================================================
     default clocking sys_cb @(posedge tb_clk);
+        default input #1step output #2;
         output tb_rstn;
         output tb_trigger_i;
         output tb_din_valid_i;
@@ -95,6 +96,7 @@ module avg_top_unit_test;
     endclocking
 
     clocking axi_cb @(posedge tb_m_axis_aclk);
+        default input #1step output #2;
         output tb_m_axis_aresetn;
         output tb_m0_axis_tready;
         output tb_m1_axis_tready;
