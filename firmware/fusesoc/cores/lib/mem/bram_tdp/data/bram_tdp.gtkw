@@ -1,0 +1,74 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jun  5 21:51:45 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_bram_tdp_1.0.0/test-xsim/bram_tdp.vcd"
+[dumpfile_mtime] "Fri Jun  5 21:37:09 2026"
+[dumpfile_size] 7163
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/bram_tdp/data/bram_tdp.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-14.197968 32000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.bram_tdp_ut.
+[treeopen] testrunner.__ts.bram_tdp_ut.u_bram_tdp.
+[sst_width] 206
+[signals_width] 110
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@800200
+-port_a
+@28
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.i_clk
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.i_rst
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.en
+@c00023
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.we[3:0]
+@28
+[color] 3
+(0)testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.we[3:0]
+[color] 3
+(1)testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.we[3:0]
+[color] 3
+(2)testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.we[3:0]
+[color] 3
+(3)testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.we[3:0]
+@1401201
+-group_end
+@22
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.addr[9:0]
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.din[31:0]
+[color] 6
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_a.dout[31:0]
+@1000200
+-port_a
+@800200
+-port_b
+@28
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.i_clk
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.i_rst
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.en
+@22
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.we[3:0]
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.addr[9:0]
+[color] 3
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.din[31:0]
+[color] 6
+testrunner.__ts.bram_tdp_ut.u_bram_tdp.port_b.dout[31:0]
+@1000200
+-port_b
+[pattern_trace] 1
+[pattern_trace] 0
