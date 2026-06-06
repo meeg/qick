@@ -5,9 +5,9 @@
 // Module: bram_if.sv
 // Project: BRAM Interface
 // Description:
-// Single-port BRAM interface with byte-enable support. 
+// Single-port BRAM interface with byte-enable support.
 // For True Dual-Port, instantiate this interface twice.
-// For complete write: we = {(NB_DATA/8){1'b1}} — equivalent to we=1 for 
+// For complete write: we = {(NB_DATA/8){1'b1}} — equivalent to we=1 for
 // single-bit enables.
 //
 // Change history: 12/23/25 - Created by @lharnaldi
@@ -21,7 +21,8 @@ interface bram_if #(
     input logic i_rst
 );
     logic                   en;
-    logic [(NB_DATA/8)-1:0] we;
+    logic                   we;
+    //logic [(NB_DATA/8)-1:0] we;
     logic [NB_ADDR-1:0]     addr;
     logic [NB_DATA-1:0]     din;
     logic [NB_DATA-1:0]     dout;
@@ -34,13 +35,11 @@ interface bram_if #(
     endclocking
 
     modport master (
-        input  i_clk, i_rst,
         output en, we, addr, din,
         input  dout
     );
 
     modport slave (
-        input  i_clk, i_rst,
         input  en, we, addr, din,
         output dout
     );
@@ -55,7 +54,8 @@ interface bram_if #(
         input logic [NB_DATA-1:0] w_data
     );
         tb_cb.en   <= 1'b1;
-        tb_cb.we   <= {(NB_DATA/8){1'b1}};
+        tb_cb.we   <= 1'b1;
+        //tb_cb.we   <= {(NB_DATA/8){1'b1}};
         tb_cb.addr <= w_addr;
         tb_cb.din  <= w_data;
         @(tb_cb);          // BRAM latch in this posedge
