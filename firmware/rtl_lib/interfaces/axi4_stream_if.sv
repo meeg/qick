@@ -119,220 +119,220 @@ interface axi4_stream_if#(
           import   sample_tlast
       );
 
-          modport tb_slave  (
-            clocking  s_cb,
-              import    s_reset,
-              import    rx,
-              import    burst_rx,
-              import    wait_for_beat,
-              import    sample_tdata
-          );
+      modport tb_slave  (
+        clocking  s_cb,
+          import    s_reset,
+          import    rx,
+          import    burst_rx,
+          import    wait_for_beat,
+          import    sample_tdata
+      );
 
-              // ============================================================
-              // RESET TASKS
-              // ============================================================
+      // ============================================================
+      // RESET TASKS
+      // ============================================================
 
-              task automatic m_reset(input int timeout_cycles = 1000);
-                // Initialize all master signals
-                m_cb.tvalid <= 1'b0;
-                m_cb.tdata  <= '0;
-                m_cb.tlast  <= 1'b0;
-                m_cb.tstrb  <= '0;
-                m_cb.tkeep  <= '0;
-                m_cb.tid    <= '0;
-                m_cb.tdest  <= '0;
-                m_cb.tuser  <= '0;
+      task automatic m_reset(input int timeout_cycles = 1000);
+        // Initialize all master signals
+        m_cb.tvalid <= 1'b0;
+        m_cb.tdata  <= '0;
+        m_cb.tlast  <= 1'b0;
+        m_cb.tstrb  <= '0;
+        m_cb.tkeep  <= '0;
+        m_cb.tid    <= '0;
+        m_cb.tdest  <= '0;
+        m_cb.tuser  <= '0;
 
-                // Wait for reset to deassert
-                fork
-                  begin
-                    wait(i_rstn === 1'b1);
-                  end
-                  begin
-                    repeat (timeout_cycles) @(m_cb);
-                    $fatal(1, "[AXIS] Master reset timeout");
-                  end
-                join_any
-                disable fork;
+        // Wait for reset to deassert
+        fork
+          begin
+            wait(i_rstn === 1'b1);
+          end
+          begin
+            repeat (timeout_cycles) @(m_cb);
+            $fatal(1, "[AXIS] Master reset timeout");
+          end
+        join_any
+        disable fork;
 
-                repeat (3) @(m_cb);  // Extra settling time
-              endtask
+        repeat (3) @(m_cb);  // Extra settling time
+      endtask
 
-              task automatic s_reset();
-                // Initialize slave ready
-                s_cb.tready <= 1'b0;
+      task automatic s_reset();
+        // Initialize slave ready
+        s_cb.tready <= 1'b0;
 
-                // Wait for reset to deassert
-                wait(i_rstn === 1'b1);
+        // Wait for reset to deassert
+        wait(i_rstn === 1'b1);
 
-                repeat (3) @(s_cb);  // Extra settling time
+        repeat (3) @(s_cb);  // Extra settling time
 
-                // Assert ready
-                s_cb.tready <= 1'b1;
-              endtask
+        // Assert ready
+        s_cb.tready <= 1'b1;
+      endtask
 
-              // ------------------------------------------------------------
-              // TX / RX TASKS (UNCHANGED)
-              // ------------------------------------------------------------
+      // ------------------------------------------------------------
+      // TX / RX TASKS 
+      // ------------------------------------------------------------
 
-              task automatic tx(
-                input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
-                input logic last = 1'b0,
-                input int timeout = 1000
-              );
-                int cnt = 0;
+      task automatic tx(
+        input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
+        input logic last = 1'b0,
+        input int timeout = 1000
+      );
+        int cnt = 0;
 
-                m_cb.tdata  <= data;
-                m_cb.tlast  <= last;
-                m_cb.tvalid <= 1'b1;
+        m_cb.tdata  <= data;
+        m_cb.tlast  <= last;
+        m_cb.tvalid <= 1'b1;
 
-                @(m_cb);
+        @(m_cb);
 
-                while (!m_cb.tready) begin
-                  @(m_cb);
-                  if (++cnt > timeout)
-                    $fatal(1, "AXIS TX timeout");
-                end
+        while (!m_cb.tready) begin
+          @(m_cb);
+          if (++cnt > timeout)
+            $fatal(1, "AXIS TX timeout");
+        end
 
-                m_cb.tvalid <= 1'b0;
-                m_cb.tlast  <= 1'b0;
-              endtask
+        m_cb.tvalid <= 1'b0;
+        m_cb.tlast  <= 1'b0;
+      endtask
 
-              task automatic rx(
-                output logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
-                output logic last,
-                input int timeout = 1000
-              );
-                int cnt = 0;
+      task automatic rx(
+        output logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
+        output logic last,
+        input int timeout = 1000
+      );
+        int cnt = 0;
 
-                s_cb.tready <= 1'b1;
+        s_cb.tready <= 1'b1;
 
-                while (!s_cb.tvalid) begin
-                  @(s_cb);
-                  if (++cnt > timeout)
-                    $fatal(1, "AXIS RX timeout");
-                end
+        while (!s_cb.tvalid) begin
+          @(s_cb);
+          if (++cnt > timeout)
+            $fatal(1, "AXIS RX timeout");
+        end
 
-                data = s_cb.tdata;
-                last = s_cb.tlast;
+        data = s_cb.tdata;
+        last = s_cb.tlast;
 
-                @(s_cb);
-                s_cb.tready <= 1'b0;
-              endtask
+        @(s_cb);
+        s_cb.tready <= 1'b0;
+      endtask
 
-              task automatic drive_beat(
-                input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
-                input logic last = 0
-              );
-                // Use m_cb consistently (this is a MASTER task)
-                @(m_cb);
-                m_cb.tdata  <= data;
-                m_cb.tvalid <= 1'b1;
-                m_cb.tlast  <= last;
+      task automatic drive_beat(
+        input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
+        input logic last = 0
+      );
+        // Use m_cb consistently (this is a MASTER task)
+        @(m_cb);
+        m_cb.tdata  <= data;
+        m_cb.tvalid <= 1'b1;
+        m_cb.tlast  <= last;
 
-                // Wait for handshake
-                do @(m_cb); while (!tready);
+        // Wait for handshake
+        do @(m_cb); while (!m_cb.tready);
 
-                // Deassert after handshake
-                @(m_cb);
-                m_cb.tvalid <= 1'b0;
-                m_cb.tlast  <= 1'b0;
-              endtask
+        // Deassert after handshake
+        @(m_cb);
+        m_cb.tvalid <= 1'b0;
+        m_cb.tlast  <= 1'b0;
+      endtask
 
-              // Slave side: wait for a valid beat
-              task automatic wait_for_beat();
-                // Use s_cb consistently (this is a SLAVE task)
-                do @(s_cb); while (!tvalid || !tready);
-              endtask
+      // Slave side: wait for a valid beat
+      task automatic wait_for_beat();
+        // Use s_cb consistently (this is a SLAVE task)
+        do @(s_cb); while (!s_cb.tvalid || !tready);
+      endtask
 
-              // Slave side: sample current data
-              function automatic logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] sample_tdata();
-                return tdata;  // Direct signal access (works from both sides)
-              endfunction
+      // Slave side: sample current data
+      function automatic logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] sample_tdata();
+        return tdata;  // Direct signal access (works from both sides)
+      endfunction
 
-              // Master side: sample tlast
-              function automatic logic sample_tlast();
-                return tlast;
-              endfunction
+      // Master side: sample tlast
+      function automatic logic sample_tlast();
+        return tlast;
+      endfunction
 
-              // Master side: go idle
-              task automatic idle();
-                m_cb.tvalid <= 0;
-                m_cb.tlast  <= 0;
-              endtask
-              // ============================================================
-              // AXIS TX TASK (master side)
-              // ============================================================
-              task automatic burst_tx(
-                input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data_array[],
-                input int unsigned n_beats,
-                input int unsigned timeout = 1000
-              );
-                int unsigned wait_cycles;
+      // Master side: go idle
+      task automatic idle();
+        m_cb.tvalid <= 0;
+        m_cb.tlast  <= 0;
+      endtask
+      // ============================================================
+      // AXIS TX TASK (master side)
+      // ============================================================
+      task automatic burst_tx(
+        input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data_array[],
+        input int unsigned n_beats,
+        input int unsigned timeout = 1000
+      );
+        int unsigned wait_cycles;
 
-                if (n_beats == 0)
-                  return;
+        if (n_beats == 0)
+          return;
 
-                for (int i = 0; i < n_beats; i++) begin
-                  wait_cycles = 0;
+        for (int i = 0; i < n_beats; i++) begin
+          wait_cycles = 0;
 
-                  // Drive beat
-                  @(m_cb);
-                  m_cb.tdata  <= data_array[i];
-                  m_cb.tvalid <= 1'b1;
-                  m_cb.tlast  <= (i == n_beats-1);
+          // Drive beat
+          @(m_cb);
+          m_cb.tdata  <= data_array[i];
+          m_cb.tvalid <= 1'b1;
+          m_cb.tlast  <= (i == n_beats-1);
 
-                  // Wait for handshake
-                  while (!tready) begin
-                    @(m_cb);
-                    wait_cycles++;
-                    if (wait_cycles > timeout)
-                      $fatal(1, "AXIS TX timeout on beat %0d after %0d cycles", i, timeout);
-                  end
-                end
+          // Wait for handshake
+          while (!m_cb.tready) begin
+            @(m_cb);
+            wait_cycles++;
+            if (wait_cycles > timeout)
+              $fatal(1, "AXIS TX timeout on beat %0d after %0d cycles", i, timeout);
+          end
+        end
 
-                // Return to idle
-                @(m_cb);
-                m_cb.tvalid <= 1'b0;
-                m_cb.tlast  <= 1'b0;
-              endtask
+        // Return to idle
+        @(m_cb);
+        m_cb.tvalid <= 1'b0;
+        m_cb.tlast  <= 1'b0;
+      endtask
 
-              // ============================================================
-              // AXIS RX TASK (slave side)
-              // ============================================================
-              task automatic burst_rx(
-                output logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data_array[$],
-                input int unsigned timeout = 1000
-              );
-                int unsigned wait_cycles;
-                logic done;
+      // ============================================================
+      // AXIS RX TASK (slave side)
+      // ============================================================
+      task automatic burst_rx(
+        output logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data_array[$],
+        input int unsigned timeout = 1000
+      );
+        int unsigned wait_cycles;
+        logic done;
 
-                data_array.delete();
-                done = 0;
-                wait_cycles = 0;
+        data_array.delete();
+        done = 0;
+        wait_cycles = 0;
 
-                // Assert ready
-                s_cb.tready <= 1'b1;
+        // Assert ready
+        s_cb.tready <= 1'b1;
 
-                while (!done) begin
-                  @(s_cb);
-                  wait_cycles++;
+        while (!done) begin
+          @(s_cb);
+          wait_cycles++;
 
-                  if (wait_cycles > timeout)
-                    $fatal(1, "AXIS RX timeout: no TLAST seen after %0d cycles", timeout);
+          if (wait_cycles > timeout)
+            $fatal(1, "AXIS RX timeout: no TLAST seen after %0d cycles", timeout);
 
-                  // Sample on valid handshake
-                  if (tvalid && tready) begin
-                    data_array.push_back(s_cb.tdata);
-                    if (s_cb.tlast)
-                      done = 1;
-                  end
-                end
+          // Sample on valid handshake
+          if (s_cb.tvalid && tready) begin
+            data_array.push_back(s_cb.tdata);
+            if (s_cb.tlast)
+              done = 1;
+          end
+        end
 
-                // Return to idle
-                @(s_cb);
-                s_cb.tready <= 1'b0;
-              endtask
+        // Return to idle
+        @(s_cb);
+        s_cb.tready <= 1'b0;
+      endtask
     `endif // VERILATOR
   `endif // SYNTHESIS
 
@@ -480,4 +480,3 @@ interface axi4_stream_if#(
   `endif //SVUNIT
 
 endinterface
-
