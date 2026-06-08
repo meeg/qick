@@ -108,63 +108,63 @@ interface axi4_lite_if#(
   `else
 
     modport tb_master(clocking m_cb);
-      modport tb_slave(clocking s_cb);
+    modport tb_slave(clocking s_cb);
 
-        clocking m_cb @(posedge aclk);
-          default input #1step output #2;
+    clocking m_cb @(posedge aclk);
+      default input #1step output #2;
 
-          input  awready;
-          output awvalid;
-          output awaddr;
-          output awprot;
+      input  awready;
+      output awvalid;
+      output awaddr;
+      output awprot;
 
-          input  wready;
-          output wvalid;
-          output wdata;
-          output wstrb;
+      input  wready;
+      output wvalid;
+      output wdata;
+      output wstrb;
 
-          output bready;
-          input  bvalid;
-          input  bresp;
+      output bready;
+      input  bvalid;
+      input  bresp;
 
-          input  arready;
-          output arvalid;
-          output araddr;
-          output arprot;
+      input  arready;
+      output arvalid;
+      output araddr;
+      output arprot;
 
-          output rready;
-          input  rvalid;
-          input  rdata;
-          input  rresp;
-        endclocking
+      output rready;
+      input  rvalid;
+      input  rdata;
+      input  rresp;
+    endclocking
 
-        clocking s_cb @(posedge aclk);
-          default input #1step output #2;
+    clocking s_cb @(posedge aclk);
+      default input #1step output #2;
 
-          output awready;
-          input  awvalid;
-          input  awaddr;
-          input  awprot;
+      output awready;
+      input  awvalid;
+      input  awaddr;
+      input  awprot;
 
-          output wready;
-          input  wvalid;
-          input  wdata;
-          input  wstrb;
+      output wready;
+      input  wvalid;
+      input  wdata;
+      input  wstrb;
 
-          input  bready;
-          output bvalid;
-          output bresp;
+      input  bready;
+      output bvalid;
+      output bresp;
 
-          output arready;
-          input  arvalid;
-          input  araddr;
-          input  arprot;
+      output arready;
+      input  arvalid;
+      input  araddr;
+      input  arprot;
 
-          input  rready;
-          output rvalid;
-          output rdata;
-          output rresp;
-        endclocking
+      input  rready;
+      output rvalid;
+      output rdata;
+      output rresp;
+    endclocking
 
   `endif //SYNTHESIS
 
