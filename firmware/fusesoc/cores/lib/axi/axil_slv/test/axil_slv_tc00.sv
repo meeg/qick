@@ -19,6 +19,7 @@ module axil_slv_unit_test;
   logic          tb_rstn        = 1'b1;
   logic [AXI_DW-1:0]   tb_o_slv_reg[NUM_REGS];
   logic [AXI_DW-1:0]   tb_i_slv_reg[NUM_REGS];
+  logic [AXI_DW-1:0] tb_slv_regs [NUM_REGS];
 
   initial begin
     $dumpfile("axil_slv.vcd");
@@ -63,10 +64,16 @@ module axil_slv_unit_test;
     .s_axi_rresp  ( s_axi.rresp   ),  // Read response
     .s_axi_rvalid ( s_axi.rvalid  ),  // Read data valid
     .s_axi_rready ( s_axi.rready  ),  // Read data ready
-    .o_slv_regs   ( tb_o_slv_reg     ),  //
-    .i_slv_regs   ( tb_i_slv_reg     )   //
+    .o_slv_regs   ( tb_o_slv_reg     ),  // Writable registers
+    .i_slv_regs   ( tb_i_slv_reg     ),  // Read-only register values
+    .i_reg_is_readonly ( '0 )  // No read-only registers, this means all registers are writable. Adjust as needed for specific tests.
   );
 
+  always_comb begin
+    for (int i = 0; i < NUM_REGS; i++) begin
+      tb_i_slv_reg[i] = tb_o_slv_reg[i];
+    end
+  end
   //===================================
   // Build
   //===================================

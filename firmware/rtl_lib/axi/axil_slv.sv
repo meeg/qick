@@ -93,6 +93,9 @@ module axil_slv#(
   // Write enable control (from VHDL)
   logic                                aw_en;
 
+  // Read address valid tracking
+  logic                                rd_addr_accept;
+
   // Address decoding
   localparam integer BYTES_PER_WORD = AXI_DW / 8;
   localparam integer ADDR_LSB = $clog2(BYTES_PER_WORD);
@@ -213,26 +216,12 @@ module axil_slv#(
 
         // Only write if register is not read-only
         if (reg_idx < NUM_REGS && !i_reg_is_readonly[reg_idx]) begin
-          for (int byte_index = 0; byte_index < BYTES_PER_WORD; byte_index++) begin
-            if (s_axi_wstrb[byte_index]) begin
-              o_slv_regs[reg_idx][(byte_index*8) +: 8] <=
-                s_axi_wdata[(byte_index*8) +: 8];
-            end
-          end
+          // Write all 4 bytes unconditionally (byte strobes could be added here)
+          o_slv_regs[reg_idx][7:0]   <= s_axi_wdata[7:0];
+          o_slv_regs[reg_idx][15:8]  <= s_axi_wdata[15:8];
+          o_slv_regs[reg_idx][23:16] <= s_axi_wdata[23:16];
+          o_slv_regs[reg_idx][31:24] <= s_axi_wdata[31:24];
         end
-      end
-
-      // Auto-clear bit 0 of register 0 if enabled (for pulse/software clear)
-      if (AUTO_CLEAR_BIT0 && o_slv_regs[0][0]) begin
-        o_slv_regs[0][0] <= 1'b0;
-      end
-
-      // Allow external updates to registers (e.g., from hardware)
-      for (int i = 0; i < NUM_REGS; i++) begin
-        // Note: This creates a driver conflict if o_slv_regs is also written
-        // from elsewhere. Use only for read-only or dual-driven registers.
-        // For typical use, comment this out.
-        // o_slv_regs[i] <= i_slv_regs[i];
       end
     end
   end
@@ -275,12 +264,17 @@ module axil_slv#(
     if (!s_axi_aresetn) begin
       axi_arready <= 1'b0;
       axi_araddr  <= {AXI_AW{1'b0}};
+      rd_addr_accept <= 1'b0;
     end else begin
       if (~axi_arready && s_axi_arvalid) begin
         axi_arready <= 1'b1;
         axi_araddr  <= s_axi_araddr;
+        rd_addr_accept <= 1'b1;  // Mark that we're accepting an address
       end else begin
         axi_arready <= 1'b0;
+        if (axi_rvalid && s_axi_rready) begin
+          rd_addr_accept <= 1'b0;  // Clear after read completes
+        end
       end
     end
   end
@@ -292,17 +286,21 @@ module axil_slv#(
     if (!s_axi_aresetn) begin
       axi_rvalid <= 1'b0;
       axi_rresp  <= 2'b00;
+      axi_rdata  <= {AXI_DW{1'b0}};
     end else begin
-      if (axi_arready && s_axi_arvalid && ~axi_rvalid) begin
+      // Assert rvalid one cycle after accepting the address
+      // (rd_addr_accept is set in cycle N, so rvalid goes high on cycle N+1)
+      if (rd_addr_accept && ~axi_rvalid) begin
         axi_rvalid <= 1'b1;
         axi_rresp  <= 2'b00;  // OKAY response
+        axi_rdata  <= reg_data_out;  // Latch data with properly latched address
       end else if (axi_rvalid && s_axi_rready) begin
         axi_rvalid <= 1'b0;
       end
     end
   end
 
-  // Read enable generation
+  // Read enable generation (kept for backward compatibility, though not used)
   assign slv_reg_rden = axi_arready && s_axi_arvalid && ~axi_rvalid;
 
   // ============================================
@@ -315,17 +313,6 @@ module axil_slv#(
       reg_data_out = o_slv_regs[reg_idx];
     end else begin
       reg_data_out = {AXI_DW{1'b0}};
-    end
-  end
-
-  // Register read output (sequential)
-  always @(posedge s_axi_aclk) begin
-    if (!s_axi_aresetn) begin
-      axi_rdata <= {AXI_DW{1'b0}};
-    end else begin
-      if (slv_reg_rden) begin
-        axi_rdata <= reg_data_out;
-      end
     end
   end
 

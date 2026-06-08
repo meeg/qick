@@ -1,71 +1,101 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Sun Jan 25 01:02:31 2026
+[*] Mon Jun  8 20:24:42 2026
 [*]
-[dumpfile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/build/fnal_utils_axil_slv_0.1.0/test-xsim/axil_slv.vcd"
-[dumpfile_mtime] "Sun Jan 25 01:01:11 2026"
-[dumpfile_size] 13722
-[savefile] "/home/larnaldi/git/7_Integrate_Fusesoc_into_the_design_flow/firmware/fusesoc/cores/axil_slv/data/axil_slv.gtkw"
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_axi_axil_slv_0.1.0/test-xsim/axil_slv.vcd"
+[dumpfile_mtime] "Mon Jun  8 20:11:39 2026"
+[dumpfile_size] 22735
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/axil_slv/data/axil_slv.gtkw"
 [timestart] 0
-[size] 1920 1140
+[size] 1920 1165
 [pos] -1 -1
-*-15.959600 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-16.778812 572000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.axil_slv_ut.
 [sst_width] 206
-[signals_width] 166
+[signals_width] 198
 [sst_expanded] 1
-[sst_vpaned_height] 738
-@22
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_araddr[5:0]
-@28
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_arready
-@24
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_awaddr[5:0]
-@28
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_awready
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_bresp[1:0]
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_bvalid
-@22
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_rdata[31:0]
-@28
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_rresp[1:0]
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_rvalid
-testrunner.__ts.axil_slv_ut.u_axil_slv.axi_wready
-@420
-testrunner.__ts.axil_slv_ut.u_axil_slv.byte_index
+[sst_vpaned_height] 599
 @28
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_aclk
-@22
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_araddr[5:0]
-@28
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_aresetn
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_arready
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_arvalid
+@800200
+-write_addr_ch
 @24
+[color] 3
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awaddr[5:0]
 @28
+[color] 6
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awready
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awprot[2:0]
+[color] 3
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awvalid
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bready
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bresp[1:0]
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bvalid
+@1000200
+-write_addr_ch
+@800200
+-write_data_ch
 @22
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rdata[31:0]
-@28
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rready
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rresp[1:0]
-testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rvalid
-@25
+[color] 3
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wdata[31:0]
 @28
+[color] 6
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wready
 @22
+[color] 3
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wstrb[3:0]
 @28
+[color] 3
 testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wvalid
+@1000200
+-write_data_ch
+@800200
+-write_resp_ch
+@28
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bready
+@29
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bresp[1:0]
+@28
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bvalid
+@1000200
+-write_resp_ch
+@800200
+-read_addr_ch
+@24
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_araddr[5:0]
+@28
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_arready
+@24
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_arvalid
+@1000200
+-read_addr_ch
+@800200
+-read_data_ch
+@22
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rdata[31:0]
+@28
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rready
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rresp[1:0]
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rvalid
+@1000200
+-read_data_ch
+@28
 testrunner.__ts.axil_slv_ut.u_axil_slv.slv_reg_rden
 testrunner.__ts.axil_slv_ut.u_axil_slv.slv_reg_wren
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wstrb[3:0]
+testrunner.__ts.axil_slv_ut.u_axil_slv.axi_awready
+@22
+testrunner.__ts.axil_slv_ut.u_axil_slv.reg_data_out[31:0]
+testrunner.__ts.axil_slv_ut.u_axil_slv.axi_rdata[31:0]
 [pattern_trace] 1
 [pattern_trace] 0
