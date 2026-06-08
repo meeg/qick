@@ -27,29 +27,29 @@
 `timescale 1ns/1ps
 
 module data_writer_trig #(
-    parameter int N = 8,
-    parameter int B = 16
-  ) (
-    input  logic         rstn,
-    input  logic         clk,
+  parameter int N = 8,
+  parameter int B = 16
+) (
+  input  logic         rstn,
+  input  logic         clk,
 
-    // Hardware trigger
-    input  logic         trigger,
+  // Hardware trigger
+  input  logic         trigger,
 
-    // AXI Stream input
-    output logic         s_axis_tready,
-    input  logic [B-1:0] s_axis_tdata,
-    input  logic         s_axis_tvalid,
+  // AXI Stream input
+  output logic         s_axis_tready,
+  input  logic [B-1:0] s_axis_tdata,
+  input  logic         s_axis_tvalid,
 
-    // Memory interface
-    output logic         mem_en,
-    output logic         mem_we,
-    output logic [N-1:0] mem_addr,
-    output logic [B-1:0] mem_di,
+  // Memory interface
+  output logic         mem_en,
+  output logic         mem_we,
+  output logic [N-1:0] mem_addr,
+  output logic [B-1:0] mem_di,
 
-    // Software register
-    input  logic         capture_reg
-  );
+  // Software register
+  input  logic         capture_reg
+);
 
   // -------------------------------------------------------------------------
   // Derived parameter
@@ -60,11 +60,11 @@ module data_writer_trig #(
   // FSM state encoding
   // -------------------------------------------------------------------------
   typedef enum logic [1:0] {
-            INIT_ST    = 2'd0,
-            TRIGGER_ST = 2'd1,
-            CAPTURE_ST = 2'd2,
-            END_ST     = 2'd3
-          } state_t;
+    INIT_ST    = 2'd0,
+    TRIGGER_ST = 2'd1,
+    CAPTURE_ST = 2'd2,
+    END_ST     = 2'd3
+  } state_t;
 
   state_t current_state, next_state;
 
@@ -94,18 +94,18 @@ module data_writer_trig #(
   // Internal FIFO instantiation (depth=16, same as VHDL N=4 → 2**4=16)
   // -------------------------------------------------------------------------
   fifo_sync #(
-              .B (B),
-              .N (16)
-            ) fifo_i (
-              .rstn   (rstn),
-              .clk    (clk),
-              .wr_en  (fifo_wr_en),
-              .din    (s_axis_tdata),
-              .rd_en  (fifo_rd_en),
-              .dout   (fifo_dout),
-              .full   (fifo_full),
-              .empty  (fifo_empty)
-            );
+    .B (B),
+    .N (16)
+  ) fifo_i (
+    .rstn   (rstn),
+    .clk    (clk),
+    .wr_en  (fifo_wr_en),
+    .din    (s_axis_tdata),
+    .rd_en  (fifo_rd_en),
+    .dout   (fifo_dout),
+    .full   (fifo_full),
+    .empty  (fifo_empty)
+  );
 
   // -------------------------------------------------------------------------
   // FIFO control
@@ -163,52 +163,52 @@ module data_writer_trig #(
     next_state = current_state;
 
     unique case (current_state)
-             INIT_ST:
-               if (capture_reg)
-                 next_state = TRIGGER_ST;
+      INIT_ST:
+        if (capture_reg)
+          next_state = TRIGGER_ST;
 
-             TRIGGER_ST:
-               if (trigger)
-                 next_state = CAPTURE_ST;
+      TRIGGER_ST:
+        if (trigger)
+          next_state = CAPTURE_ST;
 
-             CAPTURE_ST:
-               if ((addr_cnt == '1) && ~fifo_empty)
-                 next_state = END_ST;
+      CAPTURE_ST:
+        if ((addr_cnt == '1) && ~fifo_empty)
+          next_state = END_ST;
 
-             END_ST:
-               if (!capture_reg && fifo_empty)
-                 next_state = INIT_ST;
+      END_ST:
+        if (!capture_reg && fifo_empty)
+          next_state = INIT_ST;
 
-             default:
-               next_state = INIT_ST;
-           endcase
-         end
+      default:
+        next_state = INIT_ST;
+    endcase
+  end
 
-         // -------------------------------------------------------------------------
-         // FSM output decode (combinational)
-         // -------------------------------------------------------------------------
-         always_comb
-         begin
-           write_en = 1'b0;
+  // -------------------------------------------------------------------------
+  // FSM output decode (combinational)
+  // -------------------------------------------------------------------------
+  always_comb
+  begin
+    write_en = 1'b0;
 
-           unique case (current_state)
-                    INIT_ST:
-                      ;
-                    TRIGGER_ST:
-                      ;
-                    CAPTURE_ST:
-                      write_en = 1'b1;
-                    END_ST:
-                      ;
-                    default:
-                      ;
-                  endcase
-                end
+    unique case (current_state)
+      INIT_ST:
+        ;
+      TRIGGER_ST:
+        ;
+      CAPTURE_ST:
+        write_en = 1'b1;
+      END_ST:
+        ;
+      default:
+        ;
+    endcase
+  end
 
-                // -------------------------------------------------------------------------
-                // Output assignments
-                // -------------------------------------------------------------------------
-                assign s_axis_tready = write_en & ~fifo_full;
+  // -------------------------------------------------------------------------
+  // Output assignments
+  // -------------------------------------------------------------------------
+  assign s_axis_tready = write_en & ~fifo_full;
   assign mem_en        = 1'b1;
   assign mem_we        = mem_we_r;
   assign mem_addr      = mem_addr_r;

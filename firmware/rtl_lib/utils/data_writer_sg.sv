@@ -18,27 +18,27 @@
 `timescale 1ns/1ps
 
 module data_writer_sg #(
-    parameter int N = 16,
-    parameter int B = 16
-  ) (
-    input  logic             rstn,
-    input  logic             clk,
+  parameter int N = 16,
+  parameter int B = 16
+) (
+  input  logic             rstn,
+  input  logic             clk,
 
-    // AXI Stream input
-    output logic             s_axis_tready,
-    input  logic [B-1:0]     s_axis_tdata,
-    input  logic             s_axis_tvalid,
+  // AXI Stream input
+  output logic             s_axis_tready,
+  input  logic [B-1:0]     s_axis_tdata,
+  input  logic             s_axis_tvalid,
 
-    // Memory interface
-    output logic             mem_en,
-    output logic             mem_we,
-    output logic [N-1:0]     mem_addr,
-    output logic [B-1:0]     mem_di,
+  // Memory interface
+  output logic             mem_en,
+  output logic             mem_we,
+  output logic [N-1:0]     mem_addr,
+  output logic [B-1:0]     mem_di,
 
-    // Registers (may come from a different clock domain)
-    input  logic [31:0]      start_addr_reg,
-    input  logic             we_reg
-  );
+  // Registers (may come from a different clock domain)
+  input  logic [31:0]      start_addr_reg,
+  input  logic             we_reg
+);
 
   // -------------------------------------------------------------------------
   // CDC: synchronise we_reg into clk domain
@@ -46,24 +46,24 @@ module data_writer_sg #(
   logic we_reg_resync;
 
   sync_nxm #(
-             .N (2),
-             .M (1)
-           ) we_reg_sync_i (
-             .i_clk  (clk),
-             .i_rstn (rstn),
-             .i_d    (we_reg),
-             .o_d    (we_reg_resync)
-           );
+    .N (2),
+    .M (1)
+  ) we_reg_sync_i (
+    .i_clk  (clk),
+    .i_rstn (rstn),
+    .i_d    (we_reg),
+    .o_d    (we_reg_resync)
+  );
 
   // -------------------------------------------------------------------------
   // FSM state encoding
   // -------------------------------------------------------------------------
   typedef enum logic [1:0] {
-            INIT_ST            = 2'd0,
-            READ_START_ADDR_ST = 2'd1,
-            WAIT_TVALID_ST     = 2'd2,
-            RW_TDATA_ST        = 2'd3
-          } state_t;
+    INIT_ST            = 2'd0,
+    READ_START_ADDR_ST = 2'd1,
+    WAIT_TVALID_ST     = 2'd2,
+    RW_TDATA_ST        = 2'd3
+  } state_t;
 
   state_t state;
 
@@ -139,61 +139,61 @@ module data_writer_sg #(
     else
     begin
       unique case (state)
-               INIT_ST:
-                 if (we_reg_resync)
-                   state <= READ_START_ADDR_ST;
+        INIT_ST:
+          if (we_reg_resync)
+            state <= READ_START_ADDR_ST;
 
-               READ_START_ADDR_ST:
-                 state <= WAIT_TVALID_ST;
+        READ_START_ADDR_ST:
+          state <= WAIT_TVALID_ST;
 
-               WAIT_TVALID_ST:
-                 if (!we_reg_resync)
-                   state <= INIT_ST;
-                 else if (tvalid_r)
-                   state <= RW_TDATA_ST;
+        WAIT_TVALID_ST:
+          if (!we_reg_resync)
+            state <= INIT_ST;
+          else if (tvalid_r)
+            state <= RW_TDATA_ST;
 
-               RW_TDATA_ST:
-                 if (!we_reg_resync)
-                   state <= INIT_ST;
-                 else if (!tvalid_r)
-                   state <= WAIT_TVALID_ST;
+        RW_TDATA_ST:
+          if (!we_reg_resync)
+            state <= INIT_ST;
+          else if (!tvalid_r)
+            state <= WAIT_TVALID_ST;
 
-               default:
-                 state <= INIT_ST;
-             endcase
-           end
-         end
+        default:
+          state <= INIT_ST;
+      endcase
+    end
+  end
 
-         // -------------------------------------------------------------------------
-         // FSM output decode (combinational)
-         // -------------------------------------------------------------------------
-         always_comb
-         begin
-           read_start_addr_state = 1'b0;
-           rw_tdata_state        = 1'b0;
-           tready_i              = 1'b0;
+  // -------------------------------------------------------------------------
+  // FSM output decode (combinational)
+  // -------------------------------------------------------------------------
+  always_comb
+  begin
+    read_start_addr_state = 1'b0;
+    rw_tdata_state        = 1'b0;
+    tready_i              = 1'b0;
 
-           unique case (state)
-                    INIT_ST:
-                      ; // no outputs
-                    READ_START_ADDR_ST:
-                      read_start_addr_state = 1'b1;
-                    WAIT_TVALID_ST:
-                      tready_i              = 1'b1;
-                    RW_TDATA_ST:
-                    begin
-                      rw_tdata_state = 1'b1;
-                      tready_i       = 1'b1;
-                    end
-                    default:
-                      ;
-                  endcase
-                end
+    unique case (state)
+      INIT_ST:
+        ; // no outputs
+      READ_START_ADDR_ST:
+        read_start_addr_state = 1'b1;
+      WAIT_TVALID_ST:
+        tready_i              = 1'b1;
+      RW_TDATA_ST:
+        begin
+          rw_tdata_state = 1'b1;
+          tready_i       = 1'b1;
+        end
+      default:
+        ;
+    endcase
+  end
 
-                // -------------------------------------------------------------------------
-                // Output assignments
-                // -------------------------------------------------------------------------
-                assign s_axis_tready = tready_r;
+  // -------------------------------------------------------------------------
+  // Output assignments
+  // -------------------------------------------------------------------------
+  assign s_axis_tready = tready_r;
   assign mem_en        = 1'b1;
   assign mem_we        = tvalid_rrr;
   assign mem_addr      = mem_addr_full_r;
