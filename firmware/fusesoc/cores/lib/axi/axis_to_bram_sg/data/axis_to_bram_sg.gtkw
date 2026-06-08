@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Mon Jun  8 00:19:59 2026
+[*] Mon Jun  8 14:51:24 2026
 [*]
 [dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_axi_axis_to_bram_sg_1.0.0/test-xsim/axis_to_bram_sg.vcd"
-[dumpfile_mtime] "Mon Jun  8 00:17:42 2026"
-[dumpfile_size] 40416
+[dumpfile_mtime] "Mon Jun  8 14:50:51 2026"
+[dumpfile_size] 41099
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/axis_to_bram_sg/data/axis_to_bram_sg.gtkw"
-[timestart] 625900
+[timestart] 0
 [size] 1920 1140
 [pos] -1 -1
-*-15.353382 865000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-18.353382 852000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.axis_to_bram_sg_ut.
@@ -29,8 +29,6 @@ testrunner.__ts.axis_to_bram_sg_ut.u_dut.rstn
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.capture_sync
 @22
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.d3[15:0]
-testrunner.__ts.axis_to_bram_sg_ut.u_dut.mem_addr_full[7:0]
-testrunner.__ts.axis_to_bram_sg_ut.u_dut.mem_addr_full_r[7:0]
 @28
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.read_start_addr_state
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.rw_tdata_state
@@ -42,24 +40,34 @@ testrunner.__ts.axis_to_bram_sg_ut.u_dut.state[1:0]
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.tready_i
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.tready_r
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.v3
+[color] 2
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.handshake
 @800200
 -s_axis
 @420
+[color] 3
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tdata[15:0]
 @28
+[color] 3
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tlast
+[color] 3
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tready
+[color] 3
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tvalid
 @1000200
 -s_axis
 @800200
 -bram_if
-@24
+@25
+[color] 6
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.addr[7:0]
 @421
+[color] 6
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.din[15:0]
-@28
+@29
+[color] 6
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.en
+[color] 6
 testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.we
 @1000200
 -bram_if

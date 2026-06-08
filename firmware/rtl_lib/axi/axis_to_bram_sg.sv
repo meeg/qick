@@ -46,6 +46,8 @@ module axis_to_bram_sg #(
     input  logic             capture_reg
 );
 
+    logic handshake;
+    assign handshake = axis.tvalid && axis.tready;
     // -------------------------------------------------------------------------
     // CDC: synchronise capture_reg into clk domain
     // -------------------------------------------------------------------------
@@ -86,12 +88,12 @@ module axis_to_bram_sg #(
     logic             tready_r;
     logic [B-1:0]     d1, d2, d3;
     logic             v1, v2, v3;
+    logic [N-1:0]     a1, a2, a3;
 
     // -------------------------------------------------------------------------
     // Memory address
     // -------------------------------------------------------------------------
-    logic [N-1:0] mem_addr_full;
-    logic [N-1:0] mem_addr_full_r;
+    logic [N-1:0] addr_full;
 
     // -------------------------------------------------------------------------
     // Datapath registers
@@ -99,31 +101,28 @@ module axis_to_bram_sg #(
     always_ff @(posedge clk) begin
         if (!rstn) begin
             tready_r       <= '0;
-            d1             <= '0;
-            d2             <= '0;
-            d3             <= '0;
-            v1             <= '0;
-            v2             <= '0;
-            v3             <= '0;
-            mem_addr_full  <= '0;
-            mem_addr_full_r <= '0;
+            d1 <= '0; d2 <= '0; d3 <= '0;
+            v1 <= '0; v2 <= '0; v3 <= '0;
+            a1 <= '0; a2 <= '0; a3 <= '0;
+            addr_full  <= '0;
         end else begin
             // Stage 1: sample AXI inputs
             tready_r <= tready_i;
             d1       <= axis.tdata[B-1:0];
-            v1       <= axis.tvalid;
+            v1       <= handshake;
+            a1       <= addr_full;
 
             // Stage 2 & 3: pipeline to align with FSM latency
             d2 <= d1; d3 <= d2;
             v2 <= v1; v3 <= v2;
+            a2 <= a1; a3 <= a2;
 
             // Address: latch start address or increment
             if (read_start_addr_state)
-                mem_addr_full <= start_addr_reg[N-1:0];
-            else if (rw_tdata_state && v2)
-                mem_addr_full <= mem_addr_full + 1'b1;
-
-            mem_addr_full_r <= mem_addr_full;
+                addr_full <= start_addr_reg[N-1:0];
+            //else if (rw_tdata_state && v2)
+            else if (handshake)
+                addr_full <= addr_full + 1'b1;
         end
     end
 
@@ -144,13 +143,13 @@ module axis_to_bram_sg #(
                 WAIT_TVALID_ST:
                     if (!capture_sync)
                         state <= INIT_ST;
-                    else if (v1)
+                    else if (axis.tvalid)
                         state <= RW_TDATA_ST;
 
                 RW_TDATA_ST:
                     if (!capture_sync)
                         state <= INIT_ST;
-                    else if (!v1)
+                    else if (!axis.tvalid)
                         state <= WAIT_TVALID_ST;
 
                 default: state <= INIT_ST;
@@ -184,7 +183,7 @@ module axis_to_bram_sg #(
     assign axis.tready = tready_r;
     assign bram.en     = 1'b1;
     assign bram.we     = v3;
-    assign bram.addr   = mem_addr_full_r;
+    assign bram.addr   = a3;
     assign bram.din    = d3;
 
 endmodule
