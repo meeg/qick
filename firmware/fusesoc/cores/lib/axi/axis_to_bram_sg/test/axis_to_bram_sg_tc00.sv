@@ -148,7 +148,7 @@ module axis_to_bram_sg_unit_test;
             axis_if.m_cb.tdata  <= start_val + B'(i);
             axis_if.m_cb.tlast  <= (i == count-1) ? 1'b1 : 1'b0;
             axis_if.m_cb.tvalid <= 1'b1;
-            do @(axis_if.m_cb); while (!axis_if.tready);
+            do @(axis_if.m_cb); while (!axis_if.m_cb.tready);
         end
         axis_if.m_cb.tvalid <= 1'b0;
         axis_if.m_cb.tdata  <= '0;
