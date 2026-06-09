@@ -1,0 +1,32 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun  9 15:24:30 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_axi_axis_constant_1.0.0/test-xsim/axis_constant.vcd"
+[dumpfile_mtime] "Tue Jun  9 15:23:40 2026"
+[dumpfile_size] 5285
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/axis_constant/data/axis_constant.gtkw"
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-15.147407 230000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_constant_ut.
+[treeopen] testrunner.__ts.axis_constant_ut.u_dut.
+[sst_width] 206
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@28
+testrunner.__ts.axis_constant_ut.u_dut.m_axis_aclk
+testrunner.__ts.axis_constant_ut.u_dut.m_axis_aresetn
+@22
+testrunner.__ts.axis_constant_ut.u_dut.m_axis.tdata[15:0]
+@28
+testrunner.__ts.axis_constant_ut.u_dut.m_axis.tlast
+testrunner.__ts.axis_constant_ut.u_dut.m_axis.tready
+testrunner.__ts.axis_constant_ut.u_dut.m_axis.tstrb[1:0]
+testrunner.__ts.axis_constant_ut.u_dut.m_axis.tvalid
+[pattern_trace] 1
+[pattern_trace] 0
