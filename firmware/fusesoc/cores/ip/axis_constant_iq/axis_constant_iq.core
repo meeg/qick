@@ -1,6 +1,6 @@
 CAPI=2:
-name: qick:axi:axis_constant_iq:1.0.0
-description: AXI4 constant writer
+name: qick:ip:axis_constant_iq:1.0.0
+description: Simple wrapper of constant_iq core to build the axis_constant_iq core
 
 filesets:
   hdl:
@@ -10,8 +10,7 @@ filesets:
     depend:
       - qick:interfaces:axi4_lite_if
       - qick:interfaces:axi4_stream_if
-      - qick:axi:axil_slv
-      - qick:cdc:sync_nxm
+      - qick:utils:constant_iq
 
   tb:
     files:

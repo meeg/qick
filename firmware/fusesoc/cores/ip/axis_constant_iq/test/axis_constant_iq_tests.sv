@@ -39,11 +39,11 @@
     repeat(10) @(posedge tb_axis_clk);
 
     // 4. Verify that all N parallel outputs reflect the correct data       
-    for (int i = 0; i < N_OUTS; i++) begin
+    for (int i = 0; i < NUM_CHANNELS; i++) begin
         // Verify real part
-        `FAIL_UNLESS_EQUAL(axis_if.tdata[B + 2*B*i - 1 : 2*B*i], test_real);
+        `FAIL_UNLESS_EQUAL(axis_if.tdata[IQ_WIDTH + 2*IQ_WIDTH*i - 1 : 2*IQ_WIDTH*i], test_real);
         // Verify imaginary part
-        `FAIL_UNLESS_EQUAL(axis_if.tdata[2*B + 2*B*i - 1 : 2*B*i + B], test_imag);
+        `FAIL_UNLESS_EQUAL(axis_if.tdata[2*IQ_WIDTH + 2*IQ_WIDTH*i - 1 : 2*IQ_WIDTH*i + IQ_WIDTH], test_imag);
     end
 `SVTEST_END
 

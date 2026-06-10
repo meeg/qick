@@ -18,12 +18,12 @@ module axis_constant_iq_unit_test;
     // =========================================================================
     localparam real AXI_FREQ  = 100e6;
     localparam real AXIS_FREQ = 200e6;
-    localparam int  B         = 16;
-    localparam int  BYTES     = B / 8;
-    localparam int NUM_REGS   = 4;                 
-    localparam int ADDR_W     = 6;
-    localparam int AXI_DW     = 2*B;                 
-    localparam int N_OUTS     = 4;                 
+    localparam int  IQ_WIDTH  = 16;
+    localparam int  BYTES     = IQ_WIDTH / 8;
+    localparam int  NUM_REGS   = 4;                 
+    localparam int  ADDR_W     = 6;
+    localparam int  AXI_DW     = 2*IQ_WIDTH;                 
+    localparam int  NUM_CHANNELS     = 4;                 
 
 
     // =========================================================================
@@ -46,18 +46,15 @@ module axis_constant_iq_unit_test;
         );
 
     axi4_stream_if #(
-        .N_BYTES_TDATA (2* BYTES * N_OUTS), // Total bytes for N parallel I/Q outputs
-        .N_BITS_TUSER  (1),
-        .N_BITS_TID    (1),
-        .N_BITS_TDEST  (1),
+        .TDATA_WIDTH (2* IQ_WIDTH * NUM_CHANNELS), // Total bytes for N parallel I/Q outputs
         .HAS_TSTRB     (1'b0),
         .HAS_TKEEP     (1'b0),
         .HAS_TID       (1'b0),
         .HAS_TDEST     (1'b0),
         .HAS_TUSER     (1'b0)
     ) axis_if (
-        .i_clk  (tb_axis_clk),
-        .i_rstn (tb_axis_rstn)
+        .aclk  (tb_axis_clk),
+        .aresetn (tb_axis_rstn)
     );
 
     // =========================================================================
@@ -90,11 +87,15 @@ module axis_constant_iq_unit_test;
     // =========================================================================
     // DUT
     // =========================================================================
-    axis_constant_iq #(
-        .B (B),
-        .N (N_OUTS)
+    constant_iq #(
+        .IQ_WIDTH (IQ_WIDTH),
+        .NUM_CHANNELS (NUM_CHANNELS)
     ) u_dut (
+        .s_axi_aclk(tb_axi_clk),
+        .s_axi_aresetn(tb_axi_rstn),
         .s_axi         (s_axi),
+        .m_axis_aclk(tb_axis_clk),
+        .m_axis_aresetn(tb_axis_rstn),
         .m_axis        (axis_if)
     );
 
