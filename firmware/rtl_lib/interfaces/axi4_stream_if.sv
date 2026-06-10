@@ -16,20 +16,16 @@
 // Change history: 12/22/25 - Created by @lharnaldi
 //
 ///////////////////////////////////////////////////////////////////////////////
-interface axi4_stream_if#(
-  parameter integer unsigned  N_BYTES_TDATA   = 4,
-  parameter integer unsigned  N_BITS_TUSER    = N_BYTES_TDATA,
-  parameter integer unsigned  N_BITS_TID      = 8,
-  parameter integer unsigned  N_BITS_TDEST    = 4,
-  parameter bit               HAS_TSTRB       = 1'b0,
-  parameter bit               HAS_TKEEP       = 1'b0,
-  parameter bit               HAS_TID         = 1'b0,
-  parameter bit               HAS_TDEST       = 1'b0,
-  parameter bit               HAS_TUSER       = 1'b0,
-  parameter integer unsigned  BYTE_SIZE       = 8
+interface axi4_stream_if #(
+  parameter int TDATA_WIDTH = 32,
+  parameter bit HAS_TKEEP   = 0,
+  parameter bit HAS_TUSER   = 0,
+  parameter bit HAS_TID     = 0,
+  parameter bit HAS_TDEST   = 0,
+  parameter bit HAS_TSTRB   = 0
 )(
-  input logic i_clk,
-  input logic i_rstn
+  input logic aclk,
+  input logic aresetn
 );
 
   // ============================================================
@@ -37,28 +33,25 @@ interface axi4_stream_if#(
   // ============================================================
 
   generate
-    if (N_BYTES_TDATA == 0)
-      initial $fatal(1, "N_BYTES_TDATA must be > 0");
-  endgenerate
-
-  generate
-    if ((N_BITS_TID + N_BITS_TDEST) > 24)
-      initial $fatal(1, "TID + TDEST width too large");
+    if ((TDATA_WIDTH/8) == 0)
+      initial $fatal(1, "TDATA_WIDTH/8 must be > 0");
   endgenerate
 
   // ============================================================
-  // AXI SIGNALS (ALWAYS PRESENT)
+  // AXI SIGNALS
   // ============================================================
 
-  logic tvalid;
-  logic tready;
-  logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] tdata;
-  logic [N_BYTES_TDATA-1:0]             tstrb;
-  logic [N_BYTES_TDATA-1:0]             tkeep;
-  logic                                 tlast;
-  logic [N_BITS_TID-1:0]                tid;
-  logic [N_BITS_TDEST-1:0]              tdest;
-  logic [N_BITS_TUSER-1:0]              tuser;
+  logic [TDATA_WIDTH-1:0]     tdata;
+  logic                       tvalid;
+  logic                       tready;
+  logic                       tlast;
+
+  logic [(TDATA_WIDTH/8)-1:0] tkeep;
+  logic [(TDATA_WIDTH/8)-1:0] tuser;
+
+  logic [(TDATA_WIDTH/8)-1:0] tstrb;
+  logic [(TDATA_WIDTH/8)-1:0] tid;
+  logic [(TDATA_WIDTH/8)-1:0] tdest;
 
   // ============================================================
   // RTL MODPORTS (ALWAYS PRESENT)
@@ -98,13 +91,13 @@ interface axi4_stream_if#(
       // CLOCKING BLOCKS
       // ------------------------------------------------------------
 
-      clocking m_cb @(posedge i_clk);
+      clocking m_cb @(posedge aclk);
         default input #1step output #2;
         output tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
         input  tready;
       endclocking
 
-      clocking s_cb @(posedge i_clk);
+      clocking s_cb @(posedge aclk);
         default input #1step output #2;
         input  tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
         output tready;
@@ -146,7 +139,7 @@ interface axi4_stream_if#(
         // Wait for reset to deassert
         fork
           begin
-            wait(i_rstn === 1'b1);
+            wait(aresetn === 1'b1);
           end
           begin
             repeat (timeout_cycles) @(m_cb);
@@ -163,7 +156,7 @@ interface axi4_stream_if#(
         s_cb.tready <= 1'b0;
 
         // Wait for reset to deassert
-        wait(i_rstn === 1'b1);
+        wait(aresetn === 1'b1);
 
         repeat (3) @(s_cb);  // Extra settling time
 
@@ -176,7 +169,7 @@ interface axi4_stream_if#(
       // ------------------------------------------------------------
 
       task automatic tx(
-        input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
+        input logic [TDATA_WIDTH-1:0] data,
         input logic last = 1'b0,
         input int timeout = 1000
       );
@@ -199,7 +192,7 @@ interface axi4_stream_if#(
       endtask
 
       task automatic rx(
-        output logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
+        output logic [TDATA_WIDTH-1:0] data,
         output logic last,
         input int timeout = 1000
       );
@@ -221,7 +214,7 @@ interface axi4_stream_if#(
       endtask
 
       task automatic drive_beat(
-        input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data,
+        input logic [TDATA_WIDTH-1:0] data,
         input logic last = 0
       );
         // Use m_cb consistently (this is a MASTER task)
@@ -246,7 +239,7 @@ interface axi4_stream_if#(
       endtask
 
       // Slave side: sample current data
-      function automatic logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] sample_tdata();
+      function automatic logic [TDATA_WIDTH-1:0] sample_tdata();
         return tdata;  // Direct signal access (works from both sides)
       endfunction
 
@@ -264,7 +257,7 @@ interface axi4_stream_if#(
       // AXIS TX TASK (master side)
       // ============================================================
       task automatic burst_tx(
-        input logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data_array[],
+        input logic [TDATA_WIDTH-1:0] data_array[],
         input int unsigned n_beats,
         input int unsigned timeout = 1000
       );
@@ -301,7 +294,7 @@ interface axi4_stream_if#(
       // AXIS RX TASK (slave side)
       // ============================================================
       task automatic burst_rx(
-        output logic [(N_BYTES_TDATA*BYTE_SIZE)-1:0] data_array[$],
+        output logic [TDATA_WIDTH-1:0] data_array[$],
         input int unsigned timeout = 1000
       );
         int unsigned wait_cycles;
@@ -346,8 +339,8 @@ interface axi4_stream_if#(
         `include "svunit_assert_macros.svh"
 
         property AXIS_TVALID_STABLE;
-          @(posedge i_clk)
-          disable iff (!i_rstn)
+          @(posedge aclk)
+          disable iff (!aresetn)
           (tvalid && !tready) |=> tvalid;
         endproperty
 
@@ -357,43 +350,43 @@ interface axi4_stream_if#(
         )
 
         property VALID_RST;
-          @(posedge i_clk) !i_rstn == 1'b1 |=> tvalid == 1'b0;
+          @(posedge aclk) !aresetn == 1'b1 |=> tvalid == 1'b0;
         endproperty
         `ASSERT_CONCURRENT_LOG( VALID_RST,
           "VALID_RST: tvalid must be LOW while reset is asserted");
 
         property AXI4STREAM_ERRM_TVALID_RESET;
-          @(posedge i_clk) (i_rstn & $past(!i_rstn)) |-> tvalid == 1'b0; //Vivado < 2021.2 does not support $fell
+          @(posedge aclk) (aresetn & $past(!aresetn)) |-> tvalid == 1'b0; //Vivado < 2021.2 does not support $fell
         endproperty
         `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TVALID_RESET,
           "AXI4STREAM_ERRM_TVALID_RESET: tvalid was not low for the first cycle after reset went low");
 
         property AXI4STREAM_ERRM_TVALID_STABLE;
-          @(posedge i_clk) disable iff (!i_rstn) (tvalid && !tready) |=> tvalid;
+          @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> tvalid;
         endproperty
         `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TVALID_STABLE,
           "AXI4STREAM_ERRM_TVALID_STABLE: tvalid was deasserted even though the data was not consumed");
 
         property AXI4STREAM_ERRM_TDATA_STABLE;
-          @(posedge i_clk) disable iff (!i_rstn) (tvalid && !tready) |=> $stable(tdata);
+          @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> $stable(tdata);
         endproperty
         `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDATA_STABLE,
           "AXI4STREAM_ERRM_TDATA_STABLE: tdata was not stable when tvalid was asserted and tready was low");
 
         property AXI4STREAM_ERRM_TLAST_STABLE;
-          @(posedge i_clk) disable iff (!i_rstn) (tvalid && !tready) |=> $stable(tlast);
+          @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> $stable(tlast);
         endproperty
         `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TLAST_STABLE,
           "AXI4STREAM_ERRM_TLAST_STABLE: tlast was not stable when tvalid was asserted and tready was low");
 
         property AXI4STREAM_ERRM_TDATA_X;
-          @(posedge i_clk) (i_rstn && tvalid) |-> !$isunknown(tdata);
+          @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tdata);
         endproperty
         `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDATA_X,
           "AXI4STREAM_ERRM_TDATA_X: part (or all) of tdata was 1'bX while tvalid was high");
 
         property AXI4STREAM_ERRM_TLAST_X;
-          @(posedge i_clk) (i_rstn && tvalid) |-> !$isunknown(tlast);
+          @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tlast);
         endproperty
         `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TLAST_X,
           "AXI4STREAM_ERRM_TLAST_X: tlast was 1'bX while tvalid was high");
@@ -402,13 +395,13 @@ interface axi4_stream_if#(
           if (HAS_TSTRB == 1'b1) begin : g_tstrb_assertions
 
             property AXI4STREAM_ERRM_TSTRB_STABLE;
-              @(posedge i_clk) (i_rstn && tvalid && !tready) |=> $stable(tstrb);
+              @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tstrb);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TSTRB_STABLE,
               "AXI4STREAM_ERRM_TSTRB_STABLE: tstrb was not stable when tvalid was asserted and tready was low");
 
             property AXI4STREAM_ERRM_TSTRB_X;
-              @(posedge i_clk) (i_rstn && tvalid) |-> !$isunknown(tstrb);
+              @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tstrb);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TSTRB_X,
               "AXI4STREAM_ERRM_TSTRB_X: part (or all) of tstrb was 1'bX while tvalid was high");
@@ -417,13 +410,13 @@ interface axi4_stream_if#(
           if (HAS_TKEEP == 1'b1) begin : g_tkeep_assertions
 
             property AXI4STREAM_ERRM_TKEEP_STABLE;
-              @(posedge i_clk) (i_rstn && tvalid && !tready) |=> $stable(tkeep);
+              @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tkeep);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TKEEP_STABLE,
               "AXI4STREAM_ERRM_TKEEP_STABLE: tkeep changed while data was not consumed");
 
             property AXI4STREAM_ERRM_TKEEP_X;
-              @(posedge i_clk) (i_rstn && tvalid) |-> !$isunknown(tkeep);
+              @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tkeep);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TKEEP_X,
               "AXI4STREAM_ERRM_TKEEP_X: part (or all) of tkeep was 1'bX while tvalid was high");
@@ -432,13 +425,13 @@ interface axi4_stream_if#(
           if (HAS_TID == 1'b1) begin : g_tid_assertions
 
             property AXI4STREAM_ERRM_TID_STABLE;
-              @(posedge i_clk) (i_rstn && tvalid && !tready) |=> $stable(tid);
+              @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tid);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TID_STABLE,
               "AXI4STREAM_ERRM_TID_STABLE: tid was not stable when tvalid was asserted and tready was low");
 
             property AXI4STREAM_ERRM_TID_X;
-              @(posedge i_clk) (i_rstn && tvalid) |-> !$isunknown(tid);
+              @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tid);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TID_X,
               "AXI4STREAM_ERRM_TID_X: part (or all) of tid was 1'bX while tvalid was high");
@@ -447,13 +440,13 @@ interface axi4_stream_if#(
           if (HAS_TDEST == 1'b1) begin : g_tdest_assertions
 
             property AXI4STREAM_ERRM_TDEST_STABLE;
-              @(posedge i_clk) (!i_rst && tvalid && !tready) |=> $stable(tdest);
+              @(posedge aclk) (!aresetn && tvalid && !tready) |=> $stable(tdest);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDEST_STABLE,
               "AXI4STREAM_ERRM_TDEST_STABLE: tdest was not stable when tvalid was asserted and tready was low");
 
             property AXI4STREAM_ERRM_TDEST_X;
-              @(posedge i_clk) (!i_rst && tvalid) |-> !$isunknown(tdest);
+              @(posedge aclk) (!aresetn && tvalid) |-> !$isunknown(tdest);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDEST_X,
               "AXI4STREAM_ERRM_TDEST_X: part (or all) of tdest was 1'bX while tvalid was high");
@@ -462,13 +455,13 @@ interface axi4_stream_if#(
           if (HAS_TUSER == 1'b1) begin : g_tuser_assertions
 
             property AXI4STREAM_ERRM_TUSER_STABLE;
-              @(posedge i_clk) (i_rstn && tvalid && !tready) |=> $stable(tuser);
+              @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tuser);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TUSER_STABLE,
               "AXI4STREAM_ERRM_TUSER_STABLE: tuser was not stable when tvalid was asserted and tready was low");
 
             property AXI4STREAM_ERRM_TUSER_X;
-              @(posedge i_clk) (i_rstn && tvalid) |-> !$isunknown(tuser);
+              @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tuser);
             endproperty
             `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TUSER_X,
               "AXI4STREAM_ERRM_TUSER_X: part (or all) of tuser was 1'bX while tvalid was high");
