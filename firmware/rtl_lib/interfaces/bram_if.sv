@@ -1,80 +1,115 @@
 ///////////////////////////////////////////////////////////////////////////////
 // vim:set shiftwidth=3 softtabstop=3 expandtab:
 //
-//
-// Module: bram_if.sv
+// Module : bram_if
 // Project: BRAM Interface
 // Description:
-// Single-port BRAM interface with byte-enable support.
-// For True Dual-Port, instantiate this interface twice.
-// For complete write: we = {(NB_DATA/8){1'b1}} — equivalent to we=1 for
-// single-bit enables.
+//   Single‑port BRAM interface with optional byte‑enable support.
+//   For a true dual‑port RAM instantiate this interface twice (port_a, port_b).
 //
-// Change history: 12/23/25 - Created by @lharnaldi
+//   • `en`  – enable (read or write)
+//   • `we`  – write enable (1 = write, 0 = read)  (single‑bit version)
+//   • `we_be` – byte‑enable vector, each bit corresponds to a byte of `din`.
+//               For a full‑word write set `we_be = {(NB_DATA/8){1'b1}}`.
+//   • `addr` – address
+//   • `din`  – data to write
+//   • `dout` – data read (registered output of the BRAM)
 //
+// Change history:
+//   12/23/25 – Created by @lharnaldi
 ///////////////////////////////////////////////////////////////////////////////
+
 interface bram_if #(
     parameter int unsigned NB_DATA = 32,
     parameter int unsigned NB_ADDR = 10
-)(
-    input logic i_clk,
-    input logic i_rst
+) (
+    input  logic i_clk,
+    input  logic i_rst
 );
-    logic                   en;
-    logic                   we;
-    //logic [(NB_DATA/8)-1:0] we;
-    logic [NB_ADDR-1:0]     addr;
-    logic [NB_DATA-1:0]     din;
-    logic [NB_DATA-1:0]     dout;
+    // -----------------------------------------------------------------
+    // 1.  Signals visible to the DUT
+    // -----------------------------------------------------------------
+    logic                     en;     // enable
+    logic                     we;     // write‑enable (single bit)
+    // Byte‑enable (optional).  If not used, keep it tied to 1.
+    logic [(NB_DATA/8)-1:0]  we_be;  // one bit per byte
+    logic [NB_ADDR-1:0]       addr;
+    logic [NB_DATA-1:0]       din;    // data into the RAM
+    logic [NB_DATA-1:0]       dout;   // data out of the RAM (registered)
 
-    // Clocking block for testbench — solves the timing of synchronous BRAM
+    // -----------------------------------------------------------------
+    // 2.  Clocking block for test‑bench tasks
+    // -----------------------------------------------------------------
     clocking tb_cb @(posedge i_clk);
         default input #1step output #2;
-        output en, we, addr, din;
+        output en, we, we_be, addr, din;
         input  dout;
     endclocking
 
+    // -----------------------------------------------------------------
+    // 3.  Modports
+    // -----------------------------------------------------------------
+    // DUT (master) drives everything except dout.
     modport master (
-        output en, we, addr, din,
+        output en, we, we_be, addr, din,
         input  dout
     );
 
+    // DUT (slave) reads inputs and drives dout.
     modport slave (
-        input  en, we, addr, din,
+        input  en, we, we_be, addr, din,
         output dout
     );
 
+    // Testbench uses the clocking block.
     modport tb (
         clocking tb_cb
     );
 
-    // Tasks use the clocking block — automatic correct timing
+    // -----------------------------------------------------------------
+    // 4.  Test‑bench tasks (automatic, use tb_cb for correct timing)
+    // -----------------------------------------------------------------
+    // idle: drive all outputs to safe defaults
+    task automatic idle();
+        tb_cb.en   <= 1'b0;
+        tb_cb.we   <= 1'b0;
+        tb_cb.we_be <= '0;
+        tb_cb.addr <= '0;
+        tb_cb.din  <= '0;
+    endtask
+
+    /** Write a whole word (all bytes enabled). */
     task automatic write_data(
         input logic [NB_ADDR-1:0] w_addr,
         input logic [NB_DATA-1:0] w_data
     );
+        @(tb_cb); // ensure we start on a clock edge
         tb_cb.en   <= 1'b1;
         tb_cb.we   <= 1'b1;
-        //tb_cb.we   <= {(NB_DATA/8){1'b1}};
+        tb_cb.we_be <= {(NB_DATA/8){1'b1}}; // full‑word enable
         tb_cb.addr <= w_addr;
         tb_cb.din  <= w_data;
-        @(tb_cb);          // BRAM latch in this posedge
+        @(tb_cb);               // latch on this posedge
         tb_cb.en   <= 1'b0;
-        tb_cb.we   <= '0;
-        @(tb_cb);          // margin for BRAM to process the write before next operation
+        tb_cb.we   <= 1'b0;
+        tb_cb.we_be <= '0;
+        @(tb_cb);               // margin before next operation
     endtask
 
+    /** Read a whole word.  The data is returned in *r_data*. */
     task automatic read_data(
         input  logic [NB_ADDR-1:0] r_addr,
         output logic [NB_DATA-1:0] r_data
     );
+        @(tb_cb);               // ensure we start on a clock edge
         tb_cb.en   <= 1'b1;
-        tb_cb.we   <= '0;
+        tb_cb.we   <= 1'b0;
+        tb_cb.we_be <= '0;
         tb_cb.addr <= r_addr;
-        @(tb_cb);          // BRAM registers addr, dout is updated in the next posedge
+        @(tb_cb);               // address registered
         tb_cb.en   <= 1'b0;
-        @(tb_cb);          // dout stable — input #1step captures before the posedge
+        @(tb_cb);               // dout stable (one cycle after addr)
         r_data = tb_cb.dout;
     endtask
 
-endinterface
+endinterface : bram_if
