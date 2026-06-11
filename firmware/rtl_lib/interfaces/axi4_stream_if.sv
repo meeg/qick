@@ -1,21 +1,24 @@
-///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
-// Fermi National Accelerator Laboratory
-//
-// Module: axi4_stream_if.sv
-// Project: AXI4-Stream Interface
-// Description:
-// AXI4-Stream Interface implementation,
-// including SystemVerilog assertions
-//
-// References:
-// - AXI4-Stream protocol specification: https://developer.arm.com/documentation/ihi0051/a/
-// - AXI4-Stream protocol assertions: https://developer.arm.com/documentation/dui0534/b/
-//
-// Change history: 12/22/25 - Created by @lharnaldi
-//
-///////////////////////////////////////////////////////////////////////////////
+`timescale 1ns/1ps
+
+/**
+ * @interface axi4_stream_if
+ * @brief SystemVerilog interface encapsulating the AXI4-Stream protocol signals, verification tasks, and assertions.
+ *
+ * @description
+ * This interface provides standard hardware modports for RTL integration alongside specialized 
+ * clocking blocks and automated tasks for testbench environments (e.g., SVUnit). It centralizes 
+ * simulation drivers and bus-compliance protocol checking.
+ * References:
+ * - AXI4-Stream protocol specification: https://developer.arm.com/documentation/ihi0051/a/
+ * - AXI4-Stream protocol assertions: https://developer.arm.com/documentation/dui0534/b/
+ *
+ * @param TDATA_WIDTH Data channel width in bits. Must be an integer multiple of 8.
+ * @param HAS_TKEEP   Flag to indicate presence of the TKEEP signal.
+ * @param HAS_TUSER   Flag to indicate presence of the TUSER signal.
+ * @param HAS_TID     Flag to indicate presence of the TID signal.
+ * @param HAS_TDEST   Flag to indicate presence of the TDEST signal.
+ * @param HAS_TSTRB   Flag to indicate presence of the TSTRB signal.
+ */
 interface axi4_stream_if #(
   parameter int TDATA_WIDTH = 32,
   parameter bit HAS_TKEEP   = 0,
@@ -24,61 +27,49 @@ interface axi4_stream_if #(
   parameter bit HAS_TDEST   = 0,
   parameter bit HAS_TSTRB   = 0
 )(
-  input logic aclk,
-  input logic aresetn
+  input logic aclk,    /**< Global system clock source */
+  input logic aresetn  /**< Global synchronous active-low reset */
 );
 
   // ============================================================
-  // STATIC CHECKS (SAFE EVERYWHERE)
+  // STATIC CHECKS
   // ============================================================
-
   generate
     if ((TDATA_WIDTH/8) == 0)
-      initial $fatal(1, "TDATA_WIDTH/8 must be > 0");
+      initial $fatal(1, "[AXIS_ERR] TDATA_WIDTH must be a multiple of 8 bits and greater than 0.");
   endgenerate
 
   // ============================================================
-  // AXI SIGNALS
+  // AXI4-STREAM CORE SIGNALS
   // ============================================================
-
-  logic [TDATA_WIDTH-1:0]     tdata;
-  logic                       tvalid;
-  logic                       tready;
-  logic                       tlast;
-
-  logic [(TDATA_WIDTH/8)-1:0] tkeep;
-  logic [(TDATA_WIDTH/8)-1:0] tuser;
-
-  logic [(TDATA_WIDTH/8)-1:0] tstrb;
-  logic [(TDATA_WIDTH/8)-1:0] tid;
-  logic [(TDATA_WIDTH/8)-1:0] tdest;
+  logic [TDATA_WIDTH-1:0]     tdata;  /**< Primary data payload bus channel */
+  logic                       tvalid; /**< Indicates that the master is driving a valid transfer beat */
+  logic                       tready; /**< Indicates that the slave can accept a transfer beat */
+  logic                       tlast;  /**< Identifies the final packet beat in a frame/stream burst */
 
   // ============================================================
-  // RTL MODPORTS (ALWAYS PRESENT)
+  // AXI4-STREAM SIDEBAND SIGNALS
   // ============================================================
+  logic [(TDATA_WIDTH/8)-1:0] tkeep;  /**< Byte qualifier indicating valid payload bytes */
+  logic [(TDATA_WIDTH/8)-1:0] tuser;  /**< User-defined sideband metadata bus */
+  logic [(TDATA_WIDTH/8)-1:0] tstrb;  /**< Byte qualifier marking sparse/positional bytes */
+  logic [(TDATA_WIDTH/8)-1:0] tid;    /**< Stream data identifier stream tag */
+  logic [(TDATA_WIDTH/8)-1:0] tdest;  /**< Routing destination identifier channel */
 
+  // ============================================================
+  // RTL MODPORTS
+  // ============================================================
+  
+  /** Modport for capturing RTL Master port assignments */
   modport master (
-    output tvalid,
-    input  tready,
-    output tdata,
-    output tstrb,
-    output tkeep,
-    output tlast,
-    output tid,
-    output tdest,
-    output tuser
+    output tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser,
+    input  tready
   );
 
+  /** Modport for capturing RTL Slave port assignments */
   modport slave (
-    input  tvalid,
-    output tready,
-    input  tdata,
-    input  tstrb,
-    input  tkeep,
-    input  tlast,
-    input  tid,
-    input  tdest,
-    input  tuser
+    input  tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser,
+    output tready
   );
 
   // ============================================================
@@ -91,42 +82,57 @@ interface axi4_stream_if #(
       // CLOCKING BLOCKS
       // ------------------------------------------------------------
 
+      /**
+       * @clocking m_cb
+       * @brief Master driver clocking block. Samples inputs on #1step and schedules outputs at #2.
+       */
       clocking m_cb @(posedge aclk);
         default input #1step output #2;
         output tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
         input  tready;
       endclocking
 
+      /**
+       * @clocking s_cb
+       * @brief Slave monitor/responder clocking block. Samples inputs on #1step and schedules outputs at #2.
+       */
       clocking s_cb @(posedge aclk);
         default input #1step output #2;
         input  tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
         output tready;
       endclocking
 
+      /** Modport designated for testbench master emulation environments */
       modport tb_master (
         clocking m_cb,
-          import   tx,
-          import   drive_beat,
-          import   m_reset,
-          import   burst_tx,
-          import   sample_tlast
+        import   tx,
+        import   m_reset,
+        import   burst_tx,
+        import   sample_tlast,
+        import   idle,
+        import   send_bubble
       );
 
+      /** Modport designated for testbench slave emulation environments */
       modport tb_slave  (
         clocking  s_cb,
-          import    s_reset,
-          import    rx,
-          import    burst_rx,
-          import    wait_for_beat,
-          import    sample_tdata
+        import    s_reset,
+        import    rx,
+        import    burst_rx,
+        import    wait_for_beat,
+        import    sample_tdata
       );
 
       // ============================================================
       // RESET TASKS
       // ============================================================
 
+      /**
+       * @task m_reset
+       * @brief Initializes master signals to an idle state and waits for active-low reset deassertion.
+       * @param timeout_cycles Maximum cycle threshold to prevent permanent hangs.
+       */
       task automatic m_reset(input int timeout_cycles = 1000);
-        // Initialize all master signals
         m_cb.tvalid <= 1'b0;
         m_cb.tdata  <= '0;
         m_cb.tlast  <= 1'b0;
@@ -136,38 +142,42 @@ interface axi4_stream_if #(
         m_cb.tdest  <= '0;
         m_cb.tuser  <= '0;
 
-        // Wait for reset to deassert
         fork
           begin
             wait(aresetn === 1'b1);
           end
           begin
             repeat (timeout_cycles) @(m_cb);
-            $fatal(1, "[AXIS] Master reset timeout");
+            $fatal(1, "[AXIS_FATAL] Master reset sequencing timed out.");
           end
         join_any
         disable fork;
 
-        repeat (3) @(m_cb);  // Extra settling time
+        repeat (3) @(m_cb);  // Post-reset stabilization buffer
       endtask
 
+      /**
+       * @task s_reset
+       * @brief Places the slave interface in an unready state until reset deassertion, then sets tready high.
+       */
       task automatic s_reset();
-        // Initialize slave ready
         s_cb.tready <= 1'b0;
-
-        // Wait for reset to deassert
         wait(aresetn === 1'b1);
-
-        repeat (3) @(s_cb);  // Extra settling time
-
-        // Assert ready
+        repeat (3) @(s_cb);  
         s_cb.tready <= 1'b1;
       endtask
 
       // ------------------------------------------------------------
-      // TX / RX TASKS
+      // TRANSACTION API TASKS (SINGLE BEAT)
       // ------------------------------------------------------------
 
+      /**
+       * @task tx
+       * @brief Transmits a single data word beat on the master channel with standard timeout checking.
+       * @param data    The data value to broadcast.
+       * @param last    Asserts the tlast sideband flag when high (default = 0).
+       * @param timeout Cycle threshold limit before throwing a simulation fatal error.
+       */
       task automatic tx(
         input logic [TDATA_WIDTH-1:0] data,
         input logic last = 1'b0,
@@ -178,32 +188,37 @@ interface axi4_stream_if #(
         m_cb.tdata  <= data;
         m_cb.tlast  <= last;
         m_cb.tvalid <= 1'b1;
-
         @(m_cb);
 
         while (!m_cb.tready) begin
           @(m_cb);
           if (++cnt > timeout)
-            $fatal(1, "AXIS TX timeout");
+            $fatal(1, "[AXIS_FATAL] Single beat transmission (TX) timed out waiting for TREADY.");
         end
 
         m_cb.tvalid <= 1'b0;
         m_cb.tlast  <= 1'b0;
       endtask
 
+      /**
+       * @task rx
+       * @brief Receives a single data beat on the slave channel interface.
+       * @param data    Output reference to capture data bus contents.
+       * @param last    Output reference to capture the state of tlast.
+       * @param timeout Cycle threshold limit before throwing a simulation fatal error.
+       */
       task automatic rx(
         output logic [TDATA_WIDTH-1:0] data,
         output logic last,
         input int timeout = 1000
       );
         int cnt = 0;
-
         s_cb.tready <= 1'b1;
 
         while (!s_cb.tvalid) begin
           @(s_cb);
           if (++cnt > timeout)
-            $fatal(1, "AXIS RX timeout");
+            $fatal(1, "[AXIS_FATAL] Single beat collection (RX) timed out waiting for TVALID.");
         end
 
         data = s_cb.tdata;
@@ -213,49 +228,64 @@ interface axi4_stream_if #(
         s_cb.tready <= 1'b0;
       endtask
 
-      task automatic drive_beat(
-        input logic [TDATA_WIDTH-1:0] data,
-        input logic last = 0
-      );
-        // Use m_cb consistently (this is a MASTER task)
-        @(m_cb);
-        m_cb.tdata  <= data;
-        m_cb.tvalid <= 1'b1;
-        m_cb.tlast  <= last;
-
-        // Wait for handshake
-        do @(m_cb); while (!m_cb.tready);
-
-        // Deassert after handshake
-        @(m_cb);
-        m_cb.tvalid <= 1'b0;
-        m_cb.tlast  <= 1'b0;
-      endtask
-
-      // Slave side: wait for a valid beat
+      /**
+       * @task wait_for_beat
+       * @brief Blocking slave task that halts execution until a successful, synchronized valid handshake occurs.
+       */
       task automatic wait_for_beat();
-        // Use s_cb consistently (this is a SLAVE task)
         do @(s_cb); while (!s_cb.tvalid || !tready);
       endtask
 
-      // Slave side: sample current data
+      /**
+       * @function sample_tdata
+       * @brief Direct, asynchronous read access of the physical tdata bus.
+       * @return Logic array containing current bus sample.
+       */
       function automatic logic [TDATA_WIDTH-1:0] sample_tdata();
-        return tdata;  // Direct signal access (works from both sides)
+        return tdata;  
       endfunction
 
-      // Master side: sample tlast
+      /**
+       * @function sample_tlast
+       * @brief Direct, asynchronous read access of the physical tlast boundary signal.
+       * @return Logic state of tlast.
+       */
       function automatic logic sample_tlast();
         return tlast;
       endfunction
 
-      // Master side: go idle
+      /**
+       * @task idle
+       * @brief Immediately deasserts both validation and termination controls to put the master in an idle state.
+       */
       task automatic idle();
-        m_cb.tvalid <= 0;
-        m_cb.tlast  <= 0;
+        m_cb.tvalid <= 1'b0;
+        m_cb.tlast  <= 1'b0;
       endtask
+
+      /**
+       * @task send_bubble
+       * @brief Simulates protocol starvation or idle conditions by dropping TVALID for specific cycles.
+       * @param cycles Number of clock cycles to preserve the pipeline bubble condition (default = 1).
+       */
+      task automatic send_bubble(input int cycles = 1);
+        m_cb.tdata  <= '0;
+        m_cb.tvalid <= 1'b0;
+        m_cb.tlast  <= 1'b0;
+        repeat (cycles) @(m_cb);
+      endtask
+
       // ============================================================
-      // AXIS TX TASK (master side)
+      // BLOCK TRANSFERS (BURSTS)
       // ============================================================
+
+      /**
+       * @task burst_tx
+       * @brief Drives a contiguous or streamed collection array block across the master bus interface.
+       * @param data_array Unpacked dynamic array representing frame payloads.
+       * @param n_beats    Number of array elements targeted for streaming.
+       * @param timeout    Timeout boundary limit evaluated per data beat.
+       */
       task automatic burst_tx(
         input logic [TDATA_WIDTH-1:0] data_array[],
         input int unsigned n_beats,
@@ -269,30 +299,30 @@ interface axi4_stream_if #(
         for (int i = 0; i < n_beats; i++) begin
           wait_cycles = 0;
 
-          // Drive beat
           @(m_cb);
           m_cb.tdata  <= data_array[i];
           m_cb.tvalid <= 1'b1;
           m_cb.tlast  <= (i == n_beats-1);
 
-          // Wait for handshake
           while (!m_cb.tready) begin
             @(m_cb);
             wait_cycles++;
             if (wait_cycles > timeout)
-              $fatal(1, "AXIS TX timeout on beat %0d after %0d cycles", i, timeout);
+              $fatal(1, "[AXIS_FATAL] Burst TX timeout at beat index %0d after %0d stalling cycles.", i, timeout);
           end
         end
 
-        // Return to idle
         @(m_cb);
         m_cb.tvalid <= 1'b0;
         m_cb.tlast  <= 1'b0;
       endtask
 
-      // ============================================================
-      // AXIS RX TASK (slave side)
-      // ============================================================
+      /**
+       * @task burst_rx
+       * @brief Absorbs a complete stream array from a master device up to detecting a TLAST packet marker.
+       * @param data_array Output queue capturing incoming payload records sequentially.
+       * @param timeout    Global maximum cycle stall boundary allowed before truncation and error throwing.
+       */
       task automatic burst_rx(
         output logic [TDATA_WIDTH-1:0] data_array[$],
         input int unsigned timeout = 1000
@@ -303,8 +333,6 @@ interface axi4_stream_if #(
         data_array.delete();
         done = 0;
         wait_cycles = 0;
-
-        // Assert ready
         s_cb.tready <= 1'b1;
 
         while (!done) begin
@@ -312,25 +340,24 @@ interface axi4_stream_if #(
           wait_cycles++;
 
           if (wait_cycles > timeout)
-            $fatal(1, "AXIS RX timeout: no TLAST seen after %0d cycles", timeout);
+            $fatal(1, "[AXIS_FATAL] Burst RX timeout: Stream transaction exceeded %0d cycles without TLAST assertion.", timeout);
 
-          // Sample on valid handshake
           if (s_cb.tvalid && tready) begin
             data_array.push_back(s_cb.tdata);
             if (s_cb.tlast)
-              done = 1;
+              done = 1'b1;
           end
         end
 
-        // Return to idle
         @(s_cb);
         s_cb.tready <= 1'b0;
       endtask
+
     `endif // VERILATOR
   `endif // SYNTHESIS
 
   // ============================================================
-  // ASSERTIONS — SVUNIT ONLY
+  // PROTOCOL COMPLIANCE CHECKERS (CONCURRENT SVA)
   // ============================================================
   `ifdef SVUNIT
     `ifndef SYNTHESIS
@@ -338,138 +365,121 @@ interface axi4_stream_if #(
 
         `include "svunit_assert_macros.svh"
 
+        // Rule: Once TVALID is asserted, it must remain high until a handshake occurs (TREADY=1)
         property AXIS_TVALID_STABLE;
           @(posedge aclk)
           disable iff (!aresetn)
           (tvalid && !tready) |=> tvalid;
         endproperty
+        `ASSERT_CONCURRENT_LOG(AXIS_TVALID_STABLE, "AXIS_ERR: tvalid dropped while tready was low")
 
-        `ASSERT_CONCURRENT_LOG(
-          AXIS_TVALID_STABLE,
-          "AXIS: tvalid dropped while tready was low"
-        )
-
+        // Rule: TVALID must be explicitly low during active hardware reset state
         property VALID_RST;
           @(posedge aclk) !aresetn == 1'b1 |=> tvalid == 1'b0;
         endproperty
-        `ASSERT_CONCURRENT_LOG( VALID_RST,
-          "VALID_RST: tvalid must be LOW while reset is asserted");
+        `ASSERT_CONCURRENT_LOG(VALID_RST, "AXIS_ERR: tvalid must be LOW while reset is asserted")
 
+        // Rule: TVALID must be low for the initial cycle immediately following reset deassertion
         property AXI4STREAM_ERRM_TVALID_RESET;
-          @(posedge aclk) (aresetn & $past(!aresetn)) |-> tvalid == 1'b0; //Vivado < 2021.2 does not support $fell
+          @(posedge aclk) (aresetn & $past(!aresetn)) |-> tvalid == 1'b0;
         endproperty
-        `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TVALID_RESET,
-          "AXI4STREAM_ERRM_TVALID_RESET: tvalid was not low for the first cycle after reset went low");
+        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TVALID_RESET, "AXIS_ERR: tvalid was not low for the first cycle after reset went low")
 
+        // Duplicate standard checker for verification stability metrics
         property AXI4STREAM_ERRM_TVALID_STABLE;
           @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> tvalid;
         endproperty
-        `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TVALID_STABLE,
-          "AXI4STREAM_ERRM_TVALID_STABLE: tvalid was deasserted even though the data was not consumed");
+        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TVALID_STABLE, "AXIS_ERR: tvalid was deasserted even though the data was not consumed")
 
+        // Rule: Payload data must remain stable during stalls
         property AXI4STREAM_ERRM_TDATA_STABLE;
           @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> $stable(tdata);
         endproperty
-        `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDATA_STABLE,
-          "AXI4STREAM_ERRM_TDATA_STABLE: tdata was not stable when tvalid was asserted and tready was low");
+        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TDATA_STABLE, "AXIS_ERR: tdata was not stable when tvalid was asserted and tready was low")
 
+        // Rule: TLAST indicator flag must remain stable during stalls
         property AXI4STREAM_ERRM_TLAST_STABLE;
           @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> $stable(tlast);
         endproperty
-        `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TLAST_STABLE,
-          "AXI4STREAM_ERRM_TLAST_STABLE: tlast was not stable when tvalid was asserted and tready was low");
+        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TLAST_STABLE, "AXIS_ERR: tlast was not stable when tvalid was asserted and tready was low")
 
+        // Rule: Ensure X/Z value propagation does not pollute active transfers on TDATA
         property AXI4STREAM_ERRM_TDATA_X;
           @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tdata);
         endproperty
-        `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDATA_X,
-          "AXI4STREAM_ERRM_TDATA_X: part (or all) of tdata was 1'bX while tvalid was high");
+        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TDATA_X, "AXIS_ERR: part (or all) of tdata was 1'bX while tvalid was high")
 
+        // Rule: Ensure X/Z value propagation does not pollute active transfers on TLAST
         property AXI4STREAM_ERRM_TLAST_X;
           @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tlast);
         endproperty
-        `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TLAST_X,
-          "AXI4STREAM_ERRM_TLAST_X: tlast was 1'bX while tvalid was high");
+        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TLAST_X, "AXIS_ERR: tlast was 1'bX while tvalid was high")
 
+        // Conditional Sideband Feature Assertions
         generate
           if (HAS_TSTRB == 1'b1) begin : g_tstrb_assertions
-
             property AXI4STREAM_ERRM_TSTRB_STABLE;
               @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tstrb);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TSTRB_STABLE,
-              "AXI4STREAM_ERRM_TSTRB_STABLE: tstrb was not stable when tvalid was asserted and tready was low");
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TSTRB_STABLE, "AXIS_ERR: tstrb was not stable when tvalid was asserted and tready was low")
 
             property AXI4STREAM_ERRM_TSTRB_X;
               @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tstrb);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TSTRB_X,
-              "AXI4STREAM_ERRM_TSTRB_X: part (or all) of tstrb was 1'bX while tvalid was high");
-
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TSTRB_X, "AXIS_ERR: part (or all) of tstrb was 1'bX while tvalid was high")
           end
-          if (HAS_TKEEP == 1'b1) begin : g_tkeep_assertions
 
+          if (HAS_TKEEP == 1'b1) begin : g_tkeep_assertions
             property AXI4STREAM_ERRM_TKEEP_STABLE;
               @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tkeep);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TKEEP_STABLE,
-              "AXI4STREAM_ERRM_TKEEP_STABLE: tkeep changed while data was not consumed");
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TKEEP_STABLE, "AXIS_ERR: tkeep changed while data was not consumed")
 
             property AXI4STREAM_ERRM_TKEEP_X;
               @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tkeep);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TKEEP_X,
-              "AXI4STREAM_ERRM_TKEEP_X: part (or all) of tkeep was 1'bX while tvalid was high");
-
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TKEEP_X, "AXIS_ERR: part (or all) of tkeep was 1'bX while tvalid was high")
           end
-          if (HAS_TID == 1'b1) begin : g_tid_assertions
 
+          if (HAS_TID == 1'b1) begin : g_tid_assertions
             property AXI4STREAM_ERRM_TID_STABLE;
               @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tid);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TID_STABLE,
-              "AXI4STREAM_ERRM_TID_STABLE: tid was not stable when tvalid was asserted and tready was low");
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TID_STABLE, "AXIS_ERR: tid was not stable when tvalid was asserted and tready was low")
 
             property AXI4STREAM_ERRM_TID_X;
               @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tid);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TID_X,
-              "AXI4STREAM_ERRM_TID_X: part (or all) of tid was 1'bX while tvalid was high");
-
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TID_X, "AXIS_ERR: part (or all) of tid was 1'bX while tvalid was high")
           end
-          if (HAS_TDEST == 1'b1) begin : g_tdest_assertions
 
+          if (HAS_TDEST == 1'b1) begin : g_tdest_assertions
             property AXI4STREAM_ERRM_TDEST_STABLE;
               @(posedge aclk) (!aresetn && tvalid && !tready) |=> $stable(tdest);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDEST_STABLE,
-              "AXI4STREAM_ERRM_TDEST_STABLE: tdest was not stable when tvalid was asserted and tready was low");
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TDEST_STABLE, "AXIS_ERR: tdest was not stable when tvalid was asserted and tready was low")
 
             property AXI4STREAM_ERRM_TDEST_X;
               @(posedge aclk) (!aresetn && tvalid) |-> !$isunknown(tdest);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TDEST_X,
-              "AXI4STREAM_ERRM_TDEST_X: part (or all) of tdest was 1'bX while tvalid was high");
-
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TDEST_X, "AXIS_ERR: part (or all) of tdest was 1'bX while tvalid was high")
           end
-          if (HAS_TUSER == 1'b1) begin : g_tuser_assertions
 
+          if (HAS_TUSER == 1'b1) begin : g_tuser_assertions
             property AXI4STREAM_ERRM_TUSER_STABLE;
               @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tuser);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TUSER_STABLE,
-              "AXI4STREAM_ERRM_TUSER_STABLE: tuser was not stable when tvalid was asserted and tready was low");
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TUSER_STABLE, "AXIS_ERR: tuser was not stable when tvalid was asserted and tready was low")
 
             property AXI4STREAM_ERRM_TUSER_X;
               @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tuser);
             endproperty
-            `ASSERT_CONCURRENT_LOG( AXI4STREAM_ERRM_TUSER_X,
-              "AXI4STREAM_ERRM_TUSER_X: part (or all) of tuser was 1'bX while tvalid was high");
-
+            `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TUSER_X, "AXIS_ERR: part (or all) of tuser was 1'bX while tvalid was high")
           end
         endgenerate
-      `endif //VERILATOR
-    `endif //SYNTHESIS
-  `endif //SVUNIT
 
-endinterface
+      `endif // VERILATOR
+    `endif // SYNTHESIS
+  `endif // SVUNIT
+
+endinterface : axi4_stream_if
