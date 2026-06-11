@@ -7,13 +7,15 @@ module bram_tdp_unit_test;
   string name = "bram_tdp_ut";
   svunit_testcase svunit_ut;
 
-  localparam CLOCK_FREQUENCY = 250e6; //[Hz]
+  localparam CLK_A_FREQ = 150e6; //[Hz]
+  localparam CLK_B_FREQ = 200e6; //[Hz]
 
   // Parameters of our BRAM
   localparam int unsigned NB_DATA = 32;
   localparam int unsigned NB_ADDR = 10;
 
-  logic tb_clk  = 1'b0;
+  logic tb_a_clk  = 1'b0;
+  logic tb_b_clk  = 1'b0;
   logic tb_rstn = 1'b1;
 
   // Auxiliary variable to capture read data
@@ -26,14 +28,21 @@ module bram_tdp_unit_test;
 
   // Clock generator
   clk_gen #(
-    .FREQ      ( CLOCK_FREQUENCY   )
-  ) u_clk_gen (
+    .FREQ      ( CLK_A_FREQ   )
+  ) u_clk_a_gen (
     .i_enable  ( 1'b1              ),
-    .o_clk     ( tb_clk            )
+    .o_clk     ( tb_a_clk            )
   );
 
-  default clocking cb @(posedge tb_clk);
-  endclocking
+  clk_gen #(
+    .FREQ      ( CLK_B_FREQ   )
+  ) u_clk_b_gen (
+    .i_enable  ( 1'b1              ),
+    .o_clk     ( tb_b_clk            )
+  );
+
+  //default clocking cb @(posedge tb_a_clk);
+  //endclocking
 
   //===================================
   // Instantiate interfaces
@@ -42,7 +51,7 @@ module bram_tdp_unit_test;
     .NB_DATA(NB_DATA),
     .NB_ADDR(NB_ADDR)
   ) port_a_if (
-    .i_clk ( tb_clk  ),
+    .i_clk ( tb_a_clk  ),
     .i_rst ( ~tb_rstn ) // Asume active-high reset in the interface
   );
 
@@ -50,7 +59,7 @@ module bram_tdp_unit_test;
     .NB_DATA(NB_DATA),
     .NB_ADDR(NB_ADDR)
   ) port_b_if (
-    .i_clk ( tb_clk  ),
+    .i_clk ( tb_b_clk  ),
     .i_rst ( ~tb_rstn )
   );
 
@@ -61,6 +70,10 @@ module bram_tdp_unit_test;
     .NB_DATA(NB_DATA),
     .NB_ADDR(NB_ADDR)
   ) u_bram_tdp (
+    .clk_a (tb_a_clk),
+    .rst_a (~tb_rstn),
+    .clk_b (tb_b_clk),
+    .rst_b (~tb_rstn),
     .port_a ( port_a_if.slave ),
     .port_b ( port_b_if.slave )
   );
@@ -80,20 +93,22 @@ module bram_tdp_unit_test;
     
     // Init signals to avoid "X"
     port_a_if.en   <= 1'b0;
-    port_a_if.we   <= '0;
+    port_a_if.we   <= 1'b0;
+    port_a_if.we_be<= '1;
     port_a_if.addr <= '0;
     port_a_if.din  <= '0;
 
     port_b_if.en   <= 1'b0;
-    port_b_if.we   <= '0;
+    port_b_if.we   <= 1'b0;
+    port_b_if.we_be<= '1;
     port_b_if.addr <= '0;
     port_b_if.din  <= '0;
   
-    @(cb);
+    @(port_a_if.tb_cb);
     tb_rstn <= 1'b0;
-    repeat(2) @(cb);
+    repeat(2) @(port_a_if.tb_cb);
     tb_rstn <= 1'b1;
-    repeat(5) @(cb);
+    repeat(5) @(port_a_if.tb_cb);
   endtask
 
   //===================================
