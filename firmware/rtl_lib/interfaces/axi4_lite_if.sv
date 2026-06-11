@@ -1,23 +1,20 @@
-///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
-// Fermi National Accelerator Laboratory
-//
-// Module: axi4_lite_if.sv
-// Project: AXI4 Lite Interface
-// Description:
-// AXI4-Lite Interface implementation with enhanced tasks for testbench usage
-//
-// Change history: 12/22/25 - Created by @lharnaldi
-//                 01/26/26 - Added enhanced read/write tasks with timeouts
-//
-///////////////////////////////////////////////////////////////////////////////
+/** @title AXI4-Lite Interface
+* @author lharnaldi
+* @brief SystemVerilog interface
+* encapsulating the AXI4-Lite protocol signals and verification tasks.
+*
+* @details This interface provides standard hardware modports for RTL
+* integration alongside specialized automated tasks for testbench environments
+* (e.g., SVUnit).  It uses synchronous non-blocking assignments to prevent race
+* conditions and simulator crashes.  Fully compatible with TerosHDL
+* documentation parsers.
+*/
 interface axi4_lite_if#(
-  parameter int DATA_WIDTH = 32,
-  parameter int ADDR_WIDTH = 32
+  parameter int DATA_WIDTH = 32, //! The AXI4-Lite data bus width (must be 32 or 64 bits).
+  parameter int ADDR_WIDTH = 32  //! The AXI4-Lite address bus width in bits.
 )(
-  input logic aclk,
-  input logic aresetn
+  input logic aclk,    //! Global system clock source.
+  input logic aresetn  //! Global synchronous active-low reset.
 );
 
   generate
@@ -26,30 +23,39 @@ interface axi4_lite_if#(
     end
   endgenerate
 
-  logic                       awready;
-  logic                       awvalid;
-  logic [ADDR_WIDTH-1:0]      awaddr;
-  logic [2:0]                 awprot;
+  // ==========================================================================
+  // AXI4-LITE SIGNALS
+  // ==========================================================================
 
-  logic                       wready;
-  logic                       wvalid;
-  logic [DATA_WIDTH-1:0]      wdata;
-  logic [DATA_WIDTH/8-1:0]    wstrb;
+  logic                    awready; //! Write address ready. Indicates the slave is ready to accept an address.
+  logic                    awvalid; //! Write address valid. Indicates the master is signaling a valid address.
+  logic [ADDR_WIDTH-1:0]   awaddr;  //! Write address bus.
+  logic [2:0]              awprot;  //! Write protection type. Indicates the privilege and security level.
 
-  logic                       bready;
-  logic                       bvalid;
-  logic [1:0]                 bresp;
+  logic                    wready;  //! Write data ready. Indicates the slave can accept the write data.
+  logic                    wvalid;  //! Write data valid. Indicates valid write data and strobes are available.
+  logic [DATA_WIDTH-1:0]   wdata;   //! Write data bus.
+  logic [DATA_WIDTH/8-1:0] wstrb;   //! Write strobes. Indicates which byte lanes hold valid data.
 
-  logic                       arready;
-  logic                       arvalid;
-  logic [ADDR_WIDTH-1:0]      araddr;
-  logic [2:0]                 arprot;
+  logic                    bready;  //! Write response ready. Indicates the master can accept a write response.
+  logic                    bvalid;  //! Write response valid. Indicates the channel is signaling a valid write response.
+  logic [1:0]              bresp;   //! Write response status. Indicates the status of the write transaction.
 
-  logic                       rready;
-  logic                       rvalid;
-  logic [DATA_WIDTH-1:0]      rdata;
-  logic [1:0]                 rresp;
+  logic                    arready; //! Read address ready. Indicates the slave is ready to accept an address.
+  logic                    arvalid; //! Read address valid. Indicates the channel is signaling valid read address info.
+  logic [ADDR_WIDTH-1:0]   araddr;  //! Read address bus.
+  logic [2:0]              arprot;  //! Read protection type. Indicates the privilege and security level.
 
+  logic                    rready;  //! Read data ready. Indicates the master can accept the read data and response.
+  logic                    rvalid;  //! Read data valid. Indicates the channel is signaling the required read data.
+  logic [DATA_WIDTH-1:0]   rdata;   //! Read data bus.
+  logic [1:0]              rresp;   //! Read response status. Indicates the status of the read transfer.
+
+  // ==========================================================================
+  // RTL MODPORTS
+  // ==========================================================================
+
+  /** Modport for capturing RTL Master port assignments. */
   modport master (
     input  awready,
     output awvalid,
@@ -76,6 +82,7 @@ interface axi4_lite_if#(
     input  rresp
   );
 
+  /** Modport for capturing RTL Slave port assignments. */
   modport slave (
     output awready,
     input  awvalid,
@@ -102,14 +109,25 @@ interface axi4_lite_if#(
     output rresp
   );
 
-  // ASSERTIONS
+  // ==========================================================================
+  // TESTBENCH CLOCKING BLOCKS (For cycle-accurate UVM/SVUnit driving)
+  // ==========================================================================
+
   `ifdef SYNTHESIS
   `elsif VERILATOR
   `else
 
+    /** Modport for testbench master using cycle-accurate clocking block. */
     modport tb_master(clocking m_cb);
+
+    /** Modport for testbench slave using cycle-accurate clocking block. */
     modport tb_slave(clocking s_cb);
 
+    /**
+     * @brief Master Clocking Block
+     * @details Synchronizes master stimulus and sampling to the clock edge,
+     * preventing race conditions in cycle-level testbench manipulation.
+     */
     clocking m_cb @(posedge aclk);
       default input #1step output #2;
 
@@ -138,6 +156,11 @@ interface axi4_lite_if#(
       input  rresp;
     endclocking
 
+    /**
+     * @brief Slave Clocking Block
+     * @details Synchronizes slave stimulus and sampling to the clock edge,
+     * preventing race conditions in cycle-level testbench manipulation.
+     */
     clocking s_cb @(posedge aclk);
       default input #1step output #2;
 
@@ -167,47 +190,85 @@ interface axi4_lite_if#(
     endclocking
 
   `endif //SYNTHESIS
-
   // ==========================================================================
-  // BASIC TASKS (Simple - minimal checking)
+  // BASIC TASKS (Clean Synchronous Implementations)
   // ==========================================================================
 
+  /**
+   * @task read
+   * @brief Performs a basic synchronous AXI4-Lite read transaction.
+   * @param addr The address to read from.
+   * @param data The variable to store the retrieved data.
+   */
   task automatic read (
     input  logic [ADDR_WIDTH-1:0] addr,
     output logic [DATA_WIDTH-1:0] data
   );
     begin
-      araddr = addr;
-      arvalid = 1'b1;
-      rready = 1'b1;
-      wait(arready);
-      @(posedge aclk) #1;
-      arvalid = 1'b0;
-      wait(rvalid);
+      @(posedge aclk);
+      araddr  <= addr;
+      arvalid <= 1'b1;
+      rready  <= 1'b1;
+
+      do begin
+        @(posedge aclk);
+      end while (!arready);
+
+      arvalid <= 1'b0;
+
+      while (!rvalid) begin
+        @(posedge aclk);
+      end
+
       data = rdata;
-      @(posedge aclk) #1;
-      rready = 1'b0;
+      rready  <= 1'b0;
+      @(posedge aclk);
     end
   endtask
 
+  /**
+   * @task write
+   * @brief Performs a basic synchronous AXI4-Lite write transaction.
+   * @param addr The address to write to.
+   * @param data The data value to be written.
+   */
   task automatic write (
     input logic [ADDR_WIDTH-1:0] addr,
     input logic [DATA_WIDTH-1:0] data
   );
     begin
-      wdata = data;
-      awaddr = addr;
-      awvalid = 1'b1;
-      wvalid = 1'b1;
-      wstrb = '1;
-      bready = 1'b1;
-      wait(awready && wready);
-      @(posedge aclk) #1;
-      awvalid = 1'b0;
-      wvalid = 1'b0;
+      @(posedge aclk);
+      awaddr  <= addr;
+      awvalid <= 1'b1;
+      wdata   <= data;
+      wvalid  <= 1'b1;
+      wstrb   <= '1;
+      bready  <= 1'b1;
+
+      do begin
+        @(posedge aclk);
+      end while (!(awready && wready));
+
+      awvalid <= 1'b0;
+      wvalid  <= 1'b0;
+
+      while (!bvalid) begin
+        @(posedge aclk);
+      end
+
+      bready  <= 1'b0;
+      @(posedge aclk);
     end
   endtask
 
+  /**
+   * @task write_field
+   * @brief Performs a read-modify-write operation on a specific register field.
+   * @param addr The address of the register.
+   * @param data The new data value to be inserted into the field (un-shifted).
+   * @param mask The bitmask defining the field (shifted to its target position).
+   * @param offset The bit offset position where the data should be shifted.
+   */
   task automatic write_field (
     input logic [ADDR_WIDTH        -1:0] addr,
     input logic [DATA_WIDTH        -1:0] data,
@@ -222,6 +283,14 @@ interface axi4_lite_if#(
     end
   endtask
 
+  /**
+   * @task read_field
+   * @brief Reads a specific field from a register and returns the un-shifted value.
+   * @param addr The address of the register.
+   * @param data The variable to store the extracted field value.
+   * @param mask The bitmask defining the field (shifted to its target position).
+   * @param offset The bit offset position of the field.
+   */
   task automatic read_field (
     input  logic [ADDR_WIDTH        -1:0] addr,
     output logic [DATA_WIDTH        -1:0] data,
@@ -236,134 +305,127 @@ interface axi4_lite_if#(
   endtask
 
   // ==========================================================================
-  // ENHANCED TASKS (Robust - with timeouts and error checking)
+  // ENHANCED TASKS (Robust & XSim-Safe Timeout Control)
   // ==========================================================================
 
-  // Enhanced write task with timeout and error checking
+  /**
+   * @task axi_write
+   * @brief Enhanced write task with built-in timeout and response error checking.
+   * @param addr The destination address.
+   * @param data The data payload to transmit.
+   * @param timeout Maximum clock cycles to wait for slave handshake before throwing a fatal error.
+   */
   task automatic axi_write(
     input  logic [ADDR_WIDTH-1:0] addr,
     input  logic [DATA_WIDTH-1:0] data,
     input  int                    timeout = 100
   );
-    int cycles_wait = 0;
+    @(posedge aclk);
+    awaddr  <= addr;
+    awvalid <= 1'b1;
+    awprot  <= 3'b000;
+    wdata   <= data;
+    wstrb   <= {(DATA_WIDTH/8){1'b1}};
+    wvalid  <= 1'b1;
+    bready  <= 1'b1;
 
-    // Drive write address channel
-    awaddr  = addr;
-    awvalid = 1'b1;
-    awprot  = 3'b000; // Default: unprivileged, secure, data access
-
-    // Drive write data channel
-    wdata   = data;
-    wstrb   = {(DATA_WIDTH/8){1'b1}}; // All bytes enabled
-    wvalid  = 1'b1;
-
-    // Prepare to accept write response
-    bready  = 1'b1;
-
-    // Wait for both address and data to be accepted
     fork
-      // Wait for address ready
-      begin
-        cycles_wait = 0;
-        while (awvalid && !awready && cycles_wait < timeout) begin
+      // Address Channel (AW)
+      begin : aw_handshake
+        int c = 0;
+        while (!awready && c < timeout) begin
           @(posedge aclk);
-          cycles_wait++;
+          c++;
         end
-        if (cycles_wait >= timeout) begin
-          $error("[%0t] AXI Write: Timeout waiting for awready", $time);
-        end
-        awvalid = 1'b0;
+        if (c >= timeout) $error("[%0t] AXI Write: Timeout waiting for awready", $time);
+        awvalid <= 1'b0;
       end
 
-      // Wait for data ready
-      begin
-        cycles_wait = 0;
-        while (wvalid && !wready && cycles_wait < timeout) begin
+      // Data Channel (W)
+      begin : w_handshake
+        int c = 0;
+        while (!wready && c < timeout) begin
           @(posedge aclk);
-          cycles_wait++;
+          c++;
         end
-        if (cycles_wait >= timeout) begin
-          $error("[%0t] AXI Write: Timeout waiting for wready", $time);
-        end
-        wvalid = 1'b0;
+        if (c >= timeout) $error("[%0t] AXI Write: Timeout waiting for wready", $time);
+        wvalid <= 1'b0;
       end
     join
 
-    // Wait for write response
-    cycles_wait = 0;
-    while (!bvalid && cycles_wait < timeout) begin
-      @(posedge aclk);
-      cycles_wait++;
+    // Response Channel (B)
+    begin
+      int c = 0;
+      while (!bvalid && c < timeout) begin
+        @(posedge aclk);
+        c++;
+      end
+
+      if (c >= timeout) begin
+        $error("[%0t] AXI Write: Timeout waiting for bvalid", $time);
+      end else if (bresp !== 2'b00) begin
+        $warning("[%0t] AXI Write: Received error response: 'b%b", $time, bresp);
+      end
     end
 
-    if (cycles_wait >= timeout) begin
-      $error("[%0t] AXI Write: Timeout waiting for bvalid", $time);
-    end else if (bresp !== 2'b00) begin
-      $warning("[%0t] AXI Write: Received error response: 'b%b", $time, bresp);
-    end
-
-    // Complete transaction
-    @(posedge aclk);
-    bready = 1'b0;
-
-    // Wait one more cycle for clean state
+    bready <= 1'b0;
     @(posedge aclk);
   endtask
 
-  // Enhanced read task with timeout and error checking
+  /**
+   * @task axi_read
+   * @brief Enhanced read task with built-in timeout and response error checking.
+   * @param addr The target read address.
+   * @param data Output variable to capture the returned data.
+   * @param timeout Maximum clock cycles to wait for slave handshake before throwing a fatal error.
+   */
   task automatic axi_read(
     input  logic [ADDR_WIDTH-1:0]  addr,
     output logic [DATA_WIDTH-1:0]  data,
     input  int                     timeout = 100
   );
-    int cycles_wait = 0;
-
-    // Drive read address channel
-    araddr  = addr;
-    arvalid = 1'b1;
-    arprot  = 3'b000; // Default: unprivileged, secure, data access
-
-    // Prepare to accept read data
-    rready  = 1'b1;
-
-    // Wait for address to be accepted
-    cycles_wait = 0;
-    while (arvalid && !arready && cycles_wait < timeout) begin
-      @(posedge aclk);
-      cycles_wait++;
-    end
-
-    if (cycles_wait >= timeout) begin
-      $error("[%0t] AXI Read: Timeout waiting for arready", $time);
-    end
-
-    arvalid = 1'b0;
-
-    // Wait for read data
-    cycles_wait = 0;
-    while (!rvalid && cycles_wait < timeout) begin
-      @(posedge aclk);
-      cycles_wait++;
-    end
-
-    if (cycles_wait >= timeout) begin
-      $error("[%0t] AXI Read: Timeout waiting for rvalid", $time);
-    end else if (rresp !== 2'b00) begin
-      $warning("[%0t] AXI Read: Received error response: 'b%b", $time, rresp);
-    end
-
-    // Capture data
-    data = rdata;
-
-    // Complete transaction
     @(posedge aclk);
-    rready = 1'b0;
+    araddr  <= addr;
+    arvalid <= 1'b1;
+    arprot  <= 3'b000;
+    rready  <= 1'b1;
 
-    // Wait one more cycle for clean state
+    begin
+      int c = 0;
+      while (!arready && c < timeout) begin
+        @(posedge aclk);
+        c++;
+      end
+      if (c >= timeout) $error("[%0t] AXI Read: Timeout waiting for arready", $time);
+      arvalid <= 1'b0;
+    end
+
+    begin
+      int c = 0;
+      while (!rvalid && c < timeout) begin
+        @(posedge aclk);
+        c++;
+      end
+
+      if (c >= timeout) begin
+        $error("[%0t] AXI Read: Timeout waiting for rvalid", $time);
+      end else if (rresp !== 2'b00) begin
+        $warning("[%0t] AXI Read: Received error response: 'b%b", $time, rresp);
+      end
+    end
+
+    data = rdata;
+    rready <= 1'b0;
     @(posedge aclk);
   endtask
 
-  // Bulk write - write multiple consecutive registers
+  /**
+   * @task axi_bulk_write
+   * @brief Sequentially writes an array of data to consecutive register addresses.
+   * @param base_addr The starting address for the bulk write.
+   * @param data_array The array of data words to write.
+   * @param timeout Timeout limit per transaction.
+   */
   task automatic axi_bulk_write(
     input  logic [ADDR_WIDTH-1:0] base_addr,
     input  logic [DATA_WIDTH-1:0] data_array [],
@@ -374,7 +436,14 @@ interface axi4_lite_if#(
     end
   endtask
 
-  // Bulk read - read multiple consecutive registers
+  /**
+   * @task axi_bulk_read
+   * @brief Sequentially reads multiple registers starting from a base address.
+   * @param base_addr The starting address for the bulk read.
+   * @param data_array Dynamic array to be populated with the read data.
+   * @param num_regs The number of consecutive registers to read.
+   * @param timeout Timeout limit per transaction.
+   */
   task automatic axi_bulk_read(
     input  logic [ADDR_WIDTH-1:0]  base_addr,
     output logic [DATA_WIDTH-1:0]  data_array [],
@@ -387,78 +456,44 @@ interface axi4_lite_if#(
     end
   endtask
 
-  // Reset task - initialize all signals to default state
+  /**
+   * @task reset
+   * @brief Initializes all master-driven AXI4-Lite channels to their default idle states.
+   * @details Halts execution until the global `aresetn` signal is deasserted.
+   */
   task automatic reset();
-    awaddr   = '0;
-    awvalid  = 1'b0;
-    awprot   = 3'b000;
-
+    awaddr   <= '0;
+    awvalid  <= 1'b0;
+    awprot   <= 3'b000;
     wdata    = '0;
-    wstrb    = '0;
-    wvalid   = 1'b0;
+    wstrb    <= '0;
+    wvalid   <= 1'b0;
+    bready   <= 1'b0;
+    araddr   <= '0;
+    arvalid  <= 1'b0;
+    arprot   <= 3'b000;
+    rready   <= 1'b0;
 
-    bready   = 1'b0;
-
-    araddr   = '0;
-    arvalid  = 1'b0;
-    arprot   = 3'b000;
-
-    rready   = 1'b0;
-
-    // Wait for reset to be deasserted
     if (aresetn === 1'b0) begin
       wait(aresetn === 1'b1);
     end
-
     @(posedge aclk);
   endtask
 
-  // Wait for idle state - all channels idle
+  /**
+   * @task wait_idle
+   * @brief Blocks execution until all AXI4-Lite channels return to an idle state.
+   * @param timeout Maximum cycles to wait before throwing a warning.
+   */
   task automatic wait_idle(int timeout = 100);
     int cycles_wait = 0;
-
     while ((awvalid || wvalid || arvalid || bready || rready) && cycles_wait < timeout) begin
       @(posedge aclk);
       cycles_wait++;
     end
-
     if (cycles_wait >= timeout) begin
       $warning("[%0t] AXI Interface not idle after timeout", $time);
     end
   endtask
 
-      endinterface
-
-      // Using the new tasks
-      //module tb;
-      //  logic aclk = 0;
-      //  logic aresetn;
-      //
-      //  axi4_lite_if #(.DATA_WIDTH(32), .ADDR_WIDTH(8)) s_axi(aclk, aresetn);
-      //
-      //  initial begin
-      //    // Reset
-      //    aresetn = 0;
-      //    s_axi.reset();
-      //    #100 aresetn = 1;
-      //
-      //    // Writing with timeout
-      //    s_axi.axi_write(8'h00, 32'h00000001); // Enable
-      //    s_axi.axi_write(8'h04, 32'h00000001); // sel
-      //    s_axi.axi_write(8'h08, 32'h00000001); // op_sel
-      //
-      //    // Reading
-      //    logic [31:0] read_data;
-      //    s_axi.axi_read(8'h00, read_data);
-      //
-      //    // Bulk operations
-      //    logic [31:0] data_array[4];
-      //    data_array = '{32'hA, 32'hB, 32'hC, 32'hD};
-      //    s_axi.axi_bulk_write(8'h10, data_array);
-      //
-      //    logic [31:0] read_array[];
-      //    s_axi.axi_bulk_read(8'h10, read_array, 4);
-      //  end
-      //
-      //  always #5 aclk = ~aclk; // 100MHz clock
-      //endmodule
+endinterface
