@@ -8,9 +8,8 @@ filesets:
       - hdl/axis_constant_iq.sv
     file_type: systemVerilogSource
     depend:
-      - qick:interfaces:axi4_lite_if
-      - qick:interfaces:axi4_stream_if
-      - qick:utils:constant_iq
+      - qick:axi:axil_slv
+      - qick:cdc:sync_nxm
 
   tb:
     files:
@@ -18,6 +17,8 @@ filesets:
       - test/axis_constant_iq_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
+      - qick:interfaces:axi4_lite_if
+      - qick:interfaces:axi4_stream_if
       - qick:common:sim_base
 
   lint_files:

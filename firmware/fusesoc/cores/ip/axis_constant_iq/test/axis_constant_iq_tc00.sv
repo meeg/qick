@@ -78,25 +78,44 @@ module axis_constant_iq_unit_test;
     // =========================================================================
     // Clocking block
     // =========================================================================
-    default clocking tb_cb @(posedge s_axi.aclk);
+    default clocking tb_cb @(posedge tb_axi_clk);
         default input #1step output #2;
-        output tb_axi_rstn;
-        output tb_axis_rstn;
     endclocking
 
     // =========================================================================
     // DUT
     // =========================================================================
-    constant_iq #(
+    axis_constant_iq #(
         .IQ_WIDTH (IQ_WIDTH),
         .NUM_CHANNELS (NUM_CHANNELS)
     ) u_dut (
-        .s_axi_aclk(tb_axi_clk),
-        .s_axi_aresetn(tb_axi_rstn),
-        .s_axi         (s_axi),
-        .m_axis_aclk(tb_axis_clk),
-        .m_axis_aresetn(tb_axis_rstn),
-        .m_axis        (axis_if)
+        .s_axi_aclk     (tb_axi_clk),
+        .s_axi_aresetn  (tb_axi_rstn),
+        .s_axi_awaddr   (s_axi.slave.awaddr),
+        .s_axi_awprot   (s_axi.slave.awprot),
+        .s_axi_awvalid  (s_axi.slave.awvalid),
+        .s_axi_awready  (s_axi.slave.awready),
+        .s_axi_wdata    (s_axi.slave.wdata),
+        .s_axi_wstrb    (s_axi.slave.wstrb),
+        .s_axi_wvalid   (s_axi.slave.wvalid),
+        .s_axi_wready   (s_axi.slave.wready),
+        .s_axi_bresp    (s_axi.slave.bresp),
+        .s_axi_bvalid   (s_axi.slave.bvalid),
+        .s_axi_bready   (s_axi.slave.bready),
+        .s_axi_araddr   (s_axi.slave.araddr),
+        .s_axi_arprot   (s_axi.slave.arprot),
+        .s_axi_arvalid  (s_axi.slave.arvalid),
+        .s_axi_arready  (s_axi.slave.arready),
+        .s_axi_rdata    (s_axi.slave.rdata),
+        .s_axi_rresp    (s_axi.slave.rresp),
+        .s_axi_rvalid   (s_axi.slave.rvalid),
+        .s_axi_rready   (s_axi.slave.rready),
+        .m_axis_aclk    (tb_axis_clk),
+        .m_axis_aresetn (tb_axis_rstn),
+        .m_axis_tdata   (axis_if.master.tdata),
+        .m_axis_tvalid  (axis_if.master.tvalid),
+        .m_axis_tlast   (axis_if.master.tlast),
+        .m_axis_tready  (axis_if.master.tready)
     );
 
     // =========================================================================
@@ -108,12 +127,16 @@ module axis_constant_iq_unit_test;
 
     task setup();
         svunit_ut.setup();
+        
+        tb_axi_rstn  = 1'b0;
+        tb_axis_rstn = 1'b0;
+        repeat(5) @(posedge tb_axi_clk);
+        tb_axi_rstn  = 1'b1;
+        tb_axis_rstn = 1'b1;
+
+        s_axi.reset();
+        axis_if.s_reset();
         repeat(5) @(tb_cb);
-        tb_axi_rstn  <= 1'b0;
-        tb_axis_rstn <= 1'b0;
-        repeat(5) @(tb_cb);
-        tb_axi_rstn  <= 1'b1;
-        tb_axis_rstn <= 1'b1;
     endtask
 
     task teardown();

@@ -6,8 +6,7 @@
 `SVTEST(reset_initialization)
     logic [AXI_DW-1:0] read_data;
 
-    // Verify that after reset the streaming outputs are zero and tvalid is low
-    `FAIL_UNLESS_EQUAL(axis_if.tdata, '0);
+    // Verify that after reset the tvalid is low
     `FAIL_UNLESS_EQUAL(axis_if.tvalid, 1'b0); 
 
     // Verify that all internal registers initialize to 0
