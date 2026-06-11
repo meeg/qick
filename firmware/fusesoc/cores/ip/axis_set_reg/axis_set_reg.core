@@ -18,9 +18,10 @@ filesets:
   tb01:
     files:
       - test/axis_set_reg_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - test/axis_set_reg_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
+      - qick:interfaces:axi4_stream_if
       - qick:common:sim_base
 
   lint_files:
@@ -67,37 +68,38 @@ targets:
         mode: lint-only
         verilator_options: [-Wall]
 
+  #test:
+  #  # Copy all key/value pairs from the "default" target.
+  #  <<: *default
+  #  description: Simulate the design
+  #  default_tool: icarus
+  #  filesets_append: [tb00]
+  #  toplevel: tb_axis_set_reg
+  #  tools:
+  #    icarus:
+  #      iverilog_options:
+  #        - -g2012 # Use SystemVerilog-2012
+  #    modelsim:
+  #      vlog_options:
+  #        - -timescale=1ns/1ns
+
   test:
-    # Copy all key/value pairs from the "default" target.
-    <<: *default
     description: Simulate the design
-    default_tool: icarus
-    filesets_append: [tb00]
-    toplevel: tb_axis_set_reg
+    filesets: [hdl, lint_files, tb01]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
     tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
       icarus:
         iverilog_options:
-          - -g2012 # Use SystemVerilog-2012
+          - -g2012
       modelsim:
         vlog_options:
           - -timescale=1ns/1ns
 
-            #  test:
-            #    description: Simulate the design
-            #    filesets: [hdl, lint_files, tb01]
-            #    default_tool: xsim
-            #    generate: [testrunner_gen]
-            #    toplevel: testrunner
-            #    tools:
-            #      xsim:
-            #        xelab_options: [-debug all -L XPM]
-            #        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
-            #      icarus:
-            #        iverilog_options:
-            #          - -g2012
-            #      modelsim:
-            #        vlog_options:
-            #          - -timescale=1ns/1ns
   synth:
     description: Synthesize the design
     filesets: [hdl, lint_files]

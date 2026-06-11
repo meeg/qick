@@ -1,43 +1,41 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Tue May 26 17:53:44 2026
+[*] Thu Jun 11 16:06:45 2026
 [*]
-[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_ip_axis_set_reg_1.0.0/test-icarus/axis_set_reg_tb.vcd"
-[dumpfile_mtime] "Tue May 26 17:49:12 2026"
-[dumpfile_size] 960
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_ip_axis_set_reg_1.0.0/test-xsim/axis_set_reg.vcd"
+[dumpfile_mtime] "Thu Jun 11 16:03:59 2026"
+[dumpfile_size] 7697
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/ip/axis_set_reg/data/axis_set_reg.gtkw"
 [timestart] 0
 [size] 1920 1165
 [pos] -1 -1
-*-15.779675 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
-[treeopen] tb_axis_set_reg.
+*-14.370290 155000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_set_reg_ut.
 [sst_width] 206
 [signals_width] 174
 [sst_expanded] 1
 [sst_vpaned_height] 410
-@420
-tb_axis_set_reg.u_dut.DATA_WIDTH
 @28
 [color] 3
-tb_axis_set_reg.u_dut.s_axis_aclk
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_aclk
 [color] 3
-tb_axis_set_reg.u_dut.s_axis_aresetn
-[color] 3
-tb_axis_set_reg.u_dut.s_axis_tready
-[color] 3
-tb_axis_set_reg.u_dut.s_axis_tvalid
-[color] 3
-tb_axis_set_reg.u_dut.s_axis_tlast
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_aresetn
 @22
-[color] 3
-tb_axis_set_reg.u_dut.s_axis_tdata[15:0]
-@28
-[color] 3
-tb_axis_set_reg.u_dut.s_axis_tstrb[1:0]
-@22
-tb_axis_set_reg.u_dut.dout_r[15:0]
+testrunner.__ts.axis_set_reg_ut.u_dut.dout_r[15:0]
 @23
 [color] 6
-tb_axis_set_reg.u_dut.dout[15:0]
+testrunner.__ts.axis_set_reg_ut.u_dut.dout[15:0]
+@22
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tdata[15:0]
+@28
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tlast
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tready
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tstrb[1:0]
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tvalid
 [pattern_trace] 1
 [pattern_trace] 0
