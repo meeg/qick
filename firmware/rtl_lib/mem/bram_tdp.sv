@@ -36,12 +36,23 @@ module bram_tdp #(
     parameter int unsigned NB_ADDR      = 10,
     parameter string       MEM_BIN_FILE = ""
 )(
+    //port A signals
     input  logic  clk_a,
-    input  logic  clk_b,
     input  logic  rst_a,
+    input  logic  ena,
+    input  logic  wea,
+    input  logic [NB_ADDR-1:0] addra,
+    input  logic [NB_DATA-1:0] dia,
+    output logic [NB_DATA-1:0] doa,
+
+    //port B signals
+    input  logic  clk_b,
     input  logic  rst_b, 
-    bram_if.slave port_a,
-    bram_if.slave port_b
+    input  logic  enb,
+    input  logic  web,
+    input  logic [NB_ADDR-1:0] addrb,
+    input  logic [NB_DATA-1:0] dib,
+    output logic [NB_DATA-1:0] dob
 );
 
     // Internal calculations for memory depth and byte count
@@ -69,16 +80,16 @@ module bram_tdp #(
     // -------------------------------------------------------------------------
     always_ff @(posedge clk_a) begin
         if (rst_a) begin
-            port_a.dout <= '0;
-        end else if (port_a.en) begin
-            if (port_a.we) begin
+            doa <= '0;
+        end else if (ena) begin
+            if (wea) begin
                 // Writing
-                ram[port_a.addr] <= port_a.din;
+                ram[addra] <= dia;
                 // In write‑first mode, the read returns the newly written data.
-                port_a.dout <= port_a.din;
+                doa <= dia; // write‑first
             end else begin
                 // Reading
-                port_a.dout <= ram[port_a.addr];
+                doa <= ram[addra];
             end
         end
     end 
@@ -88,14 +99,14 @@ module bram_tdp #(
     // -------------------------------------------------------------------------
     always_ff @(posedge clk_b) begin
         if (rst_b) begin
-            port_b.dout <= '0;
-        end else if (port_b.en) begin
-            if (port_b.we) begin
-                ram[port_b.addr] <= port_b.din;
+            dob <= '0;
+        end else if (enb) begin
+            if (web) begin
+                ram[addrb] <= dib;
                 // In write‑first mode, the read returns the newly written data.
-                port_b.dout <= port_b.din; // write‑first
+                dob <= dib; // write‑first
             end else begin
-                port_b.dout <= ram[port_b.addr];
+                dob <= ram[addrb];
             end
         end
     end

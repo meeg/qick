@@ -72,10 +72,19 @@ module bram_tdp_unit_test;
   ) u_bram_tdp (
     .clk_a (tb_a_clk),
     .rst_a (~tb_rstn),
+    .ena   (port_a_if.slave.en),
+    .wea   (port_a_if.slave.we),
+    .addra (port_a_if.slave.addr),
+    .dia   (port_a_if.slave.din),
+    .doa   (port_a_if.slave.dout),
+
     .clk_b (tb_b_clk),
     .rst_b (~tb_rstn),
-    .port_a ( port_a_if.slave ),
-    .port_b ( port_b_if.slave )
+    .enb   (port_b_if.slave.en),
+    .web   (port_b_if.slave.we),
+    .addrb (port_b_if.slave.addr),
+    .dib   (port_b_if.slave.din),
+    .dob   (port_b_if.slave.dout)
   );
 
   //===================================
