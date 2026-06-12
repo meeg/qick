@@ -32,19 +32,16 @@ module bram_to_axis_unit_test;
   );
 
   axi4_stream_if #(
-      .N_BYTES_TDATA(BYTES),
-      .N_BITS_TUSER(1),
-      .N_BITS_TID(1),
-      .N_BITS_TDEST(1),
-      .HAS_TSTRB(1'b0),
-      .HAS_TKEEP(1'b0),
-      .HAS_TID(1'b0),
-      .HAS_TDEST(1'b0),
-      .HAS_TUSER(1'b0)
-  ) axis_if_i (
-      .i_clk (tb_clk),
-      .i_rstn(tb_rstn)
-  );
+      .TDATA_WIDTH   (BYTES * 8),
+      .HAS_TSTRB     (1'b0),
+      .HAS_TKEEP     (1'b0),
+      .HAS_TID       (1'b0),
+      .HAS_TDEST     (1'b0),
+      .HAS_TUSER     (1'b0)
+    ) axis_if_i (
+      .aclk    (tb_clk),
+      .aresetn (tb_rstn)
+    );
 
   // Mock memory
   logic [B-1:0] mem[0:2**N-1];
@@ -86,8 +83,15 @@ module bram_to_axis_unit_test;
   ) u_bram_to_axis (
       .rstn     (tb_rstn),
       .clk      (tb_clk),
-      .bram     (bram_if_i.master),
-      .axis     (axis_if_i.master),
+      .mem_en    (bram_if_i.master.en),
+      .mem_we    (bram_if_i.master.we),
+      .mem_addr  (bram_if_i.master.addr),
+      .mem_dout  (bram_if_i.master.dout),
+      .mem_din   (bram_if_i.master.din),
+      .m_axis_tready (axis_if_i.master.tready),
+      .m_axis_tvalid (axis_if_i.master.tvalid),
+      .m_axis_tdata  (axis_if_i.master.tdata),
+      .m_axis_tlast  (axis_if_i.master.tlast),
       .start_reg(tb_start_reg),
       .addr_reg (tb_addr_reg),
       .len_reg  (tb_len_reg)

@@ -7,20 +7,27 @@ module bram_to_axis #(
   parameter int BRAM_ADDR_WIDTH = 8,           // Address width (BRAM_ADDR_WIDTH)
   parameter int BRAM_DATA_WIDTH = 16           // Data width in bits (BRAM_DATA_WIDTH)
 )(
-  input logic                       rstn,
-  input logic                       clk,
+  input logic                        rstn,
+  input logic                        clk,
 
   // BRAM Interface (single-port reader)
-  bram_if.master bram,                          // expects NB_DATA=BRAM_DATA_WIDTH, NB_ADDR=BRAM_ADDR_WIDTH
+  output logic                       mem_en,
+  output logic                       mem_we,
+  output logic [BRAM_ADDR_WIDTH-1:0] mem_addr,
+  input  logic [BRAM_DATA_WIDTH-1:0] mem_dout,
+  output logic [BRAM_DATA_WIDTH-1:0] mem_din,
 
   // AXI4-Stream Interface (source)
-  axi4_stream_if.master axis,                   // expects N_BYTES_TDATA = BRAM_DATA_WIDTH/8
+  input  logic                       m_axis_tready,
+  output logic [BRAM_DATA_WIDTH-1:0] m_axis_tdata,
+  output logic                       m_axis_tvalid,
+  output logic                       m_axis_tlast,
 
   // Control registers
-  input logic                       start_reg,
-  input logic [BRAM_ADDR_WIDTH-1:0] addr_reg,
-  input logic [BRAM_ADDR_WIDTH:0]   len_reg     // Note: BRAM_ADDR_WIDTH+1 bits to support
-                                                // up to 2^BRAM_ADDR_WIDTH length
+  input logic                        start_reg,
+  input logic [BRAM_ADDR_WIDTH-1:0]  addr_reg,
+  input logic [BRAM_ADDR_WIDTH:0]    len_reg     // Note: BRAM_ADDR_WIDTH+1 bits to support
+                                                 // up to 2^BRAM_ADDR_WIDTH length
 );
 
   // ---------------------------------------------------------------------
@@ -89,29 +96,29 @@ module bram_to_axis #(
 
   // FIFO write: from BRAM when in write state and FIFO not full
   assign fifo_wr_en  = write_state && !fifo_full;
-  assign fifo_din    = bram.dout;
+  assign fifo_din    = mem_dout;
 
   // FIFO read: AXI handshake (tvalid & tready)
-  assign axis_handshake = axis.tvalid && axis.tready;
+  assign axis_handshake = m_axis_tvalid && m_axis_tready;
   assign fifo_rd_en     = axis_handshake;
 
   // BRAM interface: always enabled for reading
-  assign bram.en   = 1'b1;
-  assign bram.we   = 1'b0;
-  assign bram.addr = bram_addr;
-  assign bram.din  = '0;  // not used in read mode
+  assign mem_en   = 1'b1;
+  assign mem_we   = 1'b0;
+  assign mem_addr = bram_addr;
+  assign mem_din  = '0;  // not used in read mode
 
   // AXI4-Stream output
-  assign axis.tdata  = fifo_dout;
-  assign axis.tvalid = stream_en && !fifo_empty;
-  assign axis.tlast  = (rd_cnt == 1);  // last when rd_cnt will become 0 after this read
+  assign m_axis_tdata  = fifo_dout;
+  assign m_axis_tvalid = stream_en && !fifo_empty;
+  assign m_axis_tlast  = (rd_cnt == 1);  // last when rd_cnt will become 0 after this read
 
   // Optional AXI signals - set to defaults
-  assign axis.tkeep  = '1;   // all bytes valid
-  assign axis.tstrb  = '1;   // all strobes active
-  assign axis.tid    = '0;
-  assign axis.tdest  = '0;
-  assign axis.tuser  = '0;
+  //assign m_axis_tkeep  = '1;   // all bytes valid
+  //assign m_axis_tstrb  = '1;   // all strobes active
+  //assign m_axis_tid    = '0;
+  //assign m_axis_tdest  = '0;
+  //assign m_axis_tuser  = '0;
 
   // ---------------------------------------------------------------------
   // Sequential Logic
