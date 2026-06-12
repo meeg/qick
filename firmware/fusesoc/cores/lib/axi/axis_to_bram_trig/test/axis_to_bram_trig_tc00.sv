@@ -32,18 +32,15 @@ module axis_to_bram_trig_unit_test;
     // Interfaces
     // =========================================================================
     axi4_stream_if #(
-        .N_BYTES_TDATA (BYTES),
-        .N_BITS_TUSER  (1),
-        .N_BITS_TID    (1),
-        .N_BITS_TDEST  (1),
+        .TDATA_WIDTH   (BYTES * 8),
         .HAS_TSTRB     (1'b0),
         .HAS_TKEEP     (1'b0),
         .HAS_TID       (1'b0),
         .HAS_TDEST     (1'b0),
         .HAS_TUSER     (1'b0)
     ) axis_if (
-        .i_clk  (tb_clk),
-        .i_rstn (tb_rstn)
+        .aclk    (tb_clk),
+        .aresetn (tb_rstn)
     );
 
     bram_if #(
@@ -100,12 +97,18 @@ module axis_to_bram_trig_unit_test;
         .N (N),
         .B (B)
     ) u_dut (
-        .rstn        (tb_rstn),
-        .clk         (tb_clk),
-        .trigger     (tb_trigger),
-        .axis        (axis_if.slave),
-        .bram        (bram_if_i.master),
-        .capture_reg (tb_capture_reg)
+        .rstn          (tb_rstn),
+        .clk           (tb_clk),
+        .trigger       (tb_trigger),
+        .s_axis_tready (axis_if.slave.tready),
+        .s_axis_tdata  (axis_if.slave.tdata),
+        .s_axis_tvalid (axis_if.slave.tvalid),
+        .s_axis_tlast  (axis_if.slave.tlast),
+        .mem_en        (bram_if_i.master.en),
+        .mem_we        (bram_if_i.master.we),
+        .mem_addr      (bram_if_i.master.addr),
+        .mem_di        (bram_if_i.master.din),
+        .capture_reg   (tb_capture_reg)
     );
 
     // =========================================================================
