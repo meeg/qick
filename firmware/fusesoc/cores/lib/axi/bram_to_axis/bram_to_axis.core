@@ -14,10 +14,10 @@ filesets:
 
   tb:
     files:
-      #- test/bram_to_axis_tc00.sv
-      #- test/tests.sv: {is_include_file: true}
-      - test/bram_to_axis_cb_tc00.sv
-      - test/tests_cb.sv: {is_include_file: true}
+      - test/bram_to_axis_tc00.sv
+      - test/tests.sv: {is_include_file: true}
+      #- test/bram_to_axis_cb_tc00.sv
+      #- test/tests_cb.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base

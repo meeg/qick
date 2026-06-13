@@ -1,7 +1,7 @@
 // ============================================================================
 // File: bram_to_axis_tc00.sv
 // Description: SVUnit testbench top-level for the bram_to_axis module.
-//              Version with clocking block (CORRECTED)
+//              Version with clocking block 
 // ============================================================================
 
 `include "svunit_defines.svh"
@@ -54,8 +54,10 @@ module bram_to_axis_unit_test;
     if (bram_if_i.en) begin
       if (bram_if_i.we) begin
         mem[bram_if_i.addr] <= bram_if_i.din;
+        bram_if_i.dout      <= bram_if_i.din; // Write-First behavior, similar to bram_tdp
+      end else begin
+        bram_if_i.dout <= mem[bram_if_i.addr];
       end
-      bram_if_i.dout <= mem[bram_if_i.addr];
     end
   end
 
