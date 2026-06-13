@@ -158,11 +158,15 @@ module axis_to_bram_trig #(
         if (capture_reg) next_state = TRIGGER_ST;
 
       TRIGGER_ST:
-        if (trigger) next_state = CAPTURE_ST;
+        // Let the FSM abort if trigger is cancelled
+        if (!capture_reg) next_state = INIT_ST;
+        else if (trigger) next_state = CAPTURE_ST;
 
       CAPTURE_ST:
-        // addr_cnt reaches all-ones after 2**N increments
-        if ((addr_cnt == '1) && ~fifo_empty)
+        // Abort if capture_reg goes low, or finish if BRAM is full
+        if (!capture_reg)
+          next_state = END_ST;
+        else if ((addr_cnt == '1) && ~fifo_empty)
           next_state = END_ST;
 
       END_ST:

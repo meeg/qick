@@ -64,11 +64,6 @@ module axis_to_bram_trig_unit_test;
     // =========================================================================
     // Clock generator
     // =========================================================================
-    initial begin
-        $dumpfile("axis_to_bram_trig.vcd");
-        $dumpvars();
-    end
-
     clk_gen #(.FREQ (CLOCK_FREQUENCY)) u_clk_gen (
         .i_enable (1'b1),
         .o_clk    (tb_clk)
@@ -89,6 +84,14 @@ module axis_to_bram_trig_unit_test;
         output tb_trigger;
         output tb_capture_reg;
     endclocking
+
+    // =========================================================================
+    // Dump file
+    // =========================================================================
+    initial begin
+        $dumpfile("axis_to_bram_trig.vcd");
+        $dumpvars();
+    end
 
     // =========================================================================
     // DUT
