@@ -37,8 +37,8 @@ module bram_tdp #(
     parameter string       MEM_BIN_FILE = ""
 )(
     //port A signals
-    input  logic  clk_a,
-    input  logic  rst_a,
+    input  logic  clka,
+    input  logic  rsta,
     input  logic  ena,
     input  logic  wea,
     input  logic [NB_ADDR-1:0] addra,
@@ -46,8 +46,8 @@ module bram_tdp #(
     output logic [NB_DATA-1:0] doa,
 
     //port B signals
-    input  logic  clk_b,
-    input  logic  rst_b, 
+    input  logic  clkb,
+    input  logic  rstb,
     input  logic  enb,
     input  logic  web,
     input  logic [NB_ADDR-1:0] addrb,
@@ -73,13 +73,13 @@ module bram_tdp #(
                 ram[i] = '0;
             end
         end
-    end 
+    end
 
     // -------------------------------------------------------------------------
     // Port A
     // -------------------------------------------------------------------------
-    always_ff @(posedge clk_a) begin
-        if (rst_a) begin
+    always_ff @(posedge clka) begin
+        if (rsta) begin
             doa <= '0;
         end else if (ena) begin
             if (wea) begin
@@ -92,13 +92,13 @@ module bram_tdp #(
                 doa <= ram[addra];
             end
         end
-    end 
+    end
 
     // -------------------------------------------------------------------------
     // Port B
     // -------------------------------------------------------------------------
-    always_ff @(posedge clk_b) begin
-        if (rst_b) begin
+    always_ff @(posedge clkb) begin
+        if (rstb) begin
             dob <= '0;
         end else if (enb) begin
             if (web) begin

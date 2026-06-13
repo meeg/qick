@@ -70,16 +70,16 @@ module bram_tdp_unit_test;
     .NB_DATA(NB_DATA),
     .NB_ADDR(NB_ADDR)
   ) u_bram_tdp (
-    .clk_a (tb_a_clk),
-    .rst_a (~tb_rstn),
+    .clka  (tb_a_clk),
+    .rsta  (~tb_rstn),
     .ena   (port_a_if.slave.en),
     .wea   (port_a_if.slave.we),
     .addra (port_a_if.slave.addr),
     .dia   (port_a_if.slave.din),
     .doa   (port_a_if.slave.dout),
 
-    .clk_b (tb_b_clk),
-    .rst_b (~tb_rstn),
+    .clkb  (tb_b_clk),
+    .rstb  (~tb_rstn),
     .enb   (port_b_if.slave.en),
     .web   (port_b_if.slave.we),
     .addrb (port_b_if.slave.addr),
