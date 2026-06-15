@@ -31,19 +31,16 @@ module axis_to_bram_sg_unit_test;
     // =========================================================================
     // Interfaces
     // =========================================================================
-    axi4_stream_if #(
-        .N_BYTES_TDATA (BYTES),
-        .N_BITS_TUSER  (1),
-        .N_BITS_TID    (1),
-        .N_BITS_TDEST  (1),
-        .HAS_TSTRB     (1'b0),
-        .HAS_TKEEP     (1'b0),
-        .HAS_TID       (1'b0),
-        .HAS_TDEST     (1'b0),
-        .HAS_TUSER     (1'b0)
+  axi4_stream_if #(
+      .TDATA_WIDTH   (BYTES * 8),
+      .HAS_TSTRB     (1'b0),
+      .HAS_TKEEP     (1'b0),
+      .HAS_TID       (1'b0),
+      .HAS_TDEST     (1'b0),
+      .HAS_TUSER     (1'b0)
     ) axis_if (
-        .i_clk  (tb_clk),
-        .i_rstn (tb_rstn)
+      .aclk    (tb_clk),
+      .aresetn (tb_rstn)
     );
 
     bram_if #(
