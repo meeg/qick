@@ -11,7 +11,8 @@
 //     2. All channels: 0 to NT-1 for each address
 //
 //   Total words output = 2**N * NT
-//   tlast is asserted on the very last word (last channel of last address)
+//   tlast is packed into the FIFO along with the data to guarantee
+//   perfect synchronization and immunity to FIFO propagation latencies.
 //
 // FSM States:
 //   INIT_ST        → Wait for start_reg
@@ -33,7 +34,7 @@
 //
 // Parameters:
 //   NT         : number of tables/channels (must be power of 2)
-//   N          : address width per table (depth = 2**N per table)
+//   N          : address width per table (depth = 2**N)
 //   B          : AXI data width in bits (output per channel)
 //   BRAM_WIDTH : total BRAM read width (= NT * B)
 //
@@ -47,24 +48,24 @@ module bram_to_axis_nt #(
     parameter int B  = 16           // Data width per channel (AXI output width)
 ) (
     // Reset and clock
-    input  logic             rstn,
-    input  logic             clk,
+    input  logic              rstn,
+    input  logic              clk,
 
     // BRAM Interface (read-only, wide input: NT*B bits)
-    output logic             mem_en,
-    output logic             mem_we,
-    output logic [N-1:0]     mem_addr,
+    output logic              mem_en,
+    output logic              mem_we,
+    output logic [N-1:0]      mem_addr,
     input  logic [NT*B-1:0]  mem_dout,
     output logic [NT*B-1:0]  mem_din,      // Not used, tied to 0
 
     // AXI4-Stream Master Interface (output)
-    input  logic             m_axis_tready,
-    output logic [B-1:0]     m_axis_tdata,
-    output logic             m_axis_tvalid,
-    output logic             m_axis_tlast,
+    input  logic              m_axis_tready,
+    output logic [B-1:0]      m_axis_tdata,
+    output logic              m_axis_tvalid,
+    output logic              m_axis_tlast,
 
     // Control register (only start_reg, no addr_reg or len_reg)
-    input  logic             start_reg
+    input  logic              start_reg
 );
 
     // ---------------------------------------------------------------------
@@ -98,32 +99,32 @@ module bram_to_axis_nt #(
     logic stream_en;                    // Enable AXI streaming
 
     // Counters
-    logic [N-1:0]       addr_cnt;       // Address counter (0 to DEPTH-1)
-    logic [NT_LOG2-1:0] sel_cnt;        // Channel selector (0 to NT-1)
-    logic [NT_LOG2-1:0] rd_cnt;         // Read counter for dlast generation
+    logic [N-1:0]        addr_cnt;       // Address counter (0 to DEPTH-1)
+    logic [NT_LOG2-1:0]  sel_cnt;        // Channel selector (0 to NT-1)
 
     // Registered memory output (pipeline stage)
-    logic [NT*B-1:0]    mem_dout_r;
+    logic [NT*B-1:0]     mem_dout_r;
 
-    // FIFO signals
-    logic               fifo_wr_en;
-    logic               fifo_rd_en;
-    logic [B-1:0]       fifo_din;
-    logic [B-1:0]       fifo_dout;
-    logic               fifo_full;
-    logic               fifo_empty;
+    // FIFO signals (Widened by 1 bit to accommodate tlast)
+    logic                fifo_wr_en;
+    logic                fifo_rd_en;
+    logic [B:0]          fifo_din;       // Bit [B] = tlast, Bits [B-1:0] = data
+    logic [B:0]          fifo_dout;      // Bit [B] = tlast, Bits [B-1:0] = data
+    logic                fifo_full;
+    logic                fifo_empty;
+
+    // Multiplexer intermediate data and tlast tag
+    logic [B-1:0]        mux_data;
+    logic                fifo_tlast_bit;
 
     // AXI handshake
     logic axis_handshake;
 
-    // dlast internal
-    logic dlast_i;
-
     // ---------------------------------------------------------------------
-    // FIFO Instantiation
+    // FIFO Instantiation (Expanded Width: B + 1)
     // ---------------------------------------------------------------------
     fifo_sync #(
-        .B (B),
+        .B (B + 1),                     // Data width + 1 bit for tlast
         .N (16),                        // FIFO depth
         .USE_ADV_FEATURES ("1707"),
         .ENABLE_COUNTERS (1)
@@ -142,7 +143,7 @@ module bram_to_axis_nt #(
     // Combinational Assignments
     // ---------------------------------------------------------------------
 
-    // FIFO write: from BRAM when in write state and FIFO not full
+    // FIFO write: from BRAM when in write states and FIFO not full
     assign fifo_wr_en = write_state && !fifo_full;
 
     // FIFO read: AXI handshake
@@ -155,23 +156,26 @@ module bram_to_axis_nt #(
     assign mem_addr = addr_cnt;
     assign mem_din = '0;                // Not used in read mode
 
-    // Multiplexer for FIFO input (select channel based on sel_cnt)
+    // Multiplexer for slicing current channel data to mux_data variable
     always_comb begin
-        fifo_din = '0;
+        mux_data = '0;
         for (int i = 0; i < NT; i++) begin
             if (sel_cnt == i) begin
-                fifo_din = mem_dout_r[(i+1)*B-1 -: B];
+                mux_data = mem_dout_r[(i+1)*B-1 -: B];
             end
         end
     end
 
-    // dlast generation: asserted when reading the last channel
-    assign dlast_i = (rd_cnt == NT-1) && fifo_state;
+    // Identify the very last word of the entire block transfer
+    assign fifo_tlast_bit = (current_state == WRITE_LAST_ST) && (sel_cnt == NT-1);
 
-    // AXI4-Stream output
-    assign m_axis_tdata = fifo_dout;
+    // Pack both signals together into the FIFO input bus
+    assign fifo_din = {fifo_tlast_bit, mux_data};
+
+    // AXI4-Stream outputs (Unpacked directly from the FIFO output)
+    assign m_axis_tdata  = fifo_dout[B-1:0];
+    assign m_axis_tlast  = fifo_dout[B];
     assign m_axis_tvalid = stream_en && !fifo_empty;
-    assign m_axis_tlast = dlast_i;
 
     // ---------------------------------------------------------------------
     // Sequential Logic
@@ -181,7 +185,6 @@ module bram_to_axis_nt #(
             current_state <= INIT_ST;
             addr_cnt      <= '0;
             sel_cnt       <= '0;
-            rd_cnt        <= '0;
             mem_dout_r    <= '0;
         end else begin
             current_state <= next_state;
@@ -197,16 +200,9 @@ module bram_to_axis_nt #(
                 mem_dout_r <= mem_dout;
                 addr_cnt   <= addr_cnt + 1;
             end
-            // WRITE state: increment channel selector
+            // WRITE states: increment channel selector
             else if (write_state && !fifo_full) begin
                 sel_cnt <= sel_cnt + 1;
-            end
-
-            // Read counter for dlast generation
-            if (init_state) begin
-                rd_cnt <= '0;
-            end else if (axis_handshake && stream_en) begin
-                rd_cnt <= rd_cnt + 1;
             end
         end
     end
@@ -266,7 +262,7 @@ module bram_to_axis_nt #(
     end
 
     // ---------------------------------------------------------------------
-    // Output Logic
+    // Output Control Signal Logic
     // ---------------------------------------------------------------------
     always_comb begin
         init_state  = 1'b0;

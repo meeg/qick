@@ -1,7 +1,11 @@
 // ============================================================================
 // File: bram_to_axis.sv (formerly data_reader.sv)
 // Description: Reads sequential data from BRAM and outputs AXI4-Stream.
+//              tlast is packed into the FIFO along with the data to guarantee
+//              perfect synchronization and immunity to FIFO propagation latencies.
 // ============================================================================
+
+`timescale 1ns/1ps
 
 module bram_to_axis #(
   parameter int BRAM_ADDR_WIDTH = 8,           // Address width (BRAM_ADDR_WIDTH)
@@ -38,7 +42,7 @@ module bram_to_axis #(
     REGS_ST       = 3'd1,
     READ_BRAM_ST  = 3'd2,
     WRITE_FIFO_ST = 3'd3,
-    STREAM_ST     = 3'd4,      // renamed from FIFO_ST
+    STREAM_ST     = 3'd4,      
     END_ST        = 3'd5
   } state_t;
 
@@ -52,30 +56,32 @@ module bram_to_axis #(
   logic read_state;
   logic write_state;
   logic stream_state;
-  logic stream_en;                // renamed from read_en
+  logic stream_en;                
 
   // Counters
   logic [BRAM_ADDR_WIDTH:0]   wr_cnt;             // words written to FIFO
-  logic [BRAM_ADDR_WIDTH:0]   rd_cnt;             // words remaining to read (down counter)
   logic [BRAM_ADDR_WIDTH-1:0] bram_addr;
   logic [BRAM_ADDR_WIDTH:0]   len_r;
 
-  // FIFO signals
+  // FIFO signals (Widened by 1 bit to accommodate tlast)
   logic                       fifo_wr_en;
   logic                       fifo_rd_en;
-  logic [BRAM_DATA_WIDTH-1:0] fifo_din;
-  logic [BRAM_DATA_WIDTH-1:0] fifo_dout;
+  logic [BRAM_DATA_WIDTH:0]   fifo_din;           // Bit [BRAM_DATA_WIDTH] = tlast
+  logic [BRAM_DATA_WIDTH:0]   fifo_dout;          // Bit [BRAM_DATA_WIDTH] = tlast
   logic                       fifo_full;
   logic                       fifo_empty;
+
+  // Tag helper
+  logic                       fifo_tlast_bit;
 
   // AXI handshake
   logic axis_handshake;
 
   // ---------------------------------------------------------------------
-  // FIFO Instantiation (same as before)
+  // FIFO Instantiation (Expanded Width: BRAM_DATA_WIDTH + 1)
   // ---------------------------------------------------------------------
   fifo_sync #(
-    .B (BRAM_DATA_WIDTH),
+    .B (BRAM_DATA_WIDTH + 1),                     // Data width + 1 bit for tlast
     .N (16),
     .USE_ADV_FEATURES ("1707"),
     .ENABLE_COUNTERS (1)
@@ -96,7 +102,12 @@ module bram_to_axis #(
 
   // FIFO write: from BRAM when in write state and FIFO not full
   assign fifo_wr_en  = write_state && !fifo_full;
-  assign fifo_din    = mem_dout;
+  
+  // Identify if the current word being written is the last one of the requested length
+  assign fifo_tlast_bit = (current_state == WRITE_FIFO_ST) && (wr_cnt == len_r);
+  
+  // Pack tlast and data together into the FIFO input
+  assign fifo_din    = {fifo_tlast_bit, mem_dout};
 
   // FIFO read: AXI handshake (tvalid & tready)
   assign axis_handshake = m_axis_tvalid && m_axis_tready;
@@ -108,17 +119,10 @@ module bram_to_axis #(
   assign mem_addr = bram_addr;
   assign mem_din  = '0;  // not used in read mode
 
-  // AXI4-Stream output
-  assign m_axis_tdata  = fifo_dout;
+  // AXI4-Stream output (Unpacked directly from the FIFO output)
+  assign m_axis_tdata  = fifo_dout[BRAM_DATA_WIDTH-1:0];
+  assign m_axis_tlast  = fifo_dout[BRAM_DATA_WIDTH];
   assign m_axis_tvalid = stream_en && !fifo_empty;
-  assign m_axis_tlast  = (rd_cnt == 1);  // last when rd_cnt will become 0 after this read
-
-  // Optional AXI signals - set to defaults
-  //assign m_axis_tkeep  = '1;   // all bytes valid
-  //assign m_axis_tstrb  = '1;   // all strobes active
-  //assign m_axis_tid    = '0;
-  //assign m_axis_tdest  = '0;
-  //assign m_axis_tuser  = '0;
 
   // ---------------------------------------------------------------------
   // Sequential Logic
@@ -127,7 +131,6 @@ module bram_to_axis #(
     if (!rstn) begin
       current_state <= INIT_ST;
       wr_cnt        <= '0;
-      rd_cnt        <= '0;
       bram_addr     <= '0;
       len_r         <= '0;
     end else begin
@@ -145,17 +148,11 @@ module bram_to_axis #(
         wr_cnt    <= '0;
         bram_addr <= addr_reg;
         len_r     <= len_reg;
-        rd_cnt    <= len_reg;
       end
 
       // READ state: count writes to FIFO
       if (read_state) begin
         wr_cnt <= wr_cnt + 1;
-      end
-
-      // AXI handshake: decrement remaining count
-      if (axis_handshake && (rd_cnt > 0)) begin
-        rd_cnt <= rd_cnt - 1;
       end
 
       // WRITE state: advance BRAM address
@@ -198,8 +195,8 @@ module bram_to_axis #(
       end
 
       STREAM_ST: begin
-        // Stay until all data has been acknowledged
-        if (axis_handshake && (rd_cnt == 1))  // last beat just completed
+        // Stay until the last beat (verified via m_axis_tlast) is successfully cleared
+        if (axis_handshake && m_axis_tlast)
           next_state = END_ST;
         else
           next_state = STREAM_ST;
