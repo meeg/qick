@@ -61,8 +61,17 @@ interface bram_if #(
         output dout
     );
 
+     // ============================================================
+  // SIMULATION-ONLY CODE
+  // ============================================================
+  `ifndef SYNTHESIS
+    `ifndef VERILATOR
+
+      // ------------------------------------------------------------
+      // CLOCKING BLOCKS
+      // ------------------------------------------------------------
     // Testbench uses the clocking block.
-    modport tb (
+    modport tb_master (
         clocking tb_cb
     );
 
@@ -111,5 +120,9 @@ interface bram_if #(
         @(tb_cb);               // dout stable (one cycle after addr)
         r_data = tb_cb.dout;
     endtask
+
+
+    `endif // VERILATOR
+  `endif // SYNTHESIS
 
 endinterface : bram_if
