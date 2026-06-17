@@ -103,14 +103,14 @@ module axis_to_bram_trig_unit_test;
         .rstn          (tb_rstn),
         .clk           (tb_clk),
         .trigger       (tb_trigger),
-        .s_axis_tready (axis_if.slave.tready),
-        .s_axis_tdata  (axis_if.slave.tdata),
-        .s_axis_tvalid (axis_if.slave.tvalid),
-        .s_axis_tlast  (axis_if.slave.tlast),
-        .mem_en        (bram_if_i.master.en),
-        .mem_we        (bram_if_i.master.we),
-        .mem_addr      (bram_if_i.master.addr),
-        .mem_di        (bram_if_i.master.din),
+        .s_axis_tready (axis_if.tready),
+        .s_axis_tdata  (axis_if.tdata),
+        .s_axis_tvalid (axis_if.tvalid),
+        .s_axis_tlast  (axis_if.tlast),
+        .mem_en        (bram_if_i.en),
+        .mem_we        (bram_if_i.we),
+        .mem_addr      (bram_if_i.addr),
+        .mem_di        (bram_if_i.din),
         .capture_reg   (tb_capture_reg)
     );
 
