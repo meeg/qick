@@ -205,24 +205,24 @@ interface axi4_lite_if#(
     output logic [DATA_WIDTH-1:0] data
   );
     begin
-      @(posedge aclk);
-      araddr  <= addr;
-      arvalid <= 1'b1;
-      rready  <= 1'b1;
+      @(m_cb);
+      m_cb.araddr  <= addr;
+      m_cb.arvalid <= 1'b1;
+      m_cb.rready  <= 1'b1;
 
       do begin
-        @(posedge aclk);
-      end while (!arready);
+        @(m_cb);
+      end while (!m_cb.arready);
 
-      arvalid <= 1'b0;
+      m_cb.arvalid <= 1'b0;
 
-      while (!rvalid) begin
-        @(posedge aclk);
+      while (!m_cb.rvalid) begin
+        @(m_cb);
       end
 
-      data = rdata;
-      rready  <= 1'b0;
-      @(posedge aclk);
+      data = m_cb.rdata;
+      m_cb.rready  <= 1'b0;
+      @(m_cb);
     end
   endtask
 
@@ -237,27 +237,27 @@ interface axi4_lite_if#(
     input logic [DATA_WIDTH-1:0] data
   );
     begin
-      @(posedge aclk);
-      awaddr  <= addr;
-      awvalid <= 1'b1;
-      wdata   <= data;
-      wvalid  <= 1'b1;
-      wstrb   <= '1;
-      bready  <= 1'b1;
+      @(m_cb);
+      m_cb.awaddr  <= addr;
+      m_cb.awvalid <= 1'b1;
+      m_cb.wdata   <= data;
+      m_cb.wvalid  <= 1'b1;
+      m_cb.wstrb   <= '1;
+      m_cb.bready  <= 1'b1;
 
       do begin
-        @(posedge aclk);
-      end while (!(awready && wready));
+        @(m_cb);
+      end while (!(m_cb.awready && m_cb.wready));
 
-      awvalid <= 1'b0;
-      wvalid  <= 1'b0;
+      m_cb.awvalid <= 1'b0;
+      m_cb.wvalid  <= 1'b0;
 
-      while (!bvalid) begin
-        @(posedge aclk);
+      while (!m_cb.bvalid) begin
+        @(m_cb);
       end
 
-      bready  <= 1'b0;
-      @(posedge aclk);
+      m_cb.bready  <= 1'b0;
+      @(m_cb);
     end
   endtask
 
@@ -320,56 +320,56 @@ interface axi4_lite_if#(
     input  logic [DATA_WIDTH-1:0] data,
     input  int                    timeout = 100
   );
-    @(posedge aclk);
-    awaddr  <= addr;
-    awvalid <= 1'b1;
-    awprot  <= 3'b000;
-    wdata   <= data;
-    wstrb   <= {(DATA_WIDTH/8){1'b1}};
-    wvalid  <= 1'b1;
-    bready  <= 1'b1;
+    @(m_cb);
+    m_cb.awaddr  <= addr;
+    m_cb.awvalid <= 1'b1;
+    m_cb.awprot  <= 3'b000;
+    m_cb.wdata   <= data;
+    m_cb.wstrb   <= {(DATA_WIDTH/8){1'b1}};
+    m_cb.wvalid  <= 1'b1;
+    m_cb.bready  <= 1'b1;
 
     fork
       // Address Channel (AW)
       begin : aw_handshake
         int c = 0;
-        while (!awready && c < timeout) begin
-          @(posedge aclk);
+        while (!m_cb.awready && c < timeout) begin
+          @(m_cb);
           c++;
         end
         if (c >= timeout) $error("[%0t] AXI Write: Timeout waiting for awready", $time);
-        awvalid <= 1'b0;
+        m_cb.awvalid <= 1'b0;
       end
 
       // Data Channel (W)
       begin : w_handshake
         int c = 0;
-        while (!wready && c < timeout) begin
-          @(posedge aclk);
+        while (!m_cb.wready && c < timeout) begin
+          @(m_cb);
           c++;
         end
         if (c >= timeout) $error("[%0t] AXI Write: Timeout waiting for wready", $time);
-        wvalid <= 1'b0;
+        m_cb.wvalid <= 1'b0;
       end
     join
 
     // Response Channel (B)
     begin
       int c = 0;
-      while (!bvalid && c < timeout) begin
-        @(posedge aclk);
+      while (!m_cb.bvalid && c < timeout) begin
+        @(m_cb);
         c++;
       end
 
       if (c >= timeout) begin
         $error("[%0t] AXI Write: Timeout waiting for bvalid", $time);
-      end else if (bresp !== 2'b00) begin
-        $warning("[%0t] AXI Write: Received error response: 'b%b", $time, bresp);
+      end else if (m_cb.bresp !== 2'b00) begin
+        $warning("[%0t] AXI Write: Received error response: 'b%b", $time, m_cb.bresp);
       end
     end
 
-    bready <= 1'b0;
-    @(posedge aclk);
+    m_cb.bready <= 1'b0;
+    @(m_cb);
   endtask
 
   /**
@@ -384,39 +384,39 @@ interface axi4_lite_if#(
     output logic [DATA_WIDTH-1:0]  data,
     input  int                     timeout = 100
   );
-    @(posedge aclk);
-    araddr  <= addr;
-    arvalid <= 1'b1;
-    arprot  <= 3'b000;
-    rready  <= 1'b1;
+    @(m_cb);
+    m_cb.araddr  <= addr;
+    m_cb.arvalid <= 1'b1;
+    m_cb.arprot  <= 3'b000;
+    m_cb.rready  <= 1'b1;
 
     begin
       int c = 0;
-      while (!arready && c < timeout) begin
-        @(posedge aclk);
+      while (!m_cb.arready && c < timeout) begin
+        @(m_cb);
         c++;
       end
       if (c >= timeout) $error("[%0t] AXI Read: Timeout waiting for arready", $time);
-      arvalid <= 1'b0;
+      m_cb.arvalid <= 1'b0;
     end
 
     begin
       int c = 0;
-      while (!rvalid && c < timeout) begin
-        @(posedge aclk);
+      while (!m_cb.rvalid && c < timeout) begin
+        @(m_cb);
         c++;
       end
 
       if (c >= timeout) begin
         $error("[%0t] AXI Read: Timeout waiting for rvalid", $time);
-      end else if (rresp !== 2'b00) begin
-        $warning("[%0t] AXI Read: Received error response: 'b%b", $time, rresp);
+      end else if (m_cb.rresp !== 2'b00) begin
+        $warning("[%0t] AXI Read: Received error response: 'b%b", $time, m_cb.rresp);
       end
     end
 
-    data = rdata;
-    rready <= 1'b0;
-    @(posedge aclk);
+    data = m_cb.rdata;
+    m_cb.rready <= 1'b0;
+    @(m_cb);
   endtask
 
   /**
@@ -462,22 +462,22 @@ interface axi4_lite_if#(
    * @details Halts execution until the global `aresetn` signal is deasserted.
    */
   task automatic reset();
-    awaddr   <= '0;
-    awvalid  <= 1'b0;
-    awprot   <= 3'b000;
-    wdata    = '0;
-    wstrb    <= '0;
-    wvalid   <= 1'b0;
-    bready   <= 1'b0;
-    araddr   <= '0;
-    arvalid  <= 1'b0;
-    arprot   <= 3'b000;
-    rready   <= 1'b0;
+    m_cb.awaddr   <= '0;
+    m_cb.awvalid  <= 1'b0;
+    m_cb.awprot   <= 3'b000;
+    m_cb.wdata    <= '0;
+    m_cb.wstrb    <= '0;
+    m_cb.wvalid   <= 1'b0;
+    m_cb.bready   <= 1'b0;
+    m_cb.araddr   <= '0;
+    m_cb.arvalid  <= 1'b0;
+    m_cb.arprot   <= 3'b000;
+    m_cb.rready   <= 1'b0;
 
     if (aresetn === 1'b0) begin
       wait(aresetn === 1'b1);
     end
-    @(posedge aclk);
+    @(m_cb);
   endtask
 
   /**
@@ -487,8 +487,8 @@ interface axi4_lite_if#(
    */
   task automatic wait_idle(int timeout = 100);
     int cycles_wait = 0;
-    while ((awvalid || wvalid || arvalid || bready || rready) && cycles_wait < timeout) begin
-      @(posedge aclk);
+    while ((awvalid || wvalid || arvalid || bvalid || rvalid) && cycles_wait < timeout) begin
+      @(m_cb);
       cycles_wait++;
     end
     if (cycles_wait >= timeout) begin
