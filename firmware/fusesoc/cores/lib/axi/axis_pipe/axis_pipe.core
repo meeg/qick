@@ -7,6 +7,8 @@ filesets:
     files:
       - hdl/axis_pipe.sv
     file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
 
   tb:
     files: &tb_files
@@ -14,6 +16,7 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
+      - qick:interfaces:axi4_stream_if
       - qick:common:sim_base
 
   lint_files:
@@ -51,6 +54,6 @@ targets:
     toplevel: testrunner
     tools:
       xsim:
-        xelab_options: [-debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
 

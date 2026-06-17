@@ -14,22 +14,17 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 module axis_pipe #(
-  parameter int W = 32
+  parameter int DWIDTH = 32
 )(
   input  logic         clk,
   input  logic         rstn,
 
-  input  logic [W-1:0] in_data,
-  input  logic         in_valid,
-  output logic         in_ready,
-
-  output logic [W-1:0] out_data,
-  output logic         out_valid,
-  input  logic         out_ready
+  axi4_stream_if.slave s_axis,
+  axi4_stream_if.master m_axis
 );
 
   // Internal storage
-  logic [W-1:0] data_r;
+  logic [DWIDTH-1:0] data_r;
   logic         full;
 
   // ===============================
@@ -37,7 +32,7 @@ module axis_pipe #(
   // ===============================
   // Can accept if buffer empty
   // or downstream will consume this cycle
-  assign in_ready = !full || (out_ready);
+  assign s_axis.tready = !full || (m_axis.tready && m_axis.tvalid);
 
   // ===============================
   // Sequential storage
@@ -46,10 +41,10 @@ module axis_pipe #(
     if (!rstn) begin
       full <= 1'b0;
     end else begin
-      case ({in_valid && in_ready, out_ready && full})
+      case ({s_axis.tvalid && s_axis.tready, m_axis.tready && m_axis.tvalid})
         2'b10: begin
           // push only
-          data_r <= in_data;
+          data_r <= s_axis.tdata;
           full   <= 1'b1;
         end
         2'b01: begin
@@ -58,7 +53,7 @@ module axis_pipe #(
         end
         2'b11: begin
           // push + pop (replace)
-          data_r <= in_data;
+          data_r <= s_axis.tdata;
           full   <= 1'b1;
         end
         default: ; // idle
@@ -66,8 +61,8 @@ module axis_pipe #(
     end
   end
 
-  assign out_data  = data_r;
-  assign out_valid = full;
+  assign m_axis.tdata  = data_r;
+  assign m_axis.tvalid = full;
 
 endmodule
 

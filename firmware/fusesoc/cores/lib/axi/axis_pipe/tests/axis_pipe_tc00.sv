@@ -14,14 +14,6 @@ module axis_pipe_unit_test;
   logic              tb_clk     = 1'b0;
   logic              tb_rstn    = 1'b0;
 
-  logic [DWIDTH-1:0] tb_i_data  = '0;
-  logic              tb_i_valid = 1'b0;
-  logic              tb_i_ready = 1'b0;
-
-  logic [DWIDTH-1:0] tb_o_data  = '0;
-  logic              tb_o_valid = 1'b0;
-  logic              tb_o_ready = 1'b0;
-
   initial begin
     $dumpfile("axis_pipe.vcd");
     $dumpvars();
@@ -34,16 +26,32 @@ module axis_pipe_unit_test;
     .o_clk      ( tb_clk            )
   );
 
+   axi4_stream_if #(
+        .TDATA_WIDTH (DWIDTH),
+        .HAS_TSTRB   (1'b1),
+        .HAS_TKEEP   (1'b0),
+        .HAS_TID     (1'b0),
+        .HAS_TDEST   (1'b0),
+        .HAS_TUSER   (1'b0)
+    ) s_axis_if (
+        .aclk    (tb_clk),
+        .aresetn (tb_rstn)
+    );
+
+   axi4_stream_if #(
+        .TDATA_WIDTH (DWIDTH),
+        .HAS_TSTRB   (1'b1),
+        .HAS_TKEEP   (1'b0),
+        .HAS_TID     (1'b0),
+        .HAS_TDEST   (1'b0),
+        .HAS_TUSER   (1'b0)
+    ) m_axis_if (
+        .aclk    (tb_clk),
+        .aresetn (tb_rstn)
+    );
 
   default clocking cb @(posedge tb_clk);
     default input #1step output #2;
-    output tb_rstn    ;
-    output tb_i_data  ;
-    output tb_i_valid ;
-    input  tb_i_ready ;
-    input  tb_o_data  ;
-    input  tb_o_valid ;
-    output tb_o_ready ;
   endclocking
 
   //===================================
@@ -54,16 +62,10 @@ module axis_pipe_unit_test;
   axis_pipe#(
     .DWIDTH (DWIDTH)
   )u_axis_pipe(
-    .i_clk      ( tb_clk     ),
-    .i_rstn     ( tb_rstn    ),
-
-    .i_data     ( tb_i_data  ),
-    .i_valid    ( tb_i_valid ),
-    .i_ready    ( tb_i_ready ),
-
-    .o_data     ( tb_o_data  ),
-    .o_valid    ( tb_o_valid ),
-    .o_ready    ( tb_o_ready )
+    .clk      ( tb_clk     ),
+    .rstn     ( tb_rstn    ),
+    .s_axis   ( s_axis_if  ),
+    .m_axis   ( m_axis_if  )
   );
 
   //===================================
@@ -79,15 +81,16 @@ module axis_pipe_unit_test;
   //===================================
   task setup();
     svunit_ut.setup();
-    cb.tb_i_data  <= '0;
-    cb.tb_i_valid <= 1'b0;
-    cb.tb_o_ready <= 1'b0;
+    s_axis_if.m_cb.tdata  <= '0;
+    s_axis_if.m_cb.tvalid <= 1'b0;
+    m_axis_if.s_cb.tready <= 1'b1;
 
+    tb_rstn <= 1'b0;
     @(cb);
-    cb.tb_rstn          <= 1'b0;
-    repeat(2) @(cb);
-    cb.tb_rstn          <= 1'b1;
-    repeat(5) @(cb);
+    tb_rstn          <= 1'b1;
+    
+    s_axis_if.m_reset();
+    m_axis_if.s_reset();
 
   endtask
 
