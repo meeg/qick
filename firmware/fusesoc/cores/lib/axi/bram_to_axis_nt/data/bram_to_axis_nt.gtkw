@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Sat Jun 13 16:44:56 2026
+[*] Wed Jun 17 18:40:05 2026
 [*]
 [dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_axi_bram_to_axis_nt_1.0.0/test-xsim/bram_to_axis_nt.vcd"
-[dumpfile_mtime] "Sat Jun 13 16:39:54 2026"
-[dumpfile_size] 602027
+[dumpfile_mtime] "Wed Jun 17 18:33:58 2026"
+[dumpfile_size] 607859
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/bram_to_axis_nt/data/bram_to_axis_nt.gtkw"
 [timestart] 0
-[size] 1920 1140
+[size] 1920 1045
 [pos] -1 -1
-*-19.983030 1070000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-20.120340 3110000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.bram_to_axis_nt_ut.
 [sst_width] 206
-[signals_width] 198
+[signals_width] 333
 [sst_expanded] 1
 [sst_vpaned_height] 400
 @28
@@ -24,6 +24,19 @@ testrunner.__ts.bram_to_axis_nt_ut.tb_start_reg
 testrunner.__ts.bram_to_axis_nt_ut.tb_clk
 [color] 3
 testrunner.__ts.bram_to_axis_nt_ut.tb_rstn
+@2028
+[color] 2
+^1 /home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/bram_to_axis_nt/data/states.txt
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.current_state[2:0]
+@24
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.sel_cnt[1:0]
+@22
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.addr_cnt[3:0]
+@28
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.init_state
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.read_state
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.write_state
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.fifo_state
 @800200
 -m_axis
 @420
@@ -49,7 +62,7 @@ testrunner.__ts.bram_to_axis_nt_ut.tb_mem_we
 testrunner.__ts.bram_to_axis_nt_ut.tb_mem_addr[3:0]
 @22
 testrunner.__ts.bram_to_axis_nt_ut.tb_mem_din[63:0]
-@c00023
+@c00022
 [color] 3
 testrunner.__ts.bram_to_axis_nt_ut.tb_mem_dout[63:0]
 @28
@@ -181,9 +194,21 @@ testrunner.__ts.bram_to_axis_nt_ut.tb_mem_dout[63:0]
 (62)testrunner.__ts.bram_to_axis_nt_ut.tb_mem_dout[63:0]
 [color] 3
 (63)testrunner.__ts.bram_to_axis_nt_ut.tb_mem_dout[63:0]
-@1401201
+@1401200
 -group_end
 @1000200
 -mem_if
+@28
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.stream_en
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.axis_handshake
+@800200
+-fifo_i
+@28
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.fifo_empty
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.fifo_full
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.fifo_rd_en
+testrunner.__ts.bram_to_axis_nt_ut.u_bram_to_axis_nt.fifo_wr_en
+@1000200
+-fifo_i
 [pattern_trace] 1
 [pattern_trace] 0
