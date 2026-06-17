@@ -191,8 +191,9 @@ interface axi4_stream_if #(
         m_cb.tdata  <= data;
         m_cb.tlast  <= last;
         m_cb.tvalid <= 1'b1;
+        m_cb.tstrb  <= '1; 
 
-        // Esperar al clock y verificar handshake
+        // Wait for clock and verify handshake
         do begin
           @(m_cb);
           if (++cnt > timeout)
@@ -210,26 +211,35 @@ interface axi4_stream_if #(
        * @param last    Output reference to capture the state of tlast.
        * @param timeout Cycle threshold limit before throwing a simulation fatal error.
        */
-      task automatic rx(
-        output logic [TDATA_WIDTH-1:0] data,
-        output logic last,
-        input int timeout = 1000
-      );
-        int cnt = 0;
-        s_cb.tready <= 1'b1;
+    task automatic rx(
+    output logic [TDATA_WIDTH-1:0] data,
+    output logic last,
+    input int timeout = 1000
+  );
+    int cnt = 0;
+    
+    // DEBUG 1: Advice the input to the task
+    //$display("[%0t] [RX_DEBUG] Init wait RX. Rising tready...", $time);
+    s_cb.tready <= 1'b1;
 
-        do begin
-          @(s_cb);
-          if (++cnt > timeout)
-            $fatal(1, "[AXIS_FATAL] RX timeout");
-        end while (!s_cb.tvalid);
+    do begin
+      @(s_cb);
+      if (++cnt > timeout) begin
+        // DEBUG 2: Detailed info before dead because of timeout
+        $display("[%0t] [RX_DEBUG] ERROR: Timeout reached after %0d cycles.", $time, cnt);
+        $fatal(1, "[AXIS_FATAL] RX timeout");
+      end
+    end while (!s_cb.tvalid);
 
-        data = s_cb.tdata;
-        last = s_cb.tlast;
+    data = s_cb.tdata;
+    last = s_cb.tlast;
 
-        // Bajar tready inmediatamente, sin esperar otro clock
-        s_cb.tready <= 1'b0;
-      endtask
+    // DEBUG 3: Success. We print the data in hexadecimal and binary
+    //$display("[%0t] [RX_DEBUG] Successful handshake. Received data: tdata=0x%h, tlast=%b (wait cycles=%0d)", $time, data, last, cnt);
+
+    // Low tready immediately, without wait for another clock
+    s_cb.tready <= 1'b0;
+  endtask
 
       /**
        * @task wait_for_beat
