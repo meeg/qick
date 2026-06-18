@@ -42,7 +42,7 @@ module bram_to_axis #(
     REGS_ST       = 3'd1,
     READ_BRAM_ST  = 3'd2,
     WRITE_FIFO_ST = 3'd3,
-    STREAM_ST     = 3'd4,      
+    STREAM_ST     = 3'd4,
     END_ST        = 3'd5
   } state_t;
 
@@ -56,7 +56,7 @@ module bram_to_axis #(
   logic read_state;
   logic write_state;
   logic stream_state;
-  logic stream_en;                
+  logic stream_en;
 
   // Counters
   logic [BRAM_ADDR_WIDTH:0]   wr_cnt;             // words written to FIFO
@@ -102,10 +102,10 @@ module bram_to_axis #(
 
   // FIFO write: from BRAM when in write state and FIFO not full
   assign fifo_wr_en  = write_state && !fifo_full;
-  
+
   // Identify if the current word being written is the last one of the requested length
   assign fifo_tlast_bit = (current_state == WRITE_FIFO_ST) && (wr_cnt == len_r);
-  
+
   // Pack tlast and data together into the FIFO input
   assign fifo_din    = {fifo_tlast_bit, mem_dout};
 
