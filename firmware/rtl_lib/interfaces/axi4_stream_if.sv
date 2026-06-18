@@ -165,6 +165,10 @@ interface axi4_stream_if #(
        */
       task automatic s_reset();
         s_cb.tready <= 1'b0;
+        if (aresetn !== 1'b0) begin
+          wait(aresetn === 1'b0);
+        end
+        s_cb.tready <= 1'b0;
         wait(aresetn === 1'b1);
         repeat (3) @(s_cb);
         s_cb.tready <= 1'b1;
@@ -191,7 +195,7 @@ interface axi4_stream_if #(
         m_cb.tdata  <= data;
         m_cb.tlast  <= last;
         m_cb.tvalid <= 1'b1;
-        m_cb.tstrb  <= '1; 
+        m_cb.tstrb  <= '1;
 
         // Wait for clock and verify handshake
         do begin
@@ -211,150 +215,150 @@ interface axi4_stream_if #(
        * @param last    Output reference to capture the state of tlast.
        * @param timeout Cycle threshold limit before throwing a simulation fatal error.
        */
-    task automatic rx(
-    output logic [TDATA_WIDTH-1:0] data,
-    output logic last,
-    input int timeout = 1000
-  );
-    int cnt = 0;
-    
-    // DEBUG 1: Advice the input to the task
-    //$display("[%0t] [RX_DEBUG] Init wait RX. Rising tready...", $time);
-    s_cb.tready <= 1'b1;
-
-    do begin
-      @(s_cb);
-      if (++cnt > timeout) begin
-        // DEBUG 2: Detailed info before dead because of timeout
-        $display("[%0t] [RX_DEBUG] ERROR: Timeout reached after %0d cycles.", $time, cnt);
-        $fatal(1, "[AXIS_FATAL] RX timeout");
-      end
-    end while (!s_cb.tvalid);
-
-    data = s_cb.tdata;
-    last = s_cb.tlast;
-
-    // DEBUG 3: Success. We print the data in hexadecimal and binary
-    //$display("[%0t] [RX_DEBUG] Successful handshake. Received data: tdata=0x%h, tlast=%b (wait cycles=%0d)", $time, data, last, cnt);
-
-    // Low tready immediately, without wait for another clock
-    s_cb.tready <= 1'b0;
-  endtask
-
-      /**
-       * @task wait_for_beat
-       * @brief Blocking slave task that halts execution until a successful, synchronized valid handshake occurs.
-       */
-      task automatic wait_for_beat();
-        do @(s_cb); while (!s_cb.tvalid || !tready);
-      endtask
-
-      /**
-       * @function sample_tdata
-       * @brief Direct, asynchronous read access of the physical tdata bus.
-       * @return Logic array containing current bus sample.
-       */
-      function automatic logic [TDATA_WIDTH-1:0] sample_tdata();
-        return tdata;
-      endfunction
-
-      /**
-       * @function sample_tlast
-       * @brief Direct, asynchronous read access of the physical tlast boundary signal.
-       * @return Logic state of tlast.
-       */
-      function automatic logic sample_tlast();
-        return tlast;
-      endfunction
-
-      /**
-       * @task idle
-       * @brief Immediately deasserts both validation and termination controls to put the master in an idle state.
-       */
-      task automatic idle();
-        m_cb.tvalid <= 1'b0;
-        m_cb.tlast  <= 1'b0;
-      endtask
-
-      /**
-       * @task send_bubble
-       * @brief Simulates protocol starvation or idle conditions by dropping TVALID for specific cycles.
-       * @param cycles Number of clock cycles to preserve the pipeline bubble condition (default = 1).
-       */
-      task automatic send_bubble(input int cycles = 1);
-        m_cb.tdata  <= '0;
-        m_cb.tvalid <= 1'b0;
-        m_cb.tlast  <= 1'b0;
-        repeat (cycles) @(m_cb);
-      endtask
-
-      // ============================================================
-      // BLOCK TRANSFERS (BURSTS)
-      // ============================================================
-
-      /**
-       * @task burst_tx
-       * @brief Drives a contiguous or streamed collection array block across the master bus interface.
-       * @param data_array Unpacked dynamic array representing frame payloads.
-       * @param n_beats    Number of array elements targeted for streaming.
-       * @param timeout    Timeout boundary limit evaluated per data beat.
-       */
-      task automatic burst_tx(
-        input logic [TDATA_WIDTH-1:0] data_array[],
-        input int unsigned n_beats,
-        input int unsigned timeout = 1000
+      task automatic rx(
+      output logic [TDATA_WIDTH-1:0] data,
+      output logic last,
+      input int timeout = 1000
       );
-        int unsigned wait_cycles;
-        if (n_beats == 0) return;
+      int cnt = 0;
 
-        for (int i = 0; i < n_beats; i++) begin
-          wait_cycles = 0;
-          m_cb.tdata  <= data_array[i];
-          m_cb.tvalid <= 1'b1;
-          m_cb.tlast  <= (i == n_beats-1);
+      // DEBUG 1: Advice the input to the task
+      //$display("[%0t] [RX_DEBUG] Init wait RX. Rising tready...", $time);
+      s_cb.tready <= 1'b1;
 
-          do begin
-            @(m_cb);
-            wait_cycles++;
-            if (wait_cycles > timeout)
-              $fatal(1, "[AXIS_FATAL] Burst TX timeout at beat %0d", i);
-          end while (!m_cb.tready);
+      do begin
+        @(s_cb);
+        if (++cnt > timeout) begin
+          // DEBUG 2: Detailed info before dead because of timeout
+          $display("[%0t] [RX_DEBUG] ERROR: Timeout reached after %0d cycles.", $time, cnt);
+          $fatal(1, "[AXIS_FATAL] RX timeout");
         end
+      end while (!s_cb.tvalid);
 
-        m_cb.tvalid <= 1'b0;
-        m_cb.tlast  <= 1'b0;
-      endtask
+      data = s_cb.tdata;
+      last = s_cb.tlast;
 
-      /**
-       * @task burst_rx
-       * @brief Absorbs a complete stream array from a master device up to detecting a TLAST packet marker.
-       * @param data_array Output queue capturing incoming payload records sequentially.
-       * @param timeout    Global maximum cycle stall boundary allowed before truncation and error throwing.
-       */
-      task automatic burst_rx(
-        output logic [TDATA_WIDTH-1:0] data_array[$],
-        input int unsigned timeout = 1000
-      );
-        int unsigned wait_cycles = 0;
-        data_array.delete();
-        s_cb.tready <= 1'b1;
+      // DEBUG 3: Success. We print the data in hexadecimal and binary
+      //$display("[%0t] [RX_DEBUG] Successful handshake. Received data: tdata=0x%h, tlast=%b (wait cycles=%0d)", $time, data, last, cnt);
 
-        while (1) begin
-          @(s_cb);
+      // Low tready immediately, without wait for another clock
+      s_cb.tready <= 1'b0;
+    endtask
+
+    /**
+     * @task wait_for_beat
+     * @brief Blocking slave task that halts execution until a successful, synchronized valid handshake occurs.
+     */
+    task automatic wait_for_beat();
+      do @(s_cb); while (!s_cb.tvalid || !tready);
+    endtask
+
+    /**
+     * @function sample_tdata
+     * @brief Direct, asynchronous read access of the physical tdata bus.
+     * @return Logic array containing current bus sample.
+     */
+    function automatic logic [TDATA_WIDTH-1:0] sample_tdata();
+      return tdata;
+    endfunction
+
+    /**
+     * @function sample_tlast
+     * @brief Direct, asynchronous read access of the physical tlast boundary signal.
+     * @return Logic state of tlast.
+     */
+    function automatic logic sample_tlast();
+      return tlast;
+    endfunction
+
+    /**
+     * @task idle
+     * @brief Immediately deasserts both validation and termination controls to put the master in an idle state.
+     */
+    task automatic idle();
+      m_cb.tvalid <= 1'b0;
+      m_cb.tlast  <= 1'b0;
+    endtask
+
+    /**
+     * @task send_bubble
+     * @brief Simulates protocol starvation or idle conditions by dropping TVALID for specific cycles.
+     * @param cycles Number of clock cycles to preserve the pipeline bubble condition (default = 1).
+     */
+    task automatic send_bubble(input int cycles = 1);
+      m_cb.tdata  <= '0;
+      m_cb.tvalid <= 1'b0;
+      m_cb.tlast  <= 1'b0;
+      repeat (cycles) @(m_cb);
+    endtask
+
+    // ============================================================
+    // BLOCK TRANSFERS (BURSTS)
+    // ============================================================
+
+    /**
+     * @task burst_tx
+     * @brief Drives a contiguous or streamed collection array block across the master bus interface.
+     * @param data_array Unpacked dynamic array representing frame payloads.
+     * @param n_beats    Number of array elements targeted for streaming.
+     * @param timeout    Timeout boundary limit evaluated per data beat.
+     */
+    task automatic burst_tx(
+      input logic [TDATA_WIDTH-1:0] data_array[],
+      input int unsigned n_beats,
+      input int unsigned timeout = 1000
+    );
+      int unsigned wait_cycles;
+      if (n_beats == 0) return;
+
+      for (int i = 0; i < n_beats; i++) begin
+        wait_cycles = 0;
+        m_cb.tdata  <= data_array[i];
+        m_cb.tvalid <= 1'b1;
+        m_cb.tlast  <= (i == n_beats-1);
+
+        do begin
+          @(m_cb);
           wait_cycles++;
-
           if (wait_cycles > timeout)
-            $fatal(1, "[AXIS_FATAL] Burst RX timeout");
+            $fatal(1, "[AXIS_FATAL] Burst TX timeout at beat %0d", i);
+        end while (!m_cb.tready);
+      end
 
-          if (s_cb.tvalid) begin
-            data_array.push_back(s_cb.tdata);
-            wait_cycles = 0; // Resetear timeout tras un dato válido
-            if (s_cb.tlast) break; // Salir inmediatamente al ver tlast
-          end
+      m_cb.tvalid <= 1'b0;
+      m_cb.tlast  <= 1'b0;
+    endtask
+
+    /**
+     * @task burst_rx
+     * @brief Absorbs a complete stream array from a master device up to detecting a TLAST packet marker.
+     * @param data_array Output queue capturing incoming payload records sequentially.
+     * @param timeout    Global maximum cycle stall boundary allowed before truncation and error throwing.
+     */
+    task automatic burst_rx(
+      output logic [TDATA_WIDTH-1:0] data_array[$],
+      input int unsigned timeout = 1000
+    );
+      int unsigned wait_cycles = 0;
+      data_array.delete();
+      s_cb.tready <= 1'b1;
+
+      while (1) begin
+        @(s_cb);
+        wait_cycles++;
+
+        if (wait_cycles > timeout)
+          $fatal(1, "[AXIS_FATAL] Burst RX timeout");
+
+        if (s_cb.tvalid) begin
+          data_array.push_back(s_cb.tdata);
+          wait_cycles = 0; // Resetear timeout tras un dato válido
+          if (s_cb.tlast) break; // Salir inmediatamente al ver tlast
         end
+      end
 
-        s_cb.tready <= 1'b0; // Bajar tready sin @(s_cb) extra
-      endtask
+      s_cb.tready <= 1'b0; // Bajar tready sin @(s_cb) extra
+    endtask
 
     `endif // VERILATOR
   `endif // SYNTHESIS
