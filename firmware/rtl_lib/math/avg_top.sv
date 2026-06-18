@@ -46,6 +46,7 @@ module avg_top #(
     output logic m1_axis_tvalid,
     input logic m1_axis_tready,
     output logic [4*B-1:0] m1_axis_tdata,
+    output logic m1_axis_tlast,
 
     // Registers (renamed to snake_case for lint)
     input logic avg_start_reg,
@@ -129,50 +130,90 @@ module avg_top #(
       );
 
   // Dual port BRAM
-  bram_dp #(
-            .N (N),
-            .B (4*B)
-          ) bram_i (
-            .clka (clk),
-            .clkb (m_axis_aclk),
-            .ena  (1'b1),
-            .enb  (mem_en_int),
-            .wea  (mem_we_int),
-            .web  (1'b0),
-            .addra (mem_addra_int),
-            .addrb (mem_addrb_int),
-            .dia  (mem_di_int),
-            .dib  ({4*B{1'b0}}),
-            .doa  (),
-            .dob  (mem_do_int)
-          );
+  //bram_dp #(
+  //          .N (N),
+  //          .B (4*B)
+  //        ) bram_i (
+  //          .clka (clk),
+  //          .clkb (m_axis_aclk),
+  //          .ena  (1'b1),
+  //          .enb  (mem_en_int),
+  //          .wea  (mem_we_int),
+  //          .web  (1'b0),
+  //          .addra (mem_addra_int),
+  //          .addrb (mem_addrb_int),
+  //          .dia  (mem_di_int),
+  //          .dib  ({4*B{1'b0}}),
+  //          .doa  (),
+  //          .dob  (mem_do_int)
+  //        );
+  bram_tdp #(
+    .NB_DATA(4*B),
+    .NB_ADDR(N)
+  ) bram_i (
+    .clka  (clk),
+    .rsta  (~rstn),
+    .ena   (1'b1),
+    .wea   (mem_we_int),
+    .addra (mem_addra_int),
+    .dia   (mem_di_int),
+    .doa   ( ),
+
+    .clkb  (m_axis_aclk),
+    .rstb  (~m_axis_aresetn),
+    .enb   (mem_en_int),
+    .web   (1'b0),
+    .addrb (mem_addrb_int),
+    .dib   ({4*B{1'b0}}),
+    .dob   (mem_do_int)
+  );
 
   // Data reader
-  data_reader #(
-                .N (N),
-                .B (4*B)
-              ) data_reader_i (
-                // Reset and clock
-                .rstn    (m_axis_aresetn),
-                .clk     (m_axis_aclk),
+  //data_reader #(
+  //              .N (N),
+  //              .B (4*B)
+  //            ) data_reader_i (
+  //              // Reset and clock
+  //              .rstn    (m_axis_aresetn),
+  //              .clk     (m_axis_aclk),
 
-                // Memory I/F
-                .mem_en  (mem_en_int),
-                .mem_we  (),
-                .mem_addr (mem_addrb_int),
-                .mem_dout (mem_do_int),
+  //              // Memory I/F
+  //              .mem_en  (mem_en_int),
+  //              .mem_we  (),
+  //              .mem_addr (mem_addrb_int),
+  //              .mem_dout (mem_do_int),
 
-                // Data out
-                .dout    (m0_axis_tdata),
-                .dready  (m0_axis_tready),
-                .dvalid  (m0_axis_tvalid),
-                .dlast   (m0_axis_tlast),
+  //              // Data out
+  //              .dout    (m0_axis_tdata),
+  //              .dready  (m0_axis_tready),
+  //              .dvalid  (m0_axis_tvalid),
+  //              .dlast   (m0_axis_tlast),
 
-                // Registers
-                .start_reg (dr_start_reg_resync),
-                .addr_reg  (dr_addr_reg),
-                .len_reg   (dr_len_reg)
-              );
+  //              // Registers
+  //              .start_reg (dr_start_reg_resync),
+  //              .addr_reg  (dr_addr_reg),
+  //              .len_reg   (dr_len_reg)
+  //            );
+   // DUT
+  bram_to_axis #(
+      .BRAM_ADDR_WIDTH(N),
+      .BRAM_DATA_WIDTH(4*B)
+  ) u_bram_to_axis (
+      .rstn      (m_axis_aresetn),
+      .clk       (m_axis_aclk),
+      .mem_en    (mem_en_int),
+      .mem_we    ( ),
+      .mem_addr  (mem_addrb_int),
+      .mem_dout  (mem_do_int),
+      .mem_din   ( ),
+      .m_axis_tready (m0_axis_tready),
+      .m_axis_tvalid (m0_axis_tvalid),
+      .m_axis_tdata  (m0_axis_tdata),
+      .m_axis_tlast  (m0_axis_tlast),
+      .start_reg(dr_start_reg_resync),
+      .addr_reg (dr_addr_reg),
+      .len_reg  (dr_len_reg)
+  );
 
   // -------------------------------------------------------------------------
   // Asynchronous FIFO Instantiation (fifo_dc replacement)

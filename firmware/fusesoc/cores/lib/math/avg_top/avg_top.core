@@ -10,9 +10,9 @@ filesets:
     depend: 
       - qick:math:avg
       - qick:cdc:sync_nxm
-      - qick:mem:bram_dp
+      - qick:mem:bram_tdp
       - qick:mem:fifo_async
-      - qick:utils:data_reader
+      - qick:axi:bram_to_axis
 
   tb:
     files:
@@ -23,6 +23,9 @@ filesets:
     depend:
       - qick:common:xilinx 
       - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+      - qick:interfaces:axi4_stream_if
+      - qick:axi:axil_slv
 
   lint_files:
     depend:

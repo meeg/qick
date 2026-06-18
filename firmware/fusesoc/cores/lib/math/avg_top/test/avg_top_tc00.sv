@@ -1,6 +1,7 @@
 // ============================================================================
 // File: avg_top_tc00.sv
-// Description: SVUnit testbench top-level for the avg_top module.
+// Description: SVUnit testbench top-level for avg_top using axi4_lite_if 
+//              and axil_slv register bank.
 // ============================================================================
 
 `include "svunit_defines.svh"
@@ -13,176 +14,181 @@ module avg_top_unit_test;
     string name = "avg_top_ut";
     svunit_testcase svunit_ut;
 
-    localparam real SYS_CLOCK_FREQ = 200e6;
-    localparam real AXI_CLOCK_FREQ = 125e6;
+    localparam real AXI_CLOCK_FREQ = 100e6;
+    localparam real AXIS_CLOCK_FREQ = 200e6;
     localparam int  N = 10;
     localparam int  B = 16;
+    
+    // Parameters for the AXI-Lite register bank 
+    localparam int  AXI_DW = 32;
+    localparam int  AXI_AW = 8;
+    localparam int  NUM_REGS = 16;
+
+    // AXI4-Lite register byte addresses
+    localparam logic [AXI_AW-1:0] AVG_START_REG       = 6'h00;
+    localparam logic [AXI_AW-1:0] AVG_ADDR_REG        = 6'h04;
+    localparam logic [AXI_AW-1:0] AVG_LEN_REG         = 6'h08;
+    localparam logic [AXI_AW-1:0] DR_START_REG        = 6'h0C;
+    localparam logic [AXI_AW-1:0] DR_ADDR_REG         = 6'h10;
+    localparam logic [AXI_AW-1:0] DR_LEN_REG          = 6'h14;
+    localparam logic [AXI_AW-1:0] AVG_PHOTON_MODE_REG = 6'h18;
+    localparam logic [AXI_AW-1:0] AVG_H_THRSH_REG     = 6'h1C;
+    localparam logic [AXI_AW-1:0] AVG_L_THRSH_REG     = 6'h20;
 
     // =========================================================================
-    // Clock & Reset
+    // Clock & Reset Wires
     // =========================================================================
-    logic tb_clk           = 1'b0;
-    logic tb_rstn          = 1'b1;
-    logic tb_m_axis_aclk   = 1'b0;
-    logic tb_m_axis_aresetn= 1'b1;
-
-    // =========================================================================
-    // UUT interfaces
-    // =========================================================================
-    logic             tb_trigger_i = 1'b0;
-    logic             tb_din_valid_i = 1'b0;
-    logic [2*B-1:0]   tb_din_i = '0;
-
-    logic             tb_m0_axis_tvalid;
-    logic             tb_m0_axis_tready = 1'b0;
-    logic [4*B-1:0]   tb_m0_axis_tdata;
-    logic             tb_m0_axis_tlast;
-
-    logic             tb_m1_axis_tvalid;
-    logic             tb_m1_axis_tready = 1'b0;
-    logic [4*B-1:0]   tb_m1_axis_tdata;
-
-    // Registers
-    logic             tb_avg_start_reg = 1'b0;
-    logic [N-1:0]     tb_avg_addr_reg = '0;
-    logic [31:0]      tb_avg_len_reg = '0;
-    logic             tb_dr_start_reg = 1'b0;
-    logic [N-1:0]     tb_dr_addr_reg = '0;
-    logic [N:0]       tb_dr_len_reg = '0;
-    logic             tb_avg_photon_mode_reg = 1'b0;
-    logic [B-1:0]     tb_avg_h_thrsh_reg = '0;
-    logic [B-1:0]     tb_avg_l_thrsh_reg = '0;
+    logic axi_clk           = 1'b0;
+    logic axi_rstn          = 1'b1;
+    logic axis_clk   = 1'b0;
+    logic axis_rstn= 1'b1;
 
     // =========================================================================
-    // Waveform dump
+    // Interface instantiation
+    // =========================================================================
+    axi4_stream_if #(.TDATA_WIDTH(4*B)) m0_axis_if (.aclk(axis_clk), .aresetn(axis_rstn));
+    axi4_stream_if #(.TDATA_WIDTH(4*B)) m1_axis_if (.aclk(axis_clk), .aresetn(axis_rstn));
+    
+    // AXI4-Lite interface for register control
+    axi4_lite_if #(.DATA_WIDTH(AXI_DW), .ADDR_WIDTH(AXI_AW)) ctrl_axil_if (
+        .aclk    (axi_clk),
+        .aresetn (axi_rstn)
+    );
+
+    // =========================================================================
+    // Instanciación del Banco de Registros Esclavo (axil_slv)
+    // =========================================================================
+    logic [AXI_DW-1:0] slv_regs_out [NUM_REGS];
+    logic [AXI_DW-1:0] slv_regs_in  [NUM_REGS] = '{default: '0};
+
+    axil_slv #(
+        .AXI_DW        (AXI_DW),
+        .AXI_AW        (AXI_AW),
+        .NUM_REGS      (NUM_REGS),
+        .ENABLE_AW_EN  (1'b1)
+    ) u_axil_slv (
+        .s_axi_aclk    (axi_clk),
+        .s_axi_aresetn (axi_rstn),
+        
+        .s_axi_awaddr  (ctrl_axil_if.awaddr),
+        .s_axi_awprot  (ctrl_axil_if.awprot),
+        .s_axi_awvalid (ctrl_axil_if.awvalid),
+        .s_axi_awready (ctrl_axil_if.awready),
+        .s_axi_wdata   (ctrl_axil_if.wdata),
+        .s_axi_wstrb   (ctrl_axil_if.wstrb),
+        .s_axi_wvalid  (ctrl_axil_if.wvalid),
+        .s_axi_wready  (ctrl_axil_if.wready),
+        .s_axi_bresp   (ctrl_axil_if.bresp),
+        .s_axi_bvalid  (ctrl_axil_if.bvalid),
+        .s_axi_bready  (ctrl_axil_if.bready),
+        .s_axi_araddr  (ctrl_axil_if.araddr),
+        .s_axi_arprot  (ctrl_axil_if.arprot),
+        .s_axi_arvalid (ctrl_axil_if.arvalid),
+        .s_axi_arready (ctrl_axil_if.arready),
+        .s_axi_rdata   (ctrl_axil_if.rdata),
+        .s_axi_rresp   (ctrl_axil_if.rresp),
+        .s_axi_rvalid  (ctrl_axil_if.rvalid),
+        .s_axi_rready  (ctrl_axil_if.rready),
+        
+        // User ports
+        .o_slv_regs    (slv_regs_out),
+        .i_slv_regs    (slv_regs_in),
+        .i_reg_is_readonly ('0)
+    );
+
+    // =========================================================================
+    // Discrete signals 
+    // =========================================================================
+    logic           tb_trigger_i = 1'b0;
+    logic           tb_din_valid_i = 1'b0;
+    logic [2*B-1:0] tb_din_i = '0;
+
+    // =========================================================================
+    // Waveform dump & Clock Gen
     // =========================================================================
     initial begin
         $dumpfile("avg_top.vcd");
         $dumpvars();
     end
 
-    // =========================================================================
-    // Clock generators
-    // =========================================================================
-    clk_gen #(
-        .FREQ (SYS_CLOCK_FREQ)
-    ) u_sys_clk_gen (
-        .i_enable (1'b1),
-        .o_clk    (tb_clk)
-    );
-
-    clk_gen #(
-        .FREQ (AXI_CLOCK_FREQ)
-    ) u_axi_clk_gen (
-        .i_enable (1'b1),
-        .o_clk    (tb_m_axis_aclk)
-    );
+    clk_gen #(.FREQ (AXI_CLOCK_FREQ)) u_sys_clk_gen (.i_enable(1'b1), .o_clk(axi_clk));
+    clk_gen #(.FREQ (AXIS_CLOCK_FREQ)) u_axi_clk_gen (.i_enable(1'b1), .o_clk(axis_clk));
 
     // =========================================================================
-    // Clocking blocks (One for each clock domain)
+    // Clocking Blocks
     // =========================================================================
-    default clocking sys_cb @(posedge tb_clk);
+    default clocking axi_cb @(posedge axi_clk);
         default input #1step output #2;
-        output tb_rstn;
+        output axi_rstn;
+    endclocking
+
+    clocking axis_cb @(posedge axis_clk);
+        default input #1step output #2;
+        output axis_rstn;
         output tb_trigger_i;
         output tb_din_valid_i;
         output tb_din_i;
-        output tb_avg_start_reg;
-        output tb_avg_addr_reg;
-        output tb_avg_len_reg;
-        output tb_avg_photon_mode_reg;
-        output tb_avg_h_thrsh_reg;
-        output tb_avg_l_thrsh_reg;
-    endclocking
-
-    clocking axi_cb @(posedge tb_m_axis_aclk);
-        default input #1step output #2;
-        output tb_m_axis_aresetn;
-        output tb_m0_axis_tready;
-        output tb_m1_axis_tready;
-        output tb_dr_start_reg;
-        output tb_dr_addr_reg;
-        output tb_dr_len_reg;
-        input  tb_m0_axis_tvalid;
-        input  tb_m0_axis_tdata;
-        input  tb_m0_axis_tlast;
-        input  tb_m1_axis_tvalid;
-        input  tb_m1_axis_tdata;
     endclocking
 
     // =========================================================================
-    // Unit Under Test
+    // Unit Under Test (UUT)
     // =========================================================================
     avg_top #(
         .N (N),
         .B (B)
-    ) u_avg_top (
-        .rstn                (tb_rstn),
-        .clk                 (tb_clk),
+    ) dut (
+        .rstn                (axis_rstn),
+        .clk                 (axis_clk),
         .trigger_i           (tb_trigger_i),
         .din_valid_i         (tb_din_valid_i),
         .din_i               (tb_din_i),
-        .m_axis_aclk         (tb_m_axis_aclk),
-        .m_axis_aresetn      (tb_m_axis_aresetn),
-        .m0_axis_tvalid      (tb_m0_axis_tvalid),
-        .m0_axis_tready      (tb_m0_axis_tready),
-        .m0_axis_tdata       (tb_m0_axis_tdata),
-        .m0_axis_tlast       (tb_m0_axis_tlast),
-        .m1_axis_tvalid      (tb_m1_axis_tvalid),
-        .m1_axis_tready      (tb_m1_axis_tready),
-        .m1_axis_tdata       (tb_m1_axis_tdata),
-        .avg_start_reg       (tb_avg_start_reg),
-        .avg_addr_reg        (tb_avg_addr_reg),
-        .avg_len_reg         (tb_avg_len_reg),
-        .dr_start_reg        (tb_dr_start_reg),
-        .dr_addr_reg         (tb_dr_addr_reg),
-        .dr_len_reg          (tb_dr_len_reg),
-        .avg_photon_mode_reg (tb_avg_photon_mode_reg),
-        .avg_h_thrsh_reg     (tb_avg_h_thrsh_reg),
-        .avg_l_thrsh_reg     (tb_avg_l_thrsh_reg)
+        .m_axis_aclk         (axis_clk),
+        .m_axis_aresetn      (axis_rstn),
+        
+        // Streams
+        .m0_axis_tvalid      (m0_axis_if.tvalid),
+        .m0_axis_tready      (m0_axis_if.tready),
+        .m0_axis_tdata       (m0_axis_if.tdata),
+        .m0_axis_tlast       (m0_axis_if.tlast),
+        .m1_axis_tvalid      (m1_axis_if.tvalid),
+        .m1_axis_tready      (m1_axis_if.tready),
+        .m1_axis_tdata       (m1_axis_if.tdata),
+        
+        // REGISTER MAP FROM SLAVE AXI-LITE
+        .avg_start_reg       (slv_regs_out[0][0]),       // Reg 0 (Addr 32'h00)
+        .avg_addr_reg        (slv_regs_out[1][N-1:0]),   // Reg 1 (Addr 32'h04)
+        .avg_len_reg         (slv_regs_out[2]),          // Reg 2 (Addr 32'h08)
+        .dr_start_reg        (slv_regs_out[3][0]),       // Reg 3 (Addr 32'h0C)
+        .dr_addr_reg         (slv_regs_out[4][N-1:0]),   // Reg 4 (Addr 32'h10)
+        .dr_len_reg          (slv_regs_out[5]),          // Reg 5 (Addr 32'h14)
+        .avg_photon_mode_reg (slv_regs_out[6][0]),       // Reg 6 (Addr 32'h18)
+        .avg_h_thrsh_reg     (slv_regs_out[7][B-1:0]),   // Reg 7 (Addr 32'h1C)
+        .avg_l_thrsh_reg     (slv_regs_out[8][B-1:0])    // Reg 8 (Addr 32'h20)
     );
 
     // =========================================================================
-    // Helper tasks
+    // Helper Tasks
     // =========================================================================
 
-    // reset_dut: apply synchronous reset sequence to both domains.
     task automatic reset_dut();
-        sys_cb.tb_rstn <= 1'b0;
-        axi_cb.tb_m_axis_aresetn <= 1'b0;
-        
-        // Hold reset for ~20 system clock cycles to guarantee it covers
-        // at least 10 cycles of the slower 125MHz AXI clock.
-        repeat(20) @(sys_cb); 
-        
-        sys_cb.tb_rstn <= 1'b1;
-        axi_cb.tb_m_axis_aresetn <= 1'b1;
-        
-        // Allow XPM FIFOs time to complete their internal reset sequence
-        // before injecting any data.
-        repeat(50) @(sys_cb);
+        axi_cb.axi_rstn <= 1'b0;
+        axis_cb.axis_rstn <= 1'b0;
+        repeat(20) @(axi_cb); 
+        axi_cb.axi_rstn <= 1'b1;
+        axis_cb.axis_rstn <= 1'b1;
+        repeat(50) @(axi_cb);
     endtask
     
-    // pulse_trigger: fire a single trigger pulse.
-    // Assumes FSM is already in WAIT_TRIGGER_ST -> TRIGGER_ST.
-    // Does NOT re-latch config registers (start_reg stays high).
     task automatic pulse_trigger();
-        sys_cb.tb_trigger_i <= 1'b1;
-        @(sys_cb);
-        sys_cb.tb_trigger_i <= 1'b0;
+        axis_cb.tb_trigger_i <= 1'b1;
+        @(axis_cb);
+        axis_cb.tb_trigger_i <= 1'b0;
     endtask
     
-    // wait_for_wait_trigger_st: wait until the FSM has completed
-    // WRITE_MEM_ST and entered WAIT_TRIGGER_ST.
-    // 3 cycles covers AVG_ST(last sample) -> QOUT_ST -> WRITE_MEM_ST.
-    // The repeat(6) guard gives margin for CDC and pipeline latency.
     task automatic wait_for_wait_trigger_st();
-        repeat(6) @(sys_cb);
+        repeat(6) @(axis_cb);
     endtask
 
-    // avg_arm_and_trigger: latch config, assert start_reg, wait one cycle for FSM
-    // to reach TRIGGER_ST, then pulse trigger_i for one cycle.
-    // Leaves FSM in AVG_ST with start_reg=1, trigger_i=0.
     task automatic avg_arm_and_trigger(
         input logic [N-1:0] addr,
         input logic [31:0]  len,
@@ -190,51 +196,44 @@ module avg_top_unit_test;
         input logic [B-1:0] h_thrsh,
         input logic [B-1:0] l_thrsh
     );
-        sys_cb.tb_avg_addr_reg        <= addr;
-        sys_cb.tb_avg_len_reg         <= len;
-        sys_cb.tb_avg_photon_mode_reg <= photon_mode;
-        sys_cb.tb_avg_h_thrsh_reg     <= h_thrsh;
-        sys_cb.tb_avg_l_thrsh_reg     <= l_thrsh;
-        sys_cb.tb_avg_start_reg       <= 1'b1;
-        repeat(4) @(sys_cb); // FSM: START_ST -> TRIGGER_ST. Allow 4 cycles to ensure config registers are latched before trigger.
-        sys_cb.tb_trigger_i <= 1'b1;
-        @(sys_cb); // FSM: TRIGGER_ST -> AVG_ST
-        sys_cb.tb_trigger_i <= 1'b0;
+        ctrl_axil_if.axi_write(AVG_ADDR_REG, 32'(addr));
+        ctrl_axil_if.axi_write(AVG_LEN_REG, len);
+        ctrl_axil_if.axi_write(AVG_PHOTON_MODE_REG, 32'(photon_mode));
+        ctrl_axil_if.axi_write(AVG_H_THRSH_REG, 32'(h_thrsh));
+        ctrl_axil_if.axi_write(AVG_L_THRSH_REG, 32'(l_thrsh));
+        
+        ctrl_axil_if.axi_write(AVG_START_REG, 32'h1); 
+
+        repeat(4) @(axis_cb); 
+        axis_cb.tb_trigger_i <= 1'b1;
+        @(axis_cb); 
+        axis_cb.tb_trigger_i <= 1'b0;
     endtask
 
-    // inject_data: push count words into the system.
-    task automatic inject_data(
-        input int count,
-        input logic [2*B-1:0] start_val
-    );
+    task automatic inject_data(input int count, input logic [2*B-1:0] start_val);
         for (int i = 0; i < count; i++) begin
-            sys_cb.tb_din_i       <= start_val + i;
-            sys_cb.tb_din_valid_i <= 1'b1;
-            @(sys_cb);
+            axis_cb.tb_din_i       <= start_val + i;
+            axis_cb.tb_din_valid_i <= 1'b1;
+            @(axis_cb);
         end
-        sys_cb.tb_din_valid_i <= 1'b0;
-        repeat(6) @(sys_cb);
+        axis_cb.tb_din_valid_i <= 1'b0;
+        repeat(6) @(axis_cb);
     endtask
 
-    // start_reader: assert start_reg for the data_reader in the AXI domain.
-    task automatic start_reader(
-        input logic [N-1:0] addr,
-        input logic [32-1:0] len
-    );
-        axi_cb.tb_dr_addr_reg  <= addr;
-        axi_cb.tb_dr_len_reg   <= len[N:0];  // truncate when connecting to the register
-        @(axi_cb);
-        axi_cb.tb_dr_start_reg <= 1'b1;
-        @(axi_cb);
-        axi_cb.tb_dr_start_reg <= 1'b0;
+    task automatic start_reader(input logic [N-1:0] addr, input logic [N:0] len);
+        ctrl_axil_if.axi_write(DR_ADDR_REG, 32'(addr));
+        ctrl_axil_if.axi_write(DR_LEN_REG,  32'(len));
+        ctrl_axil_if.axi_write(DR_START_REG, 32'h1);
+        // CDC: wait for dr_start_reg_resync to arrive to the axis_clk domain
+        repeat(5) @(axis_cb);
+        ctrl_axil_if.axi_write(DR_START_REG, 32'h0);
     endtask
 
-// read_m0_data: collect expected_count words from m0_axis (BRAM stream).
     task automatic read_m0_data(
         input  int                expected_count,
-        output logic [4*B-1:0]   data[],
+        output logic [4*B-1:0]    data[],
         output int                timed_out,
-        output int                tlast_errors, // <-- Returns the tlast mismatch count
+        output int                tlast_errors, 
         input  int                timeout_cycles = 500   
     );
         int count = 0;
@@ -243,99 +242,77 @@ module avg_top_unit_test;
         tlast_errors = 0;
         data = new[expected_count];
     
-        axi_cb.tb_m0_axis_tready <= 1'b1;
+        m0_axis_if.tready <= 1'b1;
     
         while (count < expected_count) begin
-            @(axi_cb);
             timeout++;
-            if (tb_m0_axis_tvalid && tb_m0_axis_tready) begin
-                data[count] = tb_m0_axis_tdata;
-                $display("[READ M0] data[%0d] = 0x%0h (tlast=%b)", count, tb_m0_axis_tdata, tb_m0_axis_tlast);
+            if (m0_axis_if.tvalid && m0_axis_if.tready) begin
+                data[count] = m0_axis_if.tdata;
+                //$display("[READ M0] data[%0d] = 0x%0h (tlast=%b)", count, m0_axis_if.tdata, m0_axis_if.tlast);
                 
-                // --- Automatic tlast validation ---
                 if (count == expected_count - 1) begin
-                    if (!tb_m0_axis_tlast) begin
-                        $display("[ERROR] read_m0_data: tlast NOT asserted on the last word (word %0d)", count);
+                    if (!m0_axis_if.tlast) begin
+                        $display("[ERROR] read_m0_data: tlast NOT asserted on the last word");
                         tlast_errors++;
                     end
                 end else begin
-                    if (tb_m0_axis_tlast) begin
-                        $display("[ERROR] read_m0_data: tlast asserted EARLY at word %0d (expected at %0d)", count, expected_count - 1);
+                    if (m0_axis_if.tlast) begin
+                        $display("[ERROR] read_m0_data: tlast asserted EARLY at word %0d", count);
                         tlast_errors++;
                     end
                 end
-                
                 count++;
             end
             if (timeout > timeout_cycles) begin
-                $display("[TIMEOUT] read_m0_data: only got %0d of %0d words", count, expected_count);
                 timed_out = 1;
                 break;
             end
+            @(axis_cb);
         end
     
-        // Keep tready=1 until tvalid drops so the FSM can finish its last
-        // handshake and return to IDLE cleanly.
         timeout = 0;
-        while (tb_m0_axis_tvalid) begin
-            @(axi_cb);
-            timeout++;
-            if (timeout > 50) begin
-                $display("[TIMEOUT] read_m0_data: tvalid stuck high after all data received");
-                break;
-            end
+        while (m0_axis_if.tvalid) begin
+            @(axis_cb);
+            if (timeout++ > 50) break;
         end
     
-        @(axi_cb);
-        axi_cb.tb_m0_axis_tready <= 1'b0;
-        repeat(5) @(axi_cb);
+        @(axis_cb);
+        m0_axis_if.tready <= 1'b0;
+        repeat(5) @(axis_cb);
     endtask
 
-    // read_m1_data: collect expected_count words from m1_axis (Immediate stream).
-    // Note: Remains unchanged as m1_axis does not feature a tlast line in the current RTL design.
     task automatic read_m1_data(
         input  int                expected_count,
-        output logic [4*B-1:0]   data[],
+        output logic [4*B-1:0]    data[],
         output int                timed_out
     );
         int count = 0;
         int timeout = 0;
         timed_out = 0;
         data = new[expected_count];
-
-        axi_cb.tb_m1_axis_tready <= 1'b1;
+        m1_axis_if.tready <= 1'b1;
 
         while (count < expected_count) begin
-            @(axi_cb);
             timeout++;
-            if (tb_m1_axis_tvalid && tb_m1_axis_tready) begin
-                data[count] = tb_m1_axis_tdata;
-                $display("[READ M1] data[%0d] = 0x%0h", count, tb_m1_axis_tdata);
+            if (m1_axis_if.tvalid && m1_axis_if.tready) begin
+                data[count] = m1_axis_if.tdata;
                 count++;
             end
-            if (timeout > 500) begin
-                $display("[TIMEOUT] read_m1_data: only got %0d of %0d words", count, expected_count);
+            if (timeout > 1000) begin
                 timed_out = 1;
                 break;
             end
+            @(m1_axis_if.s_cb);
         end
-
-        @(axi_cb);
-        axi_cb.tb_m1_axis_tready <= 1'b0;
-        repeat(5) @(axi_cb);
+        @(m1_axis_if.s_cb);
+        m1_axis_if.tready <= 1'b0;
+        repeat(5) @(axis_cb);
     endtask
 
-    // verify_data: compare expected vs actual arrays, fail on mismatch.
-    // Notice width is 4*B to match axis data output width.
-    task automatic verify_data(
-        input logic [4*B-1:0] expected[],
-        input logic [4*B-1:0] actual[],
-        input string          test_name
-    );
+    task automatic verify_data(input logic [4*B-1:0] expected[], input logic [4*B-1:0] actual[], input string test_name);
         for (int i = 0; i < expected.size(); i++) begin
             if (expected[i] !== actual[i]) begin
-                $display("MISMATCH %s [%0d]: expected 0x%0h got 0x%0h",
-                         test_name, i, expected[i], actual[i]);
+                $display("MISMATCH %s [%0d]: expected 0x%0h got 0x%0h", test_name, i, expected[i], actual[i]);
                 `FAIL_IF(1);
             end
         end
@@ -351,26 +328,17 @@ module avg_top_unit_test;
     task setup();
         svunit_ut.setup();
         
-        // Default consumer states
-        axi_cb.tb_m0_axis_tready <= 1'b0;
-        axi_cb.tb_m1_axis_tready <= 1'b0;
-
-        // Default register states
-        sys_cb.tb_trigger_i           <= 1'b0;
-        sys_cb.tb_din_valid_i         <= 1'b0;
-        sys_cb.tb_din_i               <= '0;
-        sys_cb.tb_avg_start_reg       <= 1'b0;
-        sys_cb.tb_avg_addr_reg        <= '0;
-        sys_cb.tb_avg_len_reg         <= '0;
-        axi_cb.tb_dr_start_reg        <= 1'b0;
-        axi_cb.tb_dr_addr_reg         <= '0;
-        axi_cb.tb_dr_len_reg          <= '0;
-        sys_cb.tb_avg_photon_mode_reg <= 1'b0;
-        sys_cb.tb_avg_h_thrsh_reg     <= '0;
-        sys_cb.tb_avg_l_thrsh_reg     <= '0;
+        axis_cb.tb_trigger_i   <= 1'b0;
+        axis_cb.tb_din_valid_i <= 1'b0;
+        axis_cb.tb_din_i       <= '0;
+        m0_axis_if.s_cb.tready <= 1'b0;
+        m1_axis_if.s_cb.tready <= 1'b0;
         
-        @(sys_cb);
-        reset_dut();
+        // Init the Master channels of the AXI-Lite interface to IDLE
+        ctrl_axil_if.reset();
+        
+        @(axi_cb);
+        reset_dut(); 
     endtask
 
     task teardown();
