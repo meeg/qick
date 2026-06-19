@@ -209,3 +209,9 @@ driver-all:
 			fi; \
 		fi; \
 	done
+
+# Genete HTML documentation from RDL
+# Usage: make rdl-docs IP=axis_constant_iq
+rdl-docs:
+	cd cores/ip/$(IP)/rdl && $(MAKE) docs
+	@echo "✓ Docs: cores/ip/$(IP)/rdl/docs/index.html"

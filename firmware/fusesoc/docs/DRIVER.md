@@ -11,6 +11,7 @@ IP's register map once in a `.rdl` file and automatically generate:
 - **SystemVerilog**: AXI4-Lite slave module (`peakrdl regblock`)
 - **Python**: Type-safe register package (`peakrdl python`)
 - **QICK Driver**: Python class that inherits from `SocIP`
+- **HTML Documentation**: Register map docs (`peakrdl html`)
 
 ```
 cores/ip/<ip_name>/
@@ -18,7 +19,8 @@ cores/ip/<ip_name>/
 │   ├── <ip_name>_regmap.rdl          ← SOURCE OF TRUTH (you edit this)
 │   ├── <ip_name>_regmap.core
 │   ├── Makefile
-│   └── <ip_name>_regmap_pkg/         ← Generated Python package
+│   ├── <ip_name>_regmap_pkg/         ← Generated Python package
+│   └── docs/                         ← Generated HTML docs
 ├── driver/
 │   └── <ip_name>.py                  ← QICK driver (symlinked to qick_lib/)
 ├── hdl/
@@ -29,10 +31,11 @@ cores/ip/<ip_name>/
 
 ## How It Works on the RFSoC Board
 
-When you run `make driver`, two things happen:
+When you run `make driver`, three things happen:
 
 1. The generated PeakRDL package is **copied** to `qick_lib/qick/rdl_pkgs/`
 2. The driver is **symlinked** to `qick_lib/qick/drivers/`
+3. HTML documentation is **generated** in `cores/ip/<ip_name>/rdl/docs/`
 
 The driver searches for the PeakRDL package in multiple locations:
 
@@ -67,6 +70,7 @@ python3 -c "
 from systemrdl import RDLCompiler; print('✓ systemrdl')
 from peakrdl_regblock import RegblockExporter; print('✓ peakrdl_regblock')
 from peakrdl_python import PythonExporter; print('✓ peakrdl_python')
+from peakrdl_html import HTMLExporter; print('✓ peakrdl_html')
 "
 ```
 
@@ -78,8 +82,11 @@ from peakrdl_python import PythonExporter; print('✓ peakrdl_python')
 cd firmware/fusesoc
 source venv/bin/activate
 
-# Generate driver (RDL → SystemVerilog + Python + QICK symlink + rdl_pkgs copy)
+# Generate everything (RDL → SystemVerilog + Python + QICK symlink + rdl_pkgs copy)
 make driver IP=axis_constant_iq
+
+# Generate HTML documentation
+make rdl-docs IP=axis_constant_iq
 
 # Simulate
 make sim IP=axis_constant_iq
@@ -98,6 +105,9 @@ vim cores/ip/my_new_ip/rdl/my_new_ip_regmap.rdl
 
 # Generate everything
 make driver IP=my_new_ip
+
+# Generate docs
+make rdl-docs IP=my_new_ip
 ```
 
 ## SystemRDL File Format
@@ -205,6 +215,46 @@ reg {
     field { sw = rw; hw = r; } DATA[31:0];
 } CHANNEL[4] @0x10;  // Creates CHANNEL[0] through CHANNEL[3]
 ```
+
+## Generating HTML Documentation
+
+You can generate HTML register documentation from your `.rdl` file:
+
+```bash
+# From the project root
+make rdl-docs IP=axis_constant_iq
+
+# Or directly from the IP's rdl directory
+cd cores/ip/axis_constant_iq/rdl
+make docs
+```
+
+This generates in `cores/ip/<ip_name>/rdl/docs/`:
+
+```
+docs/
+├── index.html              ← Full register map
+├── registers/
+│   ├── REAL_REG.html       ← Per-register details
+│   ├── IMAG_REG.html
+│   └── WE_REG.html
+└── fields/
+    ├── I.html              ← Per-field details
+    ├── Q.html
+    └── WE.html
+```
+
+Open in your browser:
+
+```bash
+firefox cores/ip/axis_constant_iq/rdl/docs/index.html
+```
+
+Each page shows:
+- Register name, description, and address offset
+- Field bit positions and access rights (rw/r/w)
+- Default values and special properties (swmod, counter, sticky, etc.)
+- Enumerations if defined in the RDL
 
 ## Generated Python Package
 
@@ -399,6 +449,8 @@ python3 example.py
 |---------|-------------|
 | `make driver IP=<name>` | Generate RDL + QICK symlink + copy rdl_pkgs |
 | `make gen IP=<name>` | Generate RDL only (no symlink, no copy) |
+| `make rdl-docs IP=<name>` | Generate HTML documentation from RDL |
+| `make docs IP=<name>` | Generate HTML docs (same as above) |
 | `make sim IP=<name>` | Generate + simulate |
 | `make new-ip IP=<name>` | Create new IP from template |
 | `make driver-all` | Generate all IPs |
@@ -481,6 +533,7 @@ Add to `.gitignore`:
 *_regmap.sv
 *_regmap_pkg.sv
 *_regmap.svh
+docs/
 *.pyc
 __pycache__/
 ```

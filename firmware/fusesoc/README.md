@@ -118,15 +118,39 @@ make clean
 
 ---
 
----
+## PeakRDL: Register Definition & Driver Generation
 
-## PeakRDL Driver Generation
+IP cores use [PeakRDL](https://peakrdl.readthedocs.io) for register definition.
+A single `.rdl` file generates SystemVerilog, Python drivers, and HTML docs.
 
-For generating Python drivers with PeakRDL, see [docs/DRIVER.md](docs/DRIVER.md).
+Full documentation: [docs/DRIVER.md](docs/DRIVER.md)
 
-Quick start:
+**Quick reference:**
+
 ```bash
-make driver IP=axis_constant_iq
+make driver IP=axis_constant_iq     # Generate: SystemVerilog + Python + QICK symlink
+make sim IP=axis_constant_iq        # Generate + simulate
+make rdl-docs IP=axis_constant_iq   # Generate HTML register documentation
+make new-ip IP=my_new_ip            # Create new IP from template
+```
+
+**IP structure with PeakRDL:**
+
+```
+cores/ip/<ip_name>/
+├── <ip_name>.core
+├── rdl/
+│   ├── <ip_name>_regmap.rdl          ← SOURCE OF TRUTH
+│   ├── <ip_name>_regmap.core
+│   ├── Makefile
+│   ├── <ip_name>_regmap_pkg/         ← Generated Python package
+│   └── docs/                         ← Generated HTML docs
+├── driver/
+│   └── <ip_name>.py                  ← QICK driver
+├── hdl/
+│   └── <ip_name>.sv -> ...
+└── test/
+    └── <ip_name>_tc00.sv
 ```
 
 ---
@@ -331,14 +355,18 @@ Vivado's `ipx::infer_bus_interfaces` recognizes:
 ## Complete IP development workflow
 
 ```
-1. Write RTL          →  ../ip/my_ip/src/my_ip.sv (uses rtl_lib/)
-2. Write testbench    →  cores/my_ip/test/my_ip_tc00.sv
-3. Simulate           →  make sim IP=my_ip
-4. Fix RTL, re-sim   →  make sim IP=my_ip
-5. Package for Vivado →  make package IP=my_ip
-6. Recreate project   →  cd ../.. && ./Hog/Do CREATE 216/tpv2_std
-7. Open Vivado        →  vivado Projects/tpv2_std/tpv2_std.xpr
-8. Instantiate IP     →  drag from IP catalog → Block Design
+1. Create IP structure  →  make new-ip IP=my_ip
+2. Define registers     →  edit rdl/my_ip_regmap.rdl
+3. Write RTL            →  ../ip/my_ip/src/my_ip.sv (uses rtl_lib/)
+4. Write testbench      →  cores/my_ip/test/my_ip_tc00.sv
+5. Generate driver      →  make driver IP=my_ip
+6. Generate docs        →  make rdl-docs IP=my_ip
+7. Simulate             →  make sim IP=my_ip
+8. Fix RTL, re-sim      →  make sim IP=my_ip
+9. Package for Vivado   →  make package IP=my_ip
+10. Recreate project    →  cd ../.. && ./Hog/Do CREATE 216/tpv2_std
+11. Open Vivado         →  vivado Projects/tpv2_std/tpv2_std.xpr
+12. Instantiate IP      →  drag from IP catalog → Block Design
 ```
 
 ---
@@ -355,9 +383,14 @@ fusesoc/
 │   ├── qick_pkg/            Shared QICK package (wrapper for rtl_lib/pkg/)
 │   ├── qick_processor/      tProcessor V2 example
 │   └── my_new_ip/           Your new IP
-├── projects/                Multi-IP simulation projects
+│       ├── rdl/             SystemRDL register definitions
+│       ├── driver/          Python QICK driver
+│       ├── hdl/             RTL sources
+│       └── test/            SVUnit testbenches
 ├── generators/              FuseSoC code generators
-├── scripts/                 Setup and test scripts
+│   └── systemrdl/           PeakRDL generator
+├── scripts/                 Setup and utility scripts
+├── docs/                    Documentation
 ├── Makefile
 └── requirements.txt
 ```
@@ -369,15 +402,19 @@ fusesoc/
 | Namespace | Contents |
 |-----------|----------|
 | `qick:ip:*` | QICK IP cores (use rtl_lib/) |
+| `qick:ip:*_regmap` | Register map definitions (PeakRDL) |
 | `qick:common:*` | Shared infrastructure (sim_base, clk_gen, lint) |
+| `qick:utils:rdl_gen` | PeakRDL code generator |
 
 ---
 
 ## Notes
 
 - **`rtl_lib/` is the source of truth** for shared RTL modules
+- **`.rdl` files are the source of truth** for register maps
 - **`qick:common:sim_base`** includes `rtl_lib/` paths automatically
 - IPs with Xilinx sub-IPs (DDS, FIR, etc.) require Vivado and cannot be simulated with FuseSoC
 - Pure RTL IPs (like `qick_processor`) can be simulated directly
+- PeakRDL-generated files (`_regmap_pkg/`, `.sv`, `docs/`) should **never be committed**
 
 ---
