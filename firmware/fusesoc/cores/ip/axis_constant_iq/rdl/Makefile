@@ -15,6 +15,6 @@ docs:
 	print('✓ Docs generated in docs/')"
 
 clean:
-	rm -rf $(shell basename $(RDL_FILE) .rdl)_pkg $(shell basename $(RDL_FILE) .rdl)*.sv $(shell basename $(RDL_FILE) .rdl)*.svh docs
+	rm -rf axis_constant_iq_regmap_pkg axis_constant_iq_regmap*.sv axis_constant_iq_regmap*.svh docs
 
 .PHONY: gen docs clean
