@@ -1,6 +1,8 @@
 import os
 from fusesoc.capi2.generator import Generator
-from rdl_tools import hdl_gen, html_gen, verilog_header_gen, c_header_gen
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+from rdl_tools import hdl_gen, verilog_header_gen, c_header_gen, python_header_gen
 import yaml
 from yaml import CSafeDumper as YamlDumper
 
@@ -17,22 +19,28 @@ class RDLGenerator(Generator):
 
         if not self.config["is_top"]:
             hdl_gen(output_dir , [os.path.join(self.files_root, file)])
-
             export_file.append({head_file + '_pkg.sv' : {'file_type' : 'systemVerilogSource'}})
             export_file.append({head_file + '.sv' : {'file_type' : 'systemVerilogSource'}})
 
-        if self.config["documentation"] == 'html':
-            raise NotImplementedError("Documentacion html no soportada. Actualizar creacion de directorio con archivos html")
-
-        if self.config["headers"] is not None:
+        if self.config.get("headers"):
             for header in self.config["headers"]:
                 if header == 'verilog':
-                    verilog_header_gen(output_dir, [os.path.join(self.files_root, file)], self.config["is_top"])
-                    export_file.append({head_file + '.svh' : {'file_type' : 'systemVerilogSource', 'is_include_file': True}})
+                    try:
+                        verilog_header_gen(output_dir, [os.path.join(self.files_root, file)], self.config["is_top"])
+                        export_file.append({head_file + '.svh' : {'file_type' : 'systemVerilogSource', 'is_include_file': True}})
+                    except Exception as e:
+                        print(f"  ⚠ Verilog header: {e}")
 
                 if header == 'c':
-                    c_header_gen(output_dir, [os.path.join(self.files_root, file)], self.config["is_top"])
-                    export_file.append({head_file + '.h' : {'file_type' : 'user', 'is_include_file': True}})
+                    try:
+                        c_header_gen(output_dir, [os.path.join(self.files_root, file)], self.config["is_top"])
+                        export_file.append({head_file + '.h' : {'file_type' : 'user', 'is_include_file': True}})
+                    except Exception as e:
+                        print(f"  ⚠ C header: {e}")
+
+                if header == 'python':
+                    python_header_gen(output_dir, [os.path.join(self.files_root, file)], self.config["is_top"])
+                    export_file.append({head_file + '_pkg' : {'file_type' : 'user'}})
 
         self.add_files(export_file)
 

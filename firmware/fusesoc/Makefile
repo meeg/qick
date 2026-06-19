@@ -161,3 +161,51 @@ verify-core:
 	@echo ""
 	@echo "=== Dependencies ==="
 	$(MAKE) --no-print-directory deps IP=$(IP)
+
+# Generate regmap for any IP
+# Use: make gen IP=axis_constant_iq
+gen:
+	@if [ -z "$(IP)" ]; then \
+		echo "Use: make gen IP=<ip_name>"; \
+		exit 1; \
+	fi
+	cd cores/ip/$(IP)/rdl && $(MAKE) gen
+
+# Create new IP
+new-ip:
+	@if [ -z "$(IP)" ]; then \
+		echo "Usage: make new-ip IP=<ip_name>"; \
+		exit 1; \
+	fi
+	./scripts/create_ip.sh $(IP)
+
+# Generate the driver for any IP (RDL + symlink to QICK)
+# Usage: make driver IP=axis_constant_iq
+driver:
+	@if [ -z "$(IP)" ]; then \
+		echo "Uso: make driver IP=<ip_name>"; \
+		exit 1; \
+	fi
+	@echo "Generating driver for $(IP)..."
+	cd cores/ip/$(IP)/rdl && $(MAKE) gen
+	@if [ -f cores/ip/$(IP)/driver/$(IP).py ]; then \
+		ln -sf ../../../firmware/fusesoc/cores/ip/$(IP)/driver/$(IP).py \
+			../../qick_lib/qick/drivers/$(IP).py; \
+		echo "  Symlink created in qick_lib/qick/drivers/$(IP).py"; \
+	else \
+		echo "  Not found driver/$(IP).py"; \
+	fi
+
+# Generate drivers for all IPs
+driver-all:
+	@for ip in $$(ls -d cores/ip/*/); do \
+		ip_name=$$(basename $$ip); \
+		if [ -f $$ip/rdl/Makefile ]; then \
+			echo "Generating $$ip_name..."; \
+			cd $$ip/rdl && $(MAKE) gen && cd ../../../..; \
+			if [ -f $$ip/driver/$$ip_name.py ]; then \
+				ln -sf ../../../firmware/fusesoc/$$ip/driver/$$ip_name.py \
+					../../qick_lib/qick/drivers/$$ip_name.py; \
+			fi; \
+		fi; \
+	done

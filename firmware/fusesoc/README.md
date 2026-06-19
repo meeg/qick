@@ -118,6 +118,19 @@ make clean
 
 ---
 
+---
+
+## PeakRDL Driver Generation
+
+For generating Python drivers with PeakRDL, see [docs/DRIVER.md](docs/DRIVER.md).
+
+Quick start:
+```bash
+make driver IP=axis_constant_iq
+```
+
+---
+
 ## Adding a new IP
 
 ### 1. Write the RTL in `../ip/`
