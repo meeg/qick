@@ -1,6 +1,6 @@
 CAPI=2:
 name: qick:ip:axis_constant_iq:1.0.0
-description: Simple wrapper of constant_iq core to build the axis_constant_iq core
+description: AXIS Constant IQ IP core
 
 filesets:
   hdl:
@@ -10,6 +10,7 @@ filesets:
     depend:
       - qick:axi:axil_slv
       - qick:cdc:sync_nxm
+      - qick:ip:axis_constant_iq_regmap
 
   tb:
     files:
@@ -21,10 +22,6 @@ filesets:
       - qick:interfaces:axi4_stream_if
       - qick:common:sim_base
 
-  lint_files:
-    depend:
-      - qick:common:lint
-
 generate:
   testrunner_gen:
     generator: svunit_gen
@@ -33,28 +30,12 @@ generate:
           - test/axis_constant_iq_tc00.sv
 
 targets:
-  default: &default
+  default:
     filesets: [hdl]
     toplevel: axis_constant_iq
-    parameters:
-      - NT
-      - N
-      - B
-
-  lint:
-    <<: *default
-    filesets_append: [lint_files]
-    default_tool: veriblelint
-    toplevel: axis_constant_iq
-    tools:
-      verilator:
-        mode: lint-only
-        verilator_options: [-Wall]
 
   test:
-    <<: *default
-    description: Simulate the design
-    filesets_append: [tb]
+    filesets: [hdl, tb]
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner
@@ -62,39 +43,3 @@ targets:
       xsim:
         xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
-      modelsim:
-        vlog_options: [-timescale=1ns/1ns -L xpm]              # XPM library
-      icarus:
-        iverilog_options:
-          - -g2012 # Use SystemVerilog-2012
-
-  synth:
-    <<: *default
-    description: Synthesize the design
-    default_tool: vivado
-    filesets_append:
-      - pynq_z2
-    tools:
-      vivado:
-        part: xc7z020clg400-1
-        synth_options:
-          - -include_dirs $XILINX_VIVADO/data/ip/xpm
-
-    parameters:
-      - NT=16
-      - N=16
-      - B=16
-
-parameters:
-  NT:
-    datatype    : int
-    description : number of memory banks (must be power of 2)
-    paramtype   : vlogparam
-  N:
-    datatype    : int
-    description : address width per bank
-    paramtype   : vlogparam
-  B:
-    datatype    : int
-    description : data width in bits
-    paramtype   : vlogparam
