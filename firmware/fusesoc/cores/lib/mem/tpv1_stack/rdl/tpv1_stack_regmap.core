@@ -1,9 +1,0 @@
-CAPI=2:
-name: qick:ip:tpv1_stack_regmap:0.1.0
-
-filesets:
-  rdl:
-    files:
-        - tpv1_stack_regmap.rdl : {file_type: user }
-        - tpv1_stack_regmap.sv : {file_type: systemVerilogSource, is_include_file: true}
-        - tpv1_stack_regmap_pkg.sv : {file_type: systemVerilogSource, is_include_file: true}
