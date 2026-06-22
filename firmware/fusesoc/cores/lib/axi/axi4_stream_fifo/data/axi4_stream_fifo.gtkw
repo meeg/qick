@@ -1,0 +1,65 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Sat Jun 20 19:52:05 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_axi_axi4_stream_fifo_1.0.1/test-xsim/axi4_stream_fifo.vcd"
+[dumpfile_mtime] "Sat Jun 20 19:51:19 2026"
+[dumpfile_size] 352978
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/axi4_stream_fifo/data/axi4_stream_fifo.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-21.288885 110000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axi4_stream_fifo_ut.
+[treeopen] testrunner.__ts.axi4_stream_fifo_ut.u_axi4_stream_fifo.
+[sst_width] 206
+[signals_width] 187
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@800200
+-s_axis
+@28
+testrunner.__ts.axi4_stream_fifo_ut.axis_in_if.aclk
+testrunner.__ts.axi4_stream_fifo_ut.axis_in_if.aresetn
+@22
+[color] 3
+testrunner.__ts.axi4_stream_fifo_ut.axis_in_if.tdata[31:0]
+@28
+[color] 3
+testrunner.__ts.axi4_stream_fifo_ut.axis_in_if.tvalid
+[color] 6
+testrunner.__ts.axi4_stream_fifo_ut.axis_in_if.tready
+@29
+[color] 3
+testrunner.__ts.axi4_stream_fifo_ut.axis_in_if.tlast
+@1000200
+-s_axis
+@800200
+-m_axis
+@28
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.aclk
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.aresetn
+[color] 3
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tready
+[color] 6
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tvalid
+@22
+[color] 6
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tdata[31:0]
+@28
+[color] 6
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tlast
+@22
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tdest[31:0]
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tid[31:0]
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tkeep[3:0]
+testrunner.__ts.axi4_stream_fifo_ut.axis_out_if.tuser[31:0]
+@1000200
+-m_axis
+@28
+testrunner.__ts.axi4_stream_fifo_ut.u_axi4_stream_fifo.u_axis_fifo.clk
+testrunner.__ts.axi4_stream_fifo_ut.u_axi4_stream_fifo.u_axis_fifo.rst
+[pattern_trace] 1
+[pattern_trace] 0

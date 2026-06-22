@@ -1,0 +1,34 @@
+// tpv1_stack_regmap.rdl
+// SystemRDL register definition for tpv1_stack IP core
+
+addrmap tpv1_stack {
+    name = "tpv1_stack Registers";
+    desc = "Registers for the tpv1_stack IP core.";
+
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    // TODO: Define your registers here
+    reg {
+        name = "CTRL_REG";
+        desc = "Control register";
+        field {
+            name = "ENABLE";
+            desc = "Enable bit";
+            sw = rw;
+            hw = r;
+        } ENABLE[0:0] = 0;
+    } CTRL_REG @0x00;
+
+    reg {
+        name = "STATUS_REG";
+        desc = "Status register";
+        field {
+            name = "READY";
+            desc = "Ready flag";
+            sw = r;
+            hw = w;
+        } READY[0:0] = 0;
+    } STATUS_REG @0x04;
+};
