@@ -1,7 +1,7 @@
 `include "alu_pkg.svh"
 
 module alu_bitwise_unit #(
-    parameter B = alu_pkg::B
+    parameter int B = alu_pkg::B
 )(
     input  logic             clk,
     input  logic             rstn,
@@ -54,7 +54,7 @@ module alu_bitwise_unit #(
 
     // Shifts: Using SV native operators for clarity
     // Shift amount is extracted from the lower bits of din_b
-    assign ls_mux = din_a_r << din_b_r; 
+    assign ls_mux = din_a_r << din_b_r;
     assign rs_mux = din_a_r >> din_b_r;
 
     // Output Mux

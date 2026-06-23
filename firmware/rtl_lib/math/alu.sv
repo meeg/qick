@@ -1,7 +1,7 @@
 `include "alu_pkg.svh"
 
 module alu #(
-    parameter B = alu_pkg::B
+    parameter int B = alu_pkg::B
 )(
     input  logic       clk,
     input  logic       rstn,
