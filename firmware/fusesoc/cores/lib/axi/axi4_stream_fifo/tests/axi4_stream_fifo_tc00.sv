@@ -26,22 +26,22 @@ module axi4_stream_fifo_unit_test;
 
     axi4_stream_if
     #(
-        .N_BYTES_TDATA  ($ceil(NB_DATA/8.0))
+        .TDATA_WIDTH  (NB_DATA)
     ) 
     axis_in_if
     (
-        .i_clk          (tb_clk), 
-        .i_rst          (tb_rst)
+        .aclk          (tb_clk), 
+        .aresetn       (~tb_rst)
     );
 
     axi4_stream_if
     #(
-        .N_BYTES_TDATA  ($ceil(NB_DATA/8.0))
+        .TDATA_WIDTH  (NB_DATA)
     ) 
     axis_out_if
     (
-        .i_clk          (tb_clk), 
-        .i_rst          (tb_rst)
+        .aclk          (tb_clk), 
+        .aresetn       (~tb_rst)
     );
 
     clk_gen 
@@ -83,9 +83,10 @@ module axi4_stream_fifo_unit_test;
     task setup();
         svunit_ut.setup();
 
-        axis_out_if.m_cb.tready  <= 1'b0;
-        axis_in_if.s_cb.tlast     <= 1'b0;
-        axis_in_if.s_cb.tvalid    <= 1'b0;
+        axis_out_if.s_cb.tready  <= 1'b0;
+        axis_in_if.m_cb.tlast    <= 1'b0;
+        axis_in_if.m_cb.tvalid   <= 1'b0;
+        axis_in_if.m_cb.tdata    <= '0;
 
         data_payload_queue  = {};
 

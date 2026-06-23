@@ -13,7 +13,7 @@ module axi4_stream_fifo
     localparam integer unsigned NB_BYTE = 8;
 
     generate
-        if (i_axis.N_BYTES_TDATA != o_axis.N_BYTES_TDATA) begin : g_check_data_width
+        if (i_axis.TDATA_WIDTH != o_axis.TDATA_WIDTH) begin : g_check_data_width
             $fatal(1, "Both input and output ports must be the same width in this AXI4-Stream FIFO");
         end
     endgenerate
@@ -22,15 +22,15 @@ module axi4_stream_fifo
 
     axis_fifo #(
         .DEPTH                  ( DEPTH                         ),
-        .DATA_WIDTH             ( NB_BYTE*i_axis.N_BYTES_TDATA  ),
+        .DATA_WIDTH             ( i_axis.TDATA_WIDTH            ),
         .KEEP_ENABLE            ( i_axis.HAS_TKEEP              ),
         .LAST_ENABLE            ( 1'b1                          ),
         .ID_ENABLE              ( i_axis.HAS_TID                ),
-        .ID_WIDTH               ( i_axis.N_BITS_TID             ),
+        .ID_WIDTH               ( i_axis.TID_WIDTH              ),
         .DEST_ENABLE            ( i_axis.HAS_TDEST              ),
-        .DEST_WIDTH             ( i_axis.N_BITS_TDEST           ),
+        .DEST_WIDTH             ( i_axis.TDEST_WIDTH            ),
         .USER_ENABLE            ( i_axis.HAS_TUSER              ),
-        .USER_WIDTH             ( i_axis.N_BITS_TUSER           ),
+        .USER_WIDTH             ( i_axis.TUSER_WIDTH            ),
         .RAM_PIPELINE           ( 5                             ),
         .OUTPUT_FIFO_ENABLE     ( 1                             ),
         .FRAME_FIFO             ( 1'b0                          ),

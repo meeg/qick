@@ -3,9 +3,9 @@ name: qick:axi:axi4_stream_fifo:1.0.1
 description: AXI-4 Stream FIFO
 
 filesets:
-  rtl:
+  hdl:
     files:
-      - src/axi4_stream_fifo.sv
+      - hdl/axi4_stream_fifo.sv
     file_type: systemVerilogSource
     depend:
       - qick:axi:axis_fifo
@@ -41,7 +41,7 @@ generate:
 targets:
   default: &default
     filesets:
-      - rtl
+      - hdl
       - tool_verilator ? (files_lint_verilator)
       - tool_veriblelint ? (files_lint_verible)
 
