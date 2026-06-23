@@ -3,7 +3,7 @@
  * @brief True‑dual‑port block RAM (independent clocks & resets).
  *
  * @description
- *   - Memoria de **NB_DATA**‑bits por palabra y **2^NB_ADDR** palabras.
+ *   - Memory of **NB_DATA**‑bits by word and **2^NB_ADDR** words.
  *   - Every port (`port_a`, `port_b`) works independently:
  *       * Can read or write at any clock cycle.
  *       * Clocks and resets can be different (dual‑clock RAM).

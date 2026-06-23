@@ -1,5 +1,5 @@
 #!/bin/bash
-# create_ip.sh - Crea la estructura para un nuevo IP core con soporte PeakRDL
+# create_ip.sh - Creates the structure for a new IP core with support for PeakRDL
 # Uso: ./scripts/create_ip.sh <ip_name>
 
 IP_NAME=$1
@@ -13,13 +13,13 @@ IP_DIR="cores/ip/$IP_NAME"
 
 echo "Creando IP: $IP_NAME"
 
-# Crear directorios
+# Create directories
 mkdir -p $IP_DIR/{hdl,rdl,driver,test,data}
 
-# Crear symlink al HDL (asumiendo que está en rtl_lib/ip/)
-ln -s ../../../../../rtl_lib/ip/${IP_NAME}.sv $IP_DIR/hdl/${IP_NAME}.sv 2>/dev/null || echo "  ⚠ No se encontró rtl_lib/ip/${IP_NAME}.sv"
+# Create symlink to HDL (assuming it is in rtl_lib/ip/)
+ln -s ../../../../../rtl_lib/ip/${IP_NAME}.sv $IP_DIR/hdl/${IP_NAME}.sv 2>/dev/null || echo "  rtl_lib/ip/${IP_NAME}.sv was not found!"
 
-# Crear Makefile para el RDL
+# Create Makefile for the RDL
 cat > $IP_DIR/rdl/Makefile << EOF
 IP_NAME = \$(shell basename \$(shell dirname \$(shell dirname \$(CURDIR))))
 RDL_FILE = \$(IP_NAME)_regmap.rdl
@@ -35,7 +35,7 @@ clean:
 .PHONY: gen clean
 EOF
 
-# Crear .gitignore para RDL
+# Create .gitignore for RDL
 cat > $IP_DIR/rdl/.gitignore << 'GITIGNORE'
 *_regmap_pkg/
 *_regmap.sv
@@ -45,7 +45,7 @@ cat > $IP_DIR/rdl/.gitignore << 'GITIGNORE'
 __pycache__/
 GITIGNORE
 
-# Crear template del .rdl
+# Create template from .rdl
 cat > $IP_DIR/rdl/${IP_NAME}_regmap.rdl << EOF
 // ${IP_NAME}_regmap.rdl
 // SystemRDL register definition for ${IP_NAME} IP core
@@ -83,7 +83,7 @@ addrmap ${IP_NAME} {
 };
 EOF
 
-# Crear template del .core para el regmap
+# Create template .core for the regmap
 cat > $IP_DIR/rdl/${IP_NAME}_regmap.core << EOF
 CAPI=2:
 name: qick:ip:${IP_NAME}_regmap:0.1.0
@@ -142,7 +142,7 @@ targets:
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
 EOF
 
-# Crear template del driver
+# Create template for the driver
 cat > $IP_DIR/driver/${IP_NAME}.py << EOF
 """
 Driver for ${IP_NAME} IP core.
@@ -198,7 +198,7 @@ class ${IP_NAME^}:
         )
 EOF
 
-# Crear template de testbench
+# Create template for the testbench
 cat > $IP_DIR/test/${IP_NAME}_tc00.sv << EOF
 \`include "svunit_defines.svh"
 
@@ -235,9 +235,9 @@ cat > $IP_DIR/test/${IP_NAME}_tests.sv << EOF
 EOF
 
 echo ""
-echo "✓ IP '$IP_NAME' creado en $IP_DIR"
+echo "✓ IP '$IP_NAME' created in $IP_DIR"
 echo ""
-echo "Siguientes pasos:"
-echo "  1. Editar rdl/${IP_NAME}_regmap.rdl con tus registros"
+echo "Next steps:"
+echo "  1. Edit rdl/${IP_NAME}_regmap.rdl with registers"
 echo "  2. cd rdl && make gen"
 echo "  3. cd .. && fusesoc run --target=test qick:ip:${IP_NAME}"
