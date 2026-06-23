@@ -1,6 +1,6 @@
 #!/bin/bash
 # create_ip.sh - Creates the structure for a new IP core with support for PeakRDL
-# Uso: ./scripts/create_ip.sh <ip_name>
+# Usage: ./scripts/create_ip.sh <ip_name>
 
 IP_NAME=$1
 
@@ -11,7 +11,7 @@ fi
 
 IP_DIR="cores/ip/$IP_NAME"
 
-echo "Creando IP: $IP_NAME"
+echo "Creating IP: $IP_NAME"
 
 # Create directories
 mkdir -p $IP_DIR/{hdl,rdl,driver,test,data}
