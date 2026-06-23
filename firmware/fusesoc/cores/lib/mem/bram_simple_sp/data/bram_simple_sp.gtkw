@@ -1,0 +1,37 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 23 15:08:15 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_bram_simple_sp_0.2.0/test-xsim/bram_simple_sp.vcd"
+[dumpfile_mtime] "Tue Jun 23 15:07:51 2026"
+[dumpfile_size] 20866
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/bram_simple_sp/data/bram_simple_sp.gtkw"
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-18.195528 270000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.bram_simple_sp_ut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 362
+@28
+[color] 3
+testrunner.__ts.bram_simple_sp_ut.u_bram.i_clk
+[color] 3
+testrunner.__ts.bram_simple_sp_ut.u_bram.i_ena
+[color] 3
+testrunner.__ts.bram_simple_sp_ut.u_bram.i_wea
+@24
+[color] 3
+testrunner.__ts.bram_simple_sp_ut.u_bram.i_addra[3:0]
+@22
+[color] 3
+testrunner.__ts.bram_simple_sp_ut.u_bram.i_dia[31:0]
+@23
+[color] 6
+testrunner.__ts.bram_simple_sp_ut.u_bram.o_doa[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
