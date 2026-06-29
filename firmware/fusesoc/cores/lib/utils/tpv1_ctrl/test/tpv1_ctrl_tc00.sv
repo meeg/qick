@@ -36,6 +36,7 @@
 //------------------------------------------------------------------------------
 module tpv1_ctrl_unit_test;
     import svunit_pkg::svunit_testcase;
+    import tproc_pkg::*;
 
     string name = "tpv1_ctrl_ut";
     svunit_testcase svunit_ut;

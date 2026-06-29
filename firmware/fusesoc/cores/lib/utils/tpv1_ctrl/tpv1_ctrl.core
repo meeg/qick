@@ -7,13 +7,15 @@ filesets:
     files:
       - hdl/tpv1_ctrl.sv
     file_type: systemVerilogSource
+    depend: 
+      - qick:pkg:tproc_pkg
 
   tb:
     files:
       - test/tpv1_ctrl_tc00.sv
       - test/tpv1_ctrl_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
-    depend:
+    depend: 
       - qick:common:sim_base
 
   lint_files:
