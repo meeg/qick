@@ -1,6 +1,6 @@
 CAPI=2:
 name: qick:math:signed_comparator:1.0.0
-description: Averager block
+description: Signed comparator unit for the tProcv1
 
 filesets:
   hdl:

@@ -1,6 +1,5 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
-`include "alu_pkg.svh"
 
 //------------------------------------------------------------------------------
 // Component: alu_arith_unit_unit_test
