@@ -101,3 +101,4 @@ module signed_comparator #(
     end
 
 endmodule : signed_comparator
+

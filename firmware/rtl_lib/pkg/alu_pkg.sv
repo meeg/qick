@@ -1,10 +1,6 @@
-// alu_pkg.svh
-`ifndef ALU_PKG_SVH
-`define ALU_PKG_SVH
-
 package alu_pkg;
     // Data width default
-    parameter int B = 16;
+    localparam int B = 16;
 
     // Operation codes for Arithmetic Unit
     typedef enum logic [3:0] {
@@ -23,5 +19,3 @@ package alu_pkg;
         BITW_RSHIFT = 4'b0101
     } bitw_op_e;
 endpackage
-
-`endif
