@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun 29 21:10:08 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_dmem_ctrl_1.0.0/test-xsim/dmem_ctrl.vcd"
+[dumpfile_mtime] "Mon Jun 29 21:06:02 2026"
+[dumpfile_size] 17370
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/dmem_ctrl/data/dmem_ctrl.gtkw"
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-7.983717 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.dmem_ctrl_ut.
+[sst_width] 206
+[signals_width] 134
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.dmem_ctrl_ut.u_dut.clk
+[color] 3
+testrunner.__ts.dmem_ctrl_ut.u_dut.rstn
+[color] 6
+testrunner.__ts.dmem_ctrl_ut.u_dut.sel_o[1:0]
+[color] 6
+testrunner.__ts.dmem_ctrl_ut.u_dut.ar_exec_o
+[color] 3
+testrunner.__ts.dmem_ctrl_ut.u_dut.ar_exec_ack_i
+[color] 3
+testrunner.__ts.dmem_ctrl_ut.u_dut.aw_exec_ack_i
+@29
+[color] 6
+testrunner.__ts.dmem_ctrl_ut.u_dut.aw_exec_o
+[color] 6
+testrunner.__ts.dmem_ctrl_ut.u_dut.busy_o
+@28
+testrunner.__ts.dmem_ctrl_ut.u_dut.mode_reg
+testrunner.__ts.dmem_ctrl_ut.u_dut.start_reg
+@2024
+[color] 2
+^1 /home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/dmem_ctrl/data/states.txt
+testrunner.__ts.dmem_ctrl_ut.u_dut.state[2:0]
+[pattern_trace] 1
+[pattern_trace] 0
