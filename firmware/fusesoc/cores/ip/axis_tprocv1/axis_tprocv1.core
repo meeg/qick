@@ -1,0 +1,69 @@
+CAPI=2:
+name: qick:ip:axis_tprocv1:1.0.0
+description: axis_tprocv1 IP core
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_tprocv1.sv
+      - hdl/axi_slv_tprocv1.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ip:axis_tprocv1_regmap
+      - qick:interfaces:axi4_stream_if
+      - qick:mem:dmem
+      - qick:mem:bram_tdp
+      - qick:processors:tprocv1
+
+  tb:
+    files:
+      - test/axis_tprocv1_tc00.sv
+      - test/axis_tprocv1_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - test/axis_tprocv1_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_tprocv1
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_tprocv1
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
