@@ -104,7 +104,7 @@ module dmem_axis_writer #(
             // Address counter: latch start on INIT, advance on each valid beat
             if (init_state)
                 addr_cnt <= addr_i;
-            else if (axis.tvalid)
+            else if (axis.tvalid && axis.tready)
                 addr_cnt <= addr_cnt + 1'b1;
 
             // Pipeline stage: register address, data and write enable
@@ -133,7 +133,7 @@ module dmem_axis_writer #(
     //--------------------------------------------------------------------------
     // Write enable: combinational gating with write_state and tvalid
     //--------------------------------------------------------------------------
-    assign we_int = axis.tvalid & write_state;
+    assign we_int = axis.tvalid & axis.tready;
 
     //--------------------------------------------------------------------------
     // AXI4-Stream slave: assert tready during write state
