@@ -85,7 +85,7 @@ targets:
 
   test:
     description: Simulate the design
-    filesets: [hdl, lint_files, tb01]
+    filesets: [hdl, tb01]
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner

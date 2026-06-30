@@ -22,6 +22,10 @@ filesets:
       - qick:interfaces:axi4_stream_if
       - qick:common:sim_base
 
+  lint_files:
+    depend:
+      - qick:common:lint
+
 generate:
   testrunner_gen:
     generator: svunit_gen
@@ -30,11 +34,22 @@ generate:
           - test/axis_constant_iq_tc00.sv
 
 targets:
-  default:
+  default: &default
     filesets: [hdl]
     toplevel: axis_constant_iq
 
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_constant_iq
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+
   test:
+    description: Simulate the design
     filesets: [hdl, tb]
     default_tool: xsim
     generate: [testrunner_gen]
@@ -43,3 +58,10 @@ targets:
       xsim:
         xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
