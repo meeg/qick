@@ -153,3 +153,4 @@ module dmem_single_rw #(
     assign do_o       = dout_r;
 
 endmodule
+
