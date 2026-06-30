@@ -1,43 +1,71 @@
 # FuseSoC — IP Development and Simulation
 
-This directory provides a [FuseSoC](https://fusesoc.readthedocs.io)-based environment
-for developing and simulating QICK IP cores independently of the full Vivado project.
+This directory provides a [FuseSoC](https://fusesoc.readthedocs.io)-based
+environment for developing and simulating QICK IP cores independently of the
+full Vivado project.
 
 ## How it works
 
-RTL sources are organized in two locations:
-
-- **`../rtl_lib/`** — Shared modules (AXI, CDC, interfaces, utilities)
-- **`../ip/`** — QICK IP cores that use modules from `rtl_lib`
-
-FuseSoC cores in `cores/` contain symlinks pointing to the RTL sources in `ip/`
-and rely on `qick:common:sim_base` to include `rtl_lib/` paths.
+RTL sources live in `../rtl_lib/`, organized by category. FuseSoC cores in
+`cores/` are thin wrappers: each core has a `hdl/<name>.sv` symlink pointing to
+the real source in `rtl_lib/<category>/`, a `.core` description, and SVUnit
+testbenches. Cores depend on `qick:common:sim_base` (which sets up include
+paths) and, when needed, on shared packages (`qick:pkg:*`).
 
 ```
 firmware/
-├── rtl_lib/                     ← Shared RTL (source of truth)
+├── rtl_lib/                      ← Shared RTL (SOURCE OF TRUTH), by category
 │   ├── axi/
 │   ├── cdc/
+│   ├── dsp/
 │   ├── interfaces/
-│   ├── pkg/
-│   │   └── qick_pkg.sv
+│   ├── ip/                       ← top-level IP RTL (e.g. axis_tprocv1.sv)
+│   ├── math/
+│   ├── mem/
+│   ├── misc/
+│   ├── pkg/                      ← packages (alu_pkg, tproc_pkg, qick_pkg, ...)
+│   ├── processors/               ← tprocv1.sv, ...
 │   └── utils/
-├── ip/
-│   └── my_ip/
-│       └── src/                 ← IP-specific RTL
-│           └── my_ip.sv
 └── fusesoc/
     ├── cores/
-    │   └── my_ip/
-    │       ├── hdl -> ../../../ip/my_ip/src   ← symlink
-    │       ├── my_ip.core
-    │       └── test/
-    │           └── my_ip_tc00.sv
-    ├── common/
-    │   └── sim/                 ← sim_base.core (includes rtl_lib/)
+    │   ├── ip/                   ← packaged IP cores (with rdl/, driver/)
+    │   │   ├── axis_constant_iq/
+    │   │   ├── axis_tprocv1/
+    │   │   └── ...
+    │   ├── lib/                  ← library cores, by category
+    │   │   ├── axi/
+    │   │   ├── cdc/
+    │   │   ├── interfaces/
+    │   │   ├── math/
+    │   │   ├── mem/
+    │   │   ├── processors/
+    │   │   └── utils/
+    │   └── pkg/                  ← package cores (alu_pkg, tproc_pkg, ...)
+    ├── common/                   ← sim_base, lint rules, xilinx glbl
+    ├── generators/               ← FuseSoC generators (systemrdl, svunit)
+    ├── scripts/                  ← setup and core-creation scripts
+    ├── docs/                     ← documentation (DRIVER.md, NEW_CORE.md)
     ├── Makefile
     └── requirements.txt
 ```
+
+A typical library core looks like:
+
+```
+cores/lib/<category>/<core>/
+├── <core>.core                  ← FuseSoC description
+├── data/                        ← aux files (waveforms, vectors)
+├── hdl/
+│   └── <core>.sv -> ../../../../../../rtl_lib/<category>/<core>.sv
+├── lint/                        ← lint config / waivers
+└── tests/
+    ├── <core>_tc00.sv           ← SVUnit testbench top
+    └── <core>_tests.sv          ← SVUnit test cases (included)
+```
+
+> Two kinds of cores:
+>   - `cores/lib/<category>/<core>/`  — reusable building blocks (RTL + tests).
+>   - `cores/ip/<name>/`              — packaged IPs (add rdl/ + driver/).
 
 ---
 
@@ -60,13 +88,10 @@ Run once after cloning:
 ```bash
 cd firmware/fusesoc
 make setup_environment
-cd ..
 ```
 
-This creates:
-- Python virtual environment in `venv/`
-- Symlinks from `cores/*/hdl` to `../ip/*/src`
-- Clones SVUnit library
+This creates the Python virtual environment in `venv/`, sets up symlinks, and
+clones the SVUnit library.
 
 ---
 
@@ -79,38 +104,28 @@ cd firmware/fusesoc
 source venv/bin/activate
 ```
 
-### Simulate a single IP:
+### Simulate a core
 
 ```bash
-make sim IP=qick_processor
+make sim IP=tpv2_alu        # runs the 'test' target (SVUnit) for the core
+make sim IP=lfsr
 ```
 
-### Run all SVUnit tests:
+### Lint a core
 
 ```bash
-make sim_svunit
+make lint IP=tpv2_alu
 ```
 
-### Lint a single IP:
-
-```bash
-make lint IP=qick_processor
-```
-
-### List all available cores:
+### List / inspect cores
 
 ```bash
 make list-cores
+make core-info CORE=qick:math:tpv2_alu
+make deps IP=tpv2_alu
 ```
 
-### Show dependencies:
-
-```bash
-make deps IP=qick_processor
-make deps-recursive IP=qick_processor
-```
-
-### Clean build artifacts:
+### Clean build artifacts
 
 ```bash
 make clean
@@ -118,223 +133,53 @@ make clean
 
 ---
 
-## PeakRDL: Register Definition & Driver Generation
+## Creating new cores
 
-IP cores use [PeakRDL](https://peakrdl.readthedocs.io) for register definition.
-A single `.rdl` file generates SystemVerilog, Python drivers, and HTML docs.
+Two helper scripts automate core creation. See **docs/NEW_CORE.md** for details.
 
-Full documentation: [docs/DRIVER.md](docs/DRIVER.md)
+- **Library core** (reusable block, RTL already in `rtl_lib/<category>/`):
 
-**Quick reference:**
+  ```bash
+  ./scripts/new_lib_core.sh <category> <core_name> [pkg_depend]
+  # e.g.
+  ./scripts/new_lib_core.sh utils lfsr
+  ./scripts/new_lib_core.sh math  tpv2_alu  qick:pkg:alu_pkg
+  ```
+
+- **Packaged IP** (with register map + driver, PeakRDL flow):
+
+  ```bash
+  make new-ip IP=my_new_ip
+  ```
+
+---
+
+## PeakRDL: register definition & driver generation
+
+Packaged IPs use [PeakRDL](https://peakrdl.readthedocs.io) for register maps and
+driver/doc generation. Full documentation: **docs/DRIVER.md**.
+
+Quick reference:
 
 ```bash
-make driver IP=axis_constant_iq     # Generate: SystemVerilog + Python + QICK symlink
-make sim IP=axis_constant_iq        # Generate + simulate
-make rdl-docs IP=axis_constant_iq   # Generate HTML register documentation
-make new-ip IP=my_new_ip            # Create new IP from template
-```
-
-**IP structure with PeakRDL:**
-
-```
-cores/ip/<ip_name>/
-├── <ip_name>.core
-├── rdl/
-│   ├── <ip_name>_regmap.rdl          ← SOURCE OF TRUTH
-│   ├── <ip_name>_regmap.core
-│   ├── Makefile
-│   ├── <ip_name>_regmap_pkg/         ← Generated Python package
-│   └── docs/                         ← Generated HTML docs
-├── driver/
-│   └── <ip_name>.py                  ← QICK driver
-├── hdl/
-│   └── <ip_name>.sv -> ...
-└── test/
-    └── <ip_name>_tc00.sv
+make driver   IP=axis_constant_iq    # generate Python register package + driver symlink
+make rdl-docs IP=axis_constant_iq    # generate HTML register documentation
+make new-ip   IP=my_new_ip           # create a new IP from template
 ```
 
 ---
 
-## Adding a new IP
+## Packaging an IP for Vivado
 
-### 1. Write the RTL in `../ip/`
-
-```bash
-mkdir -p ../ip/my_new_ip/src/
-vim ../ip/my_new_ip/src/my_new_ip.sv
-```
-
-Your IP can use modules from `rtl_lib/`:
-
-```systemverilog
-// my_new_ip.sv
-`include "qick_pkg.sv"
-import qick_pkg::*;
-
-module my_new_ip (
-  input logic clk,
-  input logic rstn,
-  // Use AXI interface from rtl_lib/interfaces/
-  axi4_stream_if.slave s_axis,
-  axi4_stream_if.master m_axis
-);
-  // Use utility from rtl_lib/utils/
-  rising_edge_det u_redet ( .clk(clk), .in(signal), .out(edge) );
-endmodule
-```
-
-### 2. Create the FuseSoC core
+Once the RTL is tested:
 
 ```bash
-cd firmware/fusesoc
-mkdir -p cores/my_new_ip/test
-
-# Create symlink to IP source
-ln -s ../../../ip/my_new_ip/src cores/my_new_ip/hdl
-```
-
-Create `cores/my_new_ip/my_new_ip.core`:
-
-```yaml
-CAPI=2:
-name: qick:ip:my_new_ip:1.0.0
-description: Brief description
-
-filesets:
-  hdl:
-    files:
-      - hdl/my_new_ip.sv
-    file_type: systemVerilogSource
-    depend:
-      - qick:common:sim_base   # Provides rtl_lib/ paths and qick_pkg
-
-  tb:
-    files:
-      - test/my_new_ip_tc00.sv
-      - test/tests.sv: {is_include_file: true}
-    file_type: systemVerilogSource
-    depend:
-      - qick:common:sim_base
-
-generate:
-  testrunner_gen:
-    generator: svunit_gen
-    parameters:
-      test_files:
-        - test/my_new_ip_tc00.sv
-
-targets:
-  default: &default
-    filesets: [hdl]
-    toplevel: my_new_ip
-
-  lint:
-    <<: *default
-    filesets_append: [lint_files]
-    default_tool: veriblelint
-
-  test:
-    <<: *default
-    filesets_append: [tb]
-    default_tool: xsim
-    generate: [testrunner_gen]
-    toplevel: testrunner
-    tools:
-      xsim:
-        xelab_options: [-debug all -L XPM]
-        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
-```
-
-### 3. Write the SVUnit testbench
-
-`cores/my_new_ip/test/my_new_ip_tc00.sv`:
-
-```systemverilog
-`include "svunit_defines.svh"
-`include "qick_pkg.sv"   // if needed
-
-module my_new_ip_unit_test;
-  import svunit_pkg::svunit_testcase;
-  import qick_pkg::*;    // if needed
-
-  string name = "my_new_ip_ut";
-  svunit_testcase svunit_ut;
-
-  logic clk  = 0;
-  logic rstn = 1;
-  always #2 clk = ~clk;   // 250 MHz
-
-  // Use interfaces from rtl_lib/interfaces/
-  axi4_stream_if #(.DATA_WIDTH(32), .USER_EN(0)) axis_master ();
-  axi4_stream_if #(.DATA_WIDTH(32), .USER_EN(0)) axis_slave ();
-
-  // Instantiate DUT
-  my_new_ip u_dut (
-    .clk(clk),
-    .rstn(rstn),
-    .s_axis(axis_master),
-    .m_axis(axis_slave)
-  );
-
-  function void build();
-    svunit_ut = new(name);
-  endfunction
-
-  task setup();
-    svunit_ut.setup();
-    rstn = 0; repeat(4) @(posedge clk);
-    rstn = 1; repeat(4) @(posedge clk);
-  endtask
-
-  task teardown();
-    svunit_ut.teardown();
-  endtask
-
-  `SVUNIT_TESTS_BEGIN
-
-  `SVTEST(test00_reset)
-    repeat(10) @(posedge clk);
-    `ASSERT_EQUAL(1, 1)
-  `SVTEST_END
-
-  `SVUNIT_TESTS_END
-
-endmodule
-```
-
-### 4. Simulate
-
-```bash
-make sim IP=my_new_ip
-```
-
----
-
-## Packaging an IP for Vivado Block Design
-
-Once the RTL is ready and tested:
-
-```bash
-# Basic packaging
 make package IP=my_new_ip
-
-# With dependencies
-make package IP=my_new_ip RESOLVE_DEPS=1
-
-# Package all IPs
 make package-all
 ```
 
-This generates:
-- `../ip/my_new_ip/component.xml`
-- `../ip/my_new_ip/xgui/my_new_ip_v1_0.tcl`
-
-After packaging, the IP is available in HOG projects. Recreate the project:
-
-```bash
-cd firmware
-./Hog/Do CREATE 216/tpv2_std
-```
+This generates the Vivado IP packaging artifacts. After packaging, recreate the
+HOG project as usual.
 
 ---
 
@@ -342,79 +187,42 @@ cd firmware
 
 Vivado's `ipx::infer_bus_interfaces` recognizes:
 
-| Interface type | Port prefix |
-|---|---|
-| AXI4-Lite slave | `s_axi_*` |
-| AXI4-Stream slave | `s_axis_*` or `s0_axis_*` |
-| AXI4-Stream master | `m_axis_*` or `m0_axis_*` |
-| Clock | `*_clk*` or `*_aclk*` |
-| Reset | `*_aresetn*` or `*_resetn*` |
+| Interface type    | Port prefix              |
+|-------------------|--------------------------|
+| AXI4-Lite slave   | `s_axi_*`                |
+| AXI4-Stream slave | `s_axis_*` or `s0_axis_*`|
+| AXI4-Stream master| `m_axis_*` or `m0_axis_*`|
+| Clock             | `*_clk*` or `*_aclk*`    |
+| Reset             | `*_aresetn*` or `*_resetn*` |
 
 ---
 
-## Complete IP development workflow
+## Conventions
 
-```
-1. Create IP structure  →  make new-ip IP=my_ip
-2. Define registers     →  edit rdl/my_ip_regmap.rdl
-3. Write RTL            →  ../ip/my_ip/src/my_ip.sv (uses rtl_lib/)
-4. Write testbench      →  cores/my_ip/test/my_ip_tc00.sv
-5. Generate driver      →  make driver IP=my_ip
-6. Generate docs        →  make rdl-docs IP=my_ip
-7. Simulate             →  make sim IP=my_ip
-8. Fix RTL, re-sim      →  make sim IP=my_ip
-9. Package for Vivado   →  make package IP=my_ip
-10. Recreate project    →  cd ../.. && ./Hog/Do CREATE 216/tpv2_std
-11. Open Vivado         →  vivado Projects/tpv2_std/tpv2_std.xpr
-12. Instantiate IP      →  drag from IP catalog → Block Design
-```
-
----
-
-## Directory structure
-
-```
-fusesoc/
-├── common/                  Shared simulation infrastructure
-│   ├── sim/                 sim_base.core (includes rtl_lib/)
-│   ├── xilinx/              Xilinx glbl module (for XPM)
-│   └── lint/                Verible lint rules
-├── cores/                   One subdirectory per IP
-│   ├── qick_pkg/            Shared QICK package (wrapper for rtl_lib/pkg/)
-│   ├── qick_processor/      tProcessor V2 example
-│   └── my_new_ip/           Your new IP
-│       ├── rdl/             SystemRDL register definitions
-│       ├── driver/          Python QICK driver
-│       ├── hdl/             RTL sources
-│       └── test/            SVUnit testbenches
-├── generators/              FuseSoC code generators
-│   └── systemrdl/           PeakRDL generator
-├── scripts/                 Setup and utility scripts
-├── docs/                    Documentation
-├── Makefile
-└── requirements.txt
-```
+- **rtl_lib/ is the source of truth** for all RTL; cores symlink into it.
+- **Ports and signals are lowercase** (linter requirement), e.g. `a_i`, `z_o`.
+- **Module naming**: processor-specific blocks use a `tpv2_*` / `tpv1_*` prefix;
+  generic reusable blocks have no prefix (e.g. `lfsr`, `sync_nxm`).
+- **Constants / opcodes live in packages** (`cores/pkg/*`, `rtl_lib/pkg/*`),
+  e.g. `alu_pkg`, `tproc_pkg`.
+- **Test directory is `tests/`** (plural), with `<core>_tc00.sv` (top) and
+  `<core>_tests.sv` (included cases).
+- **VLNV pattern**: `qick:<category>:<core>:<version>` for library cores,
+  `qick:ip:<name>:<version>` for packaged IPs.
+- PeakRDL-generated files (`*_regmap_pkg/`, generated `.sv`, `docs/`) are **never
+  committed**.
+- IPs that instantiate Xilinx primitives (DSP, XPM, DDS, FIR) require Vivado/xsim
+  and cannot be linted/simulated with Verilator alone.
 
 ---
 
-## Core naming convention
+## Documentation index
 
-| Namespace | Contents |
-|-----------|----------|
-| `qick:ip:*` | QICK IP cores (use rtl_lib/) |
-| `qick:ip:*_regmap` | Register map definitions (PeakRDL) |
-| `qick:common:*` | Shared infrastructure (sim_base, clk_gen, lint) |
-| `qick:utils:rdl_gen` | PeakRDL code generator |
-
----
-
-## Notes
-
-- **`rtl_lib/` is the source of truth** for shared RTL modules
-- **`.rdl` files are the source of truth** for register maps
-- **`qick:common:sim_base`** includes `rtl_lib/` paths automatically
-- IPs with Xilinx sub-IPs (DDS, FIR, etc.) require Vivado and cannot be simulated with FuseSoC
-- Pure RTL IPs (like `qick_processor`) can be simulated directly
-- PeakRDL-generated files (`_regmap_pkg/`, `.sv`, `docs/`) should **never be committed**
+| Document            | Purpose                                          |
+|---------------------|--------------------------------------------------|
+| README.md (this)    | Environment overview, setup, daily usage         |
+| docs/NEW_CORE.md    | How to create new library cores and IPs          |
+| docs/DRIVER.md      | PeakRDL register maps and Python driver generation |
 
 ---
+
