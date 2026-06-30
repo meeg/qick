@@ -1,0 +1,54 @@
+///////////////////////////////////////////////////////////////////////////////
+// Module : delay_line
+// Project: QICK (generic utility, rtl_lib/utils)
+///////////////////////////////////////////////////////////////////////////////
+/**
+ * @module delay_line
+ * @brief Parameterizable M-bit, N-stage delay line for latency matching.
+ *
+ * @description
+ *   Delays an M-bit data word by exactly N clock cycles. Used to align signals
+ *   travelling through datapaths of different pipeline depths within the SAME
+ *   clock domain (latency matching). This is NOT a CDC synchronizer — for clock
+ *   domain crossing use sync_nxm (which adds the ASYNC_REG attribute).
+ *
+ *   Latency: exactly N cycles. Synchronous active-low reset clears all stages.
+ *
+ * @param N  Number of delay stages / latency in cycles (minimum 1).
+ * @param M  Data width in bits.
+ *
+ * @port i_clk   Clock.
+ * @port i_rstn  Active-low synchronous reset.
+ * @port i_data  M-bit input.
+ * @port o_data  M-bit input delayed by N cycles.
+ */
+module delay_line #(
+   parameter int N = 2,
+   parameter int M = 8
+)(
+   input  logic         i_clk  ,
+   input  logic         i_rstn ,
+   input  logic [M-1:0] i_data ,
+   output logic [M-1:0] o_data
+);
+
+   logic [M-1:0] d_r [N];
+   logic [M-1:0] d_n [N];
+
+   always_ff @(posedge i_clk) begin
+      if (!i_rstn)
+         d_r <= '{default:'0};
+      else
+         d_r <= d_n;
+   end
+
+   always_comb begin
+      d_n[0] = i_data;
+      for (int i = 1; i < N; i++)
+         d_n[i] = d_r[i-1];
+   end
+
+   assign o_data = d_r[N-1];
+
+endmodule
+

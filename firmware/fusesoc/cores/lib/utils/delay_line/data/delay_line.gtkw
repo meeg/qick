@@ -1,0 +1,29 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 30 21:26:19 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_utils_delay_line_1.0.0/test-xsim/delay_line.vcd"
+[dumpfile_mtime] "Tue Jun 30 21:24:46 2026"
+[dumpfile_size] 6901
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/utils/delay_line/data/delay_line.gtkw"
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-6.871922 309 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.delay_line_ut.
+[treeopen] testrunner.__ts.delay_line_ut.dut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+testrunner.__ts.delay_line_ut.dut.i_clk
+@29
+testrunner.__ts.delay_line_ut.dut.i_rstn
+@22
+testrunner.__ts.delay_line_ut.dut.i_data[15:0]
+testrunner.__ts.delay_line_ut.dut.o_data[15:0]
+[pattern_trace] 1
+[pattern_trace] 0
