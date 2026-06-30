@@ -20,20 +20,24 @@ mkdir -p $IP_DIR/{hdl,rdl,driver,test,data}
 ln -s ../../../../../rtl_lib/ip/${IP_NAME}.sv $IP_DIR/hdl/${IP_NAME}.sv 2>/dev/null || echo "  rtl_lib/ip/${IP_NAME}.sv was not found!"
 
 # Create Makefile for the RDL
-cat > $IP_DIR/rdl/Makefile << EOF
-IP_NAME = \$(shell basename \$(shell dirname \$(shell dirname \$(CURDIR))))
-RDL_FILE = \$(IP_NAME)_regmap.rdl
+cat > $IP_DIR/rdl/Makefile << 'EOF'
+IP_NAME    = $(shell basename $(shell dirname $(CURDIR)))
+RDL_FILE   = $(IP_NAME)_regmap.rdl
 GEN_SCRIPT = ../../../../generators/systemrdl/rdl_tools.py
-RDL_FILE = $(IP_NAME)_regmap.rdl
 
 gen:
-	python3 \$(GEN_SCRIPT) \$(RDL_FILE) --output . --hdl --python
+@@TAB@@python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --hdl --python
+
+docs:
+@@TAB@@python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --html
 
 clean:
-	rm -rf \$(IP_NAME)_regmap_pkg \$(IP_NAME)_regmap*.sv \$(IP_NAME)_regmap*.svh
+@@TAB@@rm -rf $(IP_NAME)_regmap_pkg $(IP_NAME)_regmap*.sv $(IP_NAME)_regmap*.svh
 
-.PHONY: gen clean
+.PHONY: gen docs clean
 EOF
+# Replace the placeholder with a real tab
+sed -i 's/@@TAB@@/\t/' $IP_DIR/rdl/Makefile
 
 # Create .gitignore for RDL
 cat > $IP_DIR/rdl/.gitignore << 'GITIGNORE'
