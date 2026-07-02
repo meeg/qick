@@ -1,1 +1,0 @@
-../../../../../../rtl_lib/dsp/ctrl_sg_v6.sv

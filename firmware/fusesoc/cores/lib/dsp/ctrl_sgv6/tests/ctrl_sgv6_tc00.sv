@@ -1,6 +1,6 @@
 // ============================================================================
-// File: ctrl_sg_v6_tc00.sv
-// Description: SVUnit testbench top-level for ctrl_sg_v6 (signal gen v6 control).
+// File: ctrl_sgv6_tc00.sv
+// Description: SVUnit testbench top-level for ctrl_sgv6 (signal gen v6 control).
 //
 //   Verifies the FIFO-descriptor decode, the READ/CNT FSM, the FIFO read
 //   handshake, and the pipeline timing of the control outputs (gain, src,
@@ -15,10 +15,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module ctrl_sg_v6_unit_test;
+module ctrl_sgv6_unit_test;
     import svunit_pkg::svunit_testcase;
 
-    string name = "ctrl_sg_v6_ut";
+    string name = "ctrl_sgv6_ut";
     svunit_testcase svunit_ut;
 
     // =========================================================================
@@ -70,14 +70,14 @@ module ctrl_sg_v6_unit_test;
     // Dump
     // =========================================================================
     initial begin
-        $dumpfile("ctrl_sg_v6.vcd");
+        $dumpfile("ctrl_sgv6.vcd");
         $dumpvars(0, dut);
     end
 
     // =========================================================================
     // DUT
     // =========================================================================
-    ctrl_sg_v6 #(
+    ctrl_sgv6 #(
         .N     (N),
         .N_DDS (N_DDS)
     ) dut (
@@ -201,7 +201,7 @@ module ctrl_sg_v6_unit_test;
     end
 
     `SVUNIT_TESTS_BEGIN
-    `include "ctrl_sg_v6_tests.sv"
+    `include "ctrl_sgv6_tests.sv"
     `SVUNIT_TESTS_END
 
 endmodule

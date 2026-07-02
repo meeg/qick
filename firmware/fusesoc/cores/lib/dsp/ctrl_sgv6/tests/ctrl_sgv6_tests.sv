@@ -1,6 +1,6 @@
 // ============================================================================
-// File: ctrl_sg_v6_tests.sv
-// Description: SVUnit test cases for ctrl_sg_v6. Included by ctrl_sg_v6_tc00.sv.
+// File: ctrl_sgv6_tests.sv
+// Description: SVUnit test cases for ctrl_sgv6. Included by ctrl_sg_v6_tc00.sv.
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -144,3 +144,4 @@
     tb_cb.tb_fifo_empty <= 1'b1;
     repeat(30) @(tb_cb);
 `SVTEST_END
+

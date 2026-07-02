@@ -1,18 +1,18 @@
 CAPI=2:
-name: qick:dsp:ctrl_sg_v6:1.0.0
-description: ctrl_sg_v6 (dsp library core).
+name: qick:dsp:ctrl_sgv6:1.0.0
+description: ctrl_sgv6 (dsp library core).
 
 filesets:
   hdl:
     files:
-      - hdl/ctrl_sg_v6.sv
+      - hdl/ctrl_sgv6.sv
     file_type: systemVerilogSource
     # depend:
     #   - qick:pkg:<your_pkg>   # add package deps here if needed
   tb:
     files:
-      - tests/ctrl_sg_v6_tc00.sv
-      - tests/ctrl_sg_v6_tests.sv: {is_include_file: true}
+      - tests/ctrl_sgv6_tc00.sv
+      - tests/ctrl_sgv6_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
@@ -25,17 +25,17 @@ generate:
     generator: svunit_gen
     parameters:
         test_files:
-          - tests/ctrl_sg_v6_tc00.sv
+          - tests/ctrl_sgv6_tc00.sv
 
 targets:
   default: &default
     filesets: [hdl]
-    toplevel: ctrl_sg_v6
+    toplevel: ctrl_sgv6
   lint:
     <<: *default
     filesets_append: [lint_files]
     default_tool: veriblelint
-    toplevel: ctrl_sg_v6
+    toplevel: ctrl_sgv6
     tools:
       verilator:
         mode: lint-only

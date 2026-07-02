@@ -3,11 +3,11 @@
 //
 // Fermi National Accelerator Laboratory
 //
-// Module : ctrl_sg_v6
+// Module : ctrl_sgv6
 // Project: QICK signal generator v6 (axis_signal_gen_v6)
 ///////////////////////////////////////////////////////////////////////////////
 /**
- * @module ctrl_sg_v6
+ * @module ctrl_sgv6
  * @brief Control / sequencer for the v6 arbitrary signal generator.
  *
  * @description
@@ -68,7 +68,7 @@
  * @port o_stdy       Steady-value selector.
  * @port o_en         Output enable.
  */
-module ctrl_sg_v6 #(
+module ctrl_sgv6 #(
    parameter int N     = 16,
    parameter int N_DDS = 16
 )(
