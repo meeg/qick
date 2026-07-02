@@ -1,0 +1,77 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul  1 22:19:06 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_ip_axis_signal_gen_v6_1.0.0/test-xsim/axis_signal_gen_v6.vcd"
+[dumpfile_mtime] "Wed Jul  1 22:18:15 2026"
+[dumpfile_size] 596075
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/ip/axis_signal_gen_v6/data/axis_signal_gen_v6.gtkw"
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-19.895802 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_signal_gen_v6_ut.
+[treeopen] testrunner.__ts.axis_signal_gen_v6_ut.dut.
+[sst_width] 206
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_aclk
+@29
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_aresetn
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.aw_en
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_araddr[5:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_arready
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_awaddr[5:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_awready
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_bresp[1:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_bvalid
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_rdata[31:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_rresp[1:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_rvalid
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.axi_wready
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.rd_addr_accept
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.reg_data_out[31:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_araddr[5:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_arprot[2:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_arready
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_arvalid
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_awaddr[5:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_awprot[2:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_awready
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_awvalid
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_bready
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_bresp[1:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_bvalid
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_rdata[31:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_rready
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_rresp[1:0]
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_rvalid
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_wdata[31:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_wready
+@22
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_wstrb[3:0]
+@28
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.s_axi_wvalid
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.slv_reg_rden
+testrunner.__ts.axis_signal_gen_v6_ut.dut.axil_slv_i.slv_reg_wren
+[pattern_trace] 1
+[pattern_trace] 0
