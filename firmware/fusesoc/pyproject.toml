@@ -1,7 +1,3 @@
-=================================================================
-FILE: firmware/fusesoc/pyproject.toml
-=================================================================
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -12,20 +8,16 @@ version = "0.2.0"
 description = "QICK FuseSoC environment"
 requires-python = ">=3.8"
 dependencies = [
-    # --- FuseSoC / EDA flow ---
     "fusesoc==2.4.3",
     "edalize==0.6.1",
     "jinja2",
-    # --- Test framework ---
     "pytest==7.2.0",
-    # --- Drivers ---
     "numpy",
-    # --- SystemRDL / PeakRDL (register maps, drivers, docs) ---
     "systemrdl-compiler",
     "peakrdl>=0.6.0",
-    "peakrdl-python==3.1.2",   # pinned: DRIVER.md API validated against 3.1.2
-    "peakrdl-regblock",        # strategy-1 IPs (generated regblock RTL)
-    "peakrdl-html",            # make rdl-docs
+    "peakrdl-python==3.1.2",
+    "peakrdl-regblock",
+    "peakrdl-html",
 ]
 
 [tool.setuptools]
@@ -37,4 +29,3 @@ pythonpath = ["scripts"]
 markers = [
     "svunit_test: RTL testbenches run via SVUnit + simulator",
 ]
-
