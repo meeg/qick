@@ -1,0 +1,39 @@
+CAPI=2:
+name: qick:dsp:dds_compiler_0:1.0.0
+description: DDS Compiler 0 (Xilinx IP). Behavioural model for sim/lint, .xci for synth.
+
+filesets:
+  # Behavioural model for simulation and lint (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/dds_compiler_0.sv
+    file_type: systemVerilogSource
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - src/dds_compiler_0/dds_compiler_0.xci: {file_type: xci}
+  
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [sim_model]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: dds_compiler_0
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  synth:
+    filesets: [synth_xci]
