@@ -15,6 +15,19 @@ import shutil
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
+def get_core_description(core_name, cores_root):
+    """Read the description field from the IP's .core file."""
+    core_file = find_core_file(core_name, cores_root)
+    if not core_file:
+        return None
+    import yaml
+    try:
+        with open(core_file) as f:
+            data = yaml.safe_load(f)
+        return data.get('description', None)
+    except Exception:
+        return None
+    
 def find_firmware_root(start: Path) -> Path:
     """Walk up from start until we find the firmware/ directory."""
     p = start.resolve()
@@ -118,6 +131,7 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     Returns dict mapping source_path -> destination_filename.
     """
     all_sources = {}
+    xci_sources = {}
     # 1. Get all dependencies recursively
     print(f"\n  Resolving dependencies recursively...")
     deps = read_core_dependencies_recursive(ip_core_name, cores_root)
@@ -131,6 +145,14 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     # 2. Resolve RTL for each dependency
     print(f"\n  Resolving RTL files from rtl_lib/...")
     for dep in rtl_deps:
+        vendor, category, name = parse_core_name(dep)
+        # If a Xilinx .xci exists for this name, it's a Xilinx IP:
+        # use the .xci for synthesis, skip the .sv sim model.
+        xci = rtl_lib_root / 'xci' / name / f"{name}.xci"
+        if xci.exists():
+            xci_sources[str(xci)] = f"{name}/{name}.xci"
+            print(f"    {dep} -> {name}/{name}.xci (Xilinx IP, sim model skipped)")
+            continue
         rtl_file = resolve_rtl_from_dependency(dep, rtl_lib_root)
         if rtl_file and rtl_file.exists():
             if rtl_file.name not in all_sources.values():
@@ -146,6 +168,7 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
         rtl_lib_root / 'ip' / name / f"{name}.sv",    # rtl_lib/ip/xcom/xcom.sv
         rtl_lib_root / f"{name}.sv",                   # rtl_lib/xcom.sv
     ]
+    
     print(f"\n  Looking for main IP RTL...")
     main_rtl = None
     for loc in possible_locations:
@@ -159,7 +182,15 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     else:
         print(f"    ! Main IP RTL not found in any expected location")
         print(f"    Expected: {rtl_lib_root}/ip/{name}.sv")
-    return all_sources
+    
+    # 4. Collect the IP's XDC constraints from rtl_lib/ip/.
+    print(f"\n  Looking for IP constraints (.xdc)...")
+    for xdc in sorted((rtl_lib_root / 'ip').glob(f"{name}*.xdc")):
+        if xdc.name not in all_sources.values():
+            all_sources[str(xdc)] = xdc.name
+            print(f"    Found: {xdc.name}")
+
+    return all_sources, xci_sources
 
 def collect_hdl_files(src_dir: Path) -> list:
     """Auto-discover RTL files, excluding testbenches and non-synthesizable content."""
@@ -196,6 +227,16 @@ def collect_xci_files(src_dir: Path) -> list:
             xci.append(str(p.relative_to(src_dir)))
     return xci
 
+def collect_xdc(src_dir: Path) -> list:
+    """Find functional (scoped) XDC files, excluding OOC and testbench dirs."""
+    exclude_dirs = {"tb", "sim", "testbench", "tests"}
+    xdc = []
+    for p in src_dir.glob("*.xdc"):
+        if p.name.endswith("_ooc.xdc"):
+            continue   # OOC handled separately
+        xdc.append(p.name)
+    return sorted(xdc)
+
 def collect_ooc_xdc(src_dir: Path) -> list:
     """Find out-of-context XDC files."""
     return [p.name for p in src_dir.glob("*_ooc.xdc")]
@@ -210,24 +251,31 @@ def find_logo_file(firmware_dir: Path) -> Path | None:
         return logo_path
     return None
 
-def copy_rtl_sources(ip_dir: Path, sources: dict):
+def copy_rtl_sources(ip_dir, sources, xci_sources=None):
     """
     Copy all resolved RTL sources to ip/<ip_name>/src/
     """
     src_dir = ip_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
-    print(f"\n  Copying to: {src_dir}")
-    copied_files = []
+    copied = []
+    # Regular RTL files.
     for src_path, dst_name in sources.items():
         src_path = Path(src_path)
-        dst_path = src_dir / dst_name
         if not src_path.exists():
             print(f"    !  Source not found: {src_path}")
             continue
-        shutil.copy2(src_path, dst_path)
-        copied_files.append(dst_name)
+        shutil.copy2(src_path, src_dir / dst_name)
+        copied.append(dst_name)
         print(f"    Copied: {src_path.name}")
-    return copied_files
+    # XCI sub-IPs (into their own subdirectory).
+    if xci_sources:
+        for src_path, dst_rel in xci_sources.items():
+            dst_path = src_dir / dst_rel
+            dst_path.parent.mkdir(parents=True, exist_ok=True)   # crea src/<name>/
+            shutil.copy2(src_path, dst_path)
+            copied.append(dst_rel)
+            print(f"    Copied XCI: {dst_rel}")
+    return copied
 
 def render_and_run(cfg: dict, script_dir: Path, dry_run: bool = False):
     """Render the TCL template and run Vivado in batch mode."""
@@ -353,6 +401,7 @@ def run_standalone(args):
     ip_name = args.ip_name
     ip_dir = firmware_dir / "ip" / ip_name
     src_dir = ip_dir / "src"
+
     # Core name for resolution
     core_name = f"qick:ip:{ip_name}"
     print(f"   Packaging IP: {core_name}")
@@ -361,10 +410,10 @@ def run_standalone(args):
     print(f"   Cores:    {cores_root}")
     # ALWAYS resolve dependencies recursively
     print(f"\n Resolving dependencies from .core file...")
-    sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
+    sources, xci_sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
     if sources:
         print(f"\n  Total RTL files found: {len(sources)}")
-        copied = copy_rtl_sources(ip_dir, sources)
+        copied = copy_rtl_sources(ip_dir, sources, xci_sources)
         print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
     else:
         print(f"  !  No RTL sources found for {core_name}")
@@ -376,6 +425,7 @@ def run_standalone(args):
     hdl_files = args.hdl_files or collect_hdl_files(src_dir)
     xci_files = args.xci_files or collect_xci_files(src_dir)
     ooc_xdc = args.ooc_xdc or collect_ooc_xdc(src_dir)
+    xdc_files = collect_xdc(src_dir)
     if not hdl_files:
         print(f" No RTL files found in {src_dir}", file=sys.stderr)
         sys.exit(1)
@@ -396,6 +446,14 @@ def run_standalone(args):
 
     #logo_rel_path = get_relative_logo_path(ip_dir, firmware_dir)
     logo_rel_path = "../../common_ip_files/ip_logos/logoQICK_128x128.png" if logo_path else None
+
+    # Description: CLI arg > .core description > generic default.
+    description = args.description
+    if not description:
+       description = get_core_description(core_name, cores_root)
+    if not description:
+       description = f"{ip_name} IP core"
+        
     # Prepare configuration for template
     cfg = {
         "module_name": args.module_name or ip_name,
@@ -403,12 +461,13 @@ def run_standalone(args):
         "vendor": args.vendor,
         "library": args.library,
         "display_name": args.display_name or ip_name,
-        "description": args.description,
+        "description": description,
         "part": args.part,
         "ip_dir": str(ip_dir.resolve()),
         "src_dir": str(src_dir.resolve()),
         "hdl_files": hdl_files,
         "xci_files": xci_files,
+        "xdc_files": xdc_files,
         "ooc_xdc_files": ooc_xdc,
         "clock_domains": {},
         "logo_relative_path": logo_rel_path,
@@ -435,8 +494,8 @@ def main():
                         help="Library name (default: ip)")
     parser.add_argument("--display-name", default=None,
                         help="Human-readable name in Vivado catalog")
-    parser.add_argument("--description", default="",
-                        help="IP description")
+    parser.add_argument("--description", default=None,
+                        help="IP description (fallback: read from .core or default to '<ip-name> IP core')")
     parser.add_argument("--part", default="xczu49dr-ffvf1760-2-e",
                         help="Target FPGA part for IP inference")
     parser.add_argument("--hdl-files", nargs="*", default=None,

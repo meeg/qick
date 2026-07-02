@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "qick_fused"
+name = "qick"
 version = "0.0.1"
 description = "QICK FuseSoC environment"
 dependencies = [
@@ -17,3 +17,9 @@ dependencies = [
 
 [tool.setuptools]
 packages = []
+
+[tool.pytest.ini_options]
+pythonpath = ["scripts"]
+markers = [
+    "svunit_test: RTL testbenches run via SVUnit + simulator",
+]

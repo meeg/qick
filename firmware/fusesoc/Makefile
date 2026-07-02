@@ -37,9 +37,11 @@ setup_environment:
 sim_svunit: clean
 	mkdir -p report_pytest
 	. venv/bin/activate; \
-	python3 scripts/tests/svunit_test/get_core_name.py && \
+	PYTHONPATH=scripts:$$PYTHONPATH \
+	python3 scripts/tests/svunit_test/get_core_name.py $(IP) && \
 	pytest scripts/tests/ -v -m svunit_test \
-	  --junitxml=report_pytest/pytest-report.xml
+		$(if $(IP),-k "$(IP)",) \
+		--junitxml=report_pytest/pytest-report.xml
 
 sim:
 	. venv/bin/activate; \
@@ -56,7 +58,7 @@ lint:
 # ----------------------------------------------------------------------------
 package:
 	@if [ -z "$(IP)" ]; then \
-		echo " Usage: make package IP=<ip_name> [VERSION=1.0] [PART=<part>]"; \
+		echo " Usage: make package IP=<ip_name> [DESCRIPTION=<description>] [VERSION=1.0] [PART=<part>]"; \
 		echo ""; \
 		echo "Examples:"; \
 		echo "  make package IP=xcom"; \
@@ -72,7 +74,8 @@ package:
 		--ip-name    $(IP) \
 		--version    $(or $(VERSION),1.0) \
 		--part       $(or $(PART),xczu49dr-ffvf1760-2-e) \
-		--display-name "$(or $(DISPLAY_NAME),$(IP))"
+		--display-name "$(or $(DISPLAY_NAME),$(IP))" \
+		$(if $(DESCRIPTION),--description "$(DESCRIPTION)",)
 
 # Package all IPs found in cores/ip/
 package-all:
@@ -166,7 +169,7 @@ verify-core:
 # Use: make gen IP=axis_constant_iq
 gen:
 	@if [ -z "$(IP)" ]; then \
-		echo "Use: make gen IP=<ip_name>"; \
+		echo "Usage: make gen IP=<ip_name>"; \
 		exit 1; \
 	fi
 	cd cores/ip/$(IP)/rdl && $(MAKE) gen
@@ -179,21 +182,29 @@ new-ip:
 	fi
 	./scripts/create_ip.sh $(IP)
 
-# Generate the driver for any IP (RDL + symlink to QICK)
-# Usage: make driver IP=axis_constant_iq
+# Generate driver + run register tests
 driver:
-	@if [ -z "$(IP)" ]; then \
-		echo "Uso: make driver IP=<ip_name>"; \
-		exit 1; \
-	fi
+	@if [ -z "$(IP)" ]; then echo "Usage: make driver IP=<ip_name>"; exit 1; fi
 	@echo "Generating driver for $(IP)..."
 	cd cores/ip/$(IP)/rdl && $(MAKE) gen
 	@if [ -f cores/ip/$(IP)/driver/$(IP).py ]; then \
 		ln -sf ../../../firmware/fusesoc/cores/ip/$(IP)/driver/$(IP).py \
-			../../qick_lib/qick/drivers/$(IP).py; \
-		echo "  Symlink created in qick_lib/qick/drivers/$(IP).py"; \
+		../../qick_lib/qick/drivers/$(IP).py; \
+		echo "  Symlink created"; \
+	fi
+	@$(MAKE) --no-print-directory driver-test IP=$(IP)
+
+# Run driver register tests only (no regeneration)
+driver-test:
+	@if [ -z "$(IP)" ]; then echo "Usage: make driver-test IP=<ip_name>"; exit 1; fi
+	@if [ -d cores/ip/$(IP)/driver/tests ]; then \
+		echo "Running driver register tests for $(IP)..."; \
+		mkdir -p report_pytest; \
+		. venv/bin/activate; \
+		pytest cores/ip/$(IP)/driver/tests/ -v \
+		--junitxml=report_pytest/driver-$(IP)-report.xml; \
 	else \
-		echo "  Not found driver/$(IP).py"; \
+		echo "No driver/tests/ for $(IP)"; \
 	fi
 
 # Generate drivers for all IPs
@@ -210,7 +221,7 @@ driver-all:
 		fi; \
 	done
 
-# Genete HTML documentation from RDL
+# Generate HTML documentation from RDL
 # Usage: make rdl-docs IP=axis_constant_iq
 rdl-docs:
 	cd cores/ip/$(IP)/rdl && $(MAKE) docs

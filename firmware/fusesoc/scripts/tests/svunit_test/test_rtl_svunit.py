@@ -1,7 +1,7 @@
 import pytest
 import subprocess
 from pathlib import Path
-from models.cmd_utils import *
+from utils.cmd_utils import *
 #from cmd_utils import *
 
 repo_root = Path(__file__).resolve().parent.parent.parent.parent

@@ -1,6 +1,7 @@
+import sys
 import subprocess
 from pathlib import Path
-from models.cmd_utils import shell_cmd
+from utils.cmd_utils import shell_cmd
 
 repo_root = Path(__file__).resolve().parent.parent.parent.parent
 tmp_folder = repo_root / "tmp"
@@ -19,7 +20,10 @@ def get_core_name(keyword=""):
         subprocess: result of executing the shell command
     """
         
-    return shell_cmd(cmd=f'fusesoc --cores-root . list-cores | grep "{keyword}"',wd="./",timeout=None)
+    return shell_cmd(
+        cmd=f'fusesoc --cores-root . list-cores | grep "{keyword}" || true',
+        wd="./", timeout=None
+        )
 
 # Function which find target
 def get_core_target(core_name="", target=""):
@@ -46,7 +50,7 @@ def get_core_target(core_name="", target=""):
 ##################################################################################################################
 
 # Execution of the method
-cores_list_plus_description = get_core_name(keyword=":rts")
+cores_list_plus_description = get_core_name(keyword="qick:")
 
 # Decode subprocess
 cores_list_plus_description = cores_list_plus_description.stdout.decode().splitlines()
@@ -62,4 +66,7 @@ file_cores_list = open(tmp_folder / "cores_list.txt", "w")
 
 # Write name of the cores files.
 file_cores_list.writelines(cores_name_list_valid)
+
+keyword = sys.argv[1] if len(sys.argv) > 1 else "qick:"
+cores_list_plus_description = get_core_name(keyword=keyword)
 

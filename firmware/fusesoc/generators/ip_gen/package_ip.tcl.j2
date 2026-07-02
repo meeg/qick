@@ -65,27 +65,30 @@ catch {
 
 # ── Add XCI sub-IPs ──────────────────────────────────────────
 {% for xci in xci_files | default([]) %}
-ipx::add_file ${src_dir}/{{ xci }} \
+set xci_file [ipx::add_file ${src_dir}/{{ xci }} \
     [ipx::get_file_groups xilinx_anylanguagesynthesis \
-        -of_objects [ipx::current_core]]
-set_property type xci \
-    [ipx::get_files ${src_dir}/{{ xci }} \
-        -of_objects [ipx::get_file_groups xilinx_anylanguagesynthesis \
-            -of_objects [ipx::current_core]]]
+        -of_objects [ipx::current_core]]]
+set_property type xci $xci_file
 {% endfor %}
 
-# ── Add OOC XDC ──────────────────────────────────────────────
+# ── Add functional (scoped) XDC constraints ─────────────────
+{% for xdc in xdc_files | default([]) %}
+set xdc_file [ipx::add_file ${src_dir}/{{ xdc }} \
+    [ipx::get_file_groups xilinx_anylanguagesynthesis \
+        -of_objects [ipx::current_core]]]
+set_property type xdc $xdc_file
+set_property used_in {synthesis implementation} $xdc_file
+{% endfor %}
+
+# ── Add OOC XDC constraints ─────────────────────────────────
 {% for xdc in ooc_xdc_files | default([]) %}
-ipx::add_file ${src_dir}/{{ xdc }} \
+set ooc_file [ipx::add_file ${src_dir}/{{ xdc }} \
     [ipx::get_file_groups xilinx_anylanguagesynthesis \
-        -of_objects [ipx::current_core]]
-set_property type xdc \
-    [ipx::get_files ${src_dir}/{{ xdc }} \
-        -of_objects [ipx::get_file_groups xilinx_anylanguagesynthesis \
-            -of_objects [ipx::current_core]]]
+        -of_objects [ipx::current_core]]]
+set_property type xdc $ooc_file
+set_property used_in {out_of_context synthesis implementation} $ooc_file
 {% endfor %}
 
-# ── Create utility view and add logo ─────────────────────────
 # ── Create utility view and add logo ─────────────────────────
 {% if has_logo %}
 set logo_path [file normalize ${ip_dir}/../../common_ip_files/ip_logos/logoQICK_128x128.png]
