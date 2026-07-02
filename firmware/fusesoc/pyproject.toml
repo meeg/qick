@@ -7,7 +7,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "qick_fused"
+name = "qick_fw"
 version = "0.2.0"
 description = "QICK FuseSoC environment"
 requires-python = ">=3.8"
@@ -30,6 +30,7 @@ dependencies = [
 
 [tool.setuptools]
 packages = []
+py-modules = []
 
 [tool.pytest.ini_options]
 pythonpath = ["scripts"]
