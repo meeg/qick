@@ -310,7 +310,9 @@ module axil_slv#(
     automatic int reg_idx = axi_araddr[ADDR_MSB:ADDR_LSB];
 
     if (reg_idx < NUM_REGS) begin
-      reg_data_out = o_slv_regs[reg_idx];
+      // Read-only registers come from i_slv_regs; writable from o_slv_regs.
+      reg_data_out = i_reg_is_readonly[reg_idx] ? i_slv_regs[reg_idx]
+                                                : o_slv_regs[reg_idx];
     end else begin
       reg_data_out = {AXI_DW{1'b0}};
     end
