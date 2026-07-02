@@ -26,8 +26,8 @@ filesets:
 
   tb:
     files:
-      - test/xcom_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/xcom_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
@@ -41,7 +41,7 @@ generate:
     generator: svunit_gen
     parameters:
       test_files:
-        - test/xcom_tc00.sv
+        - tests/xcom_tc00.sv
 
   xcom_packager_gen:
     generator: ip_packager

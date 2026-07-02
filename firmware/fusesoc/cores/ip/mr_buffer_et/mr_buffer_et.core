@@ -13,8 +13,8 @@ filesets:
 
   tb:
     files:
-      - test/mr_buffer_et_tc00.sv
-      - test/mr_buffer_et_tests.sv: {is_include_file: true}
+      - tests/mr_buffer_et_tc00.sv
+      - tests/mr_buffer_et_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:interfaces:axi4_lite_if
@@ -29,7 +29,7 @@ generate:
     generator: svunit_gen
     parameters:
       test_files:
-        - test/mr_buffer_et_tc00.sv
+        - tests/mr_buffer_et_tc00.sv
 
 targets:
   default: &default

@@ -14,8 +14,8 @@ filesets:
 
   tb:
     files:
-      - test/axis_constant_iq_tc00.sv
-      - test/axis_constant_iq_tests.sv: {is_include_file: true}
+      - tests/axis_constant_iq_tc00.sv
+      - tests/axis_constant_iq_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:interfaces:axi4_lite_if
@@ -31,7 +31,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/axis_constant_iq_tc00.sv
+          - tests/axis_constant_iq_tc00.sv
 
 targets:
   default: &default

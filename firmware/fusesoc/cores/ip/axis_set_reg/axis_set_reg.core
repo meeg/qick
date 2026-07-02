@@ -12,13 +12,13 @@ filesets:
 
   tb00:
     files:
-      - test/tb_axis_set_reg.sv
+      - tests/tb_axis_set_reg.sv
     file_type: systemVerilogSource
 
   tb01:
     files:
-      - test/axis_set_reg_tc00.sv
-      - test/axis_set_reg_tests.sv: {is_include_file: true}
+      - tests/axis_set_reg_tc00.sv
+      - tests/axis_set_reg_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:interfaces:axi4_stream_if
@@ -33,7 +33,7 @@ generate:
     generator: svunit_gen
     parameters:
       test_files:
-        - test/axis_set_reg_tc00.sv
+        - tests/axis_set_reg_tc00.sv
 
   axis_set_reg_packager_gen:
     generator: ip_packager
