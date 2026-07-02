@@ -1,6 +1,25 @@
-fusesoc==2.4.3
-edalize==0.6.1
-jinja2
-pytest==7.2.0
-peakrdl>=0.6.0
-systemrdl-compiler
+=================================================================
+FILE: firmware/fusesoc/requirements.txt
+=================================================================
+
+# Dependencies are declared in pyproject.toml ([project].dependencies).
+# This file installs the project (and thus all its deps) in editable mode.
+#   pip install -r requirements.txt
+# is equivalent to:
+#   pip install -e .
+-e .
+
+=================================================================
+NOTES
+=================================================================
+- Single source of truth: pyproject.toml. Do NOT list versions in
+  requirements.txt anymore.
+- Added vs the old list: numpy, peakrdl-python (pinned 3.1.2), peakrdl-regblock,
+  peakrdl-html. These were previously pip-installed by hand (see DRIVER.md).
+- version bumped 0.1.0 -> 0.2.0 (SG-v6 close). Keep this in sync with the
+  CHANGELOG "Unreleased" -> "v0.2.0" section when you tag.
+- If any build scripts (build_virtualenv.sh / build_fusesocenv.sh) run
+  `pip install -r requirements.txt`, they now transparently pull pyproject deps.
+  If they hardcode a different list, update them to use `-e .` or -r.
+- If peakrdl (meta) already brings a plugin transitively, pinning it explicitly
+  here is still fine and makes the environment reproducible.
