@@ -14,8 +14,8 @@ filesets:
   tb:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
-      - test/tx_cmd_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/tx_cmd_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -29,7 +29,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/tx_cmd_tc00.sv
+          - tests/tx_cmd_tc00.sv
 
 targets:
   default: &default

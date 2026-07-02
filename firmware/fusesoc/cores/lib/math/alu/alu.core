@@ -14,8 +14,8 @@ filesets:
 
   tb:
     files:
-      - test/alu_tc00.sv
-      - test/alu_tests.sv: {is_include_file: true}
+      - tests/alu_tc00.sv
+      - tests/alu_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -29,7 +29,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/alu_tc00.sv
+          - tests/alu_tc00.sv
 
 targets:
   default: &default

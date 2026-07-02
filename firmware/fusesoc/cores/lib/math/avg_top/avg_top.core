@@ -16,9 +16,9 @@ filesets:
 
   tb:
     files:
-      #- test/tb_avg_top.sv
-      - test/avg_top_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      #- tests/tb_avg_top.sv
+      - tests/avg_top_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:xilinx 
@@ -36,7 +36,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/avg_top_tc00.sv
+          - tests/avg_top_tc00.sv
 
 targets:
   default: &default

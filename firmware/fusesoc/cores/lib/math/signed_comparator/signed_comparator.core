@@ -10,8 +10,8 @@ filesets:
 
   tb:
     files:
-      - test/signed_comparator_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/signed_comparator_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -25,7 +25,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/signed_comparator_tc00.sv
+          - tests/signed_comparator_tc00.sv
 
 targets:
   default: &default

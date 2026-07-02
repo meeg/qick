@@ -13,8 +13,8 @@ filesets:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
       - data/opcodes.txt: {file_type : user, copyto : opcodes.txt}
-      - test/req_ack_cmd_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/req_ack_cmd_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -28,7 +28,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/req_ack_cmd_tc00.sv
+          - tests/req_ack_cmd_tc00.sv
 
 targets:
   default: &default

@@ -14,8 +14,8 @@ filesets:
 
   tb:
     files:
-      - test/bram_to_axis_nt_tc00.sv
-      - test/bram_to_axis_nt_tests.sv: {is_include_file: true}
+      - tests/bram_to_axis_nt_tc00.sv
+      - tests/bram_to_axis_nt_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
@@ -29,7 +29,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/bram_to_axis_nt_tc00.sv
+          - tests/bram_to_axis_nt_tc00.sv
 
 targets:
   default: &default

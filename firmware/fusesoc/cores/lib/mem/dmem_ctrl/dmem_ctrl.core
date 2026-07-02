@@ -12,8 +12,8 @@ filesets:
 
   tb:
     files:
-      - test/dmem_ctrl_tc00.sv
-      - test/dmem_ctrl_tests.sv: {is_include_file: true}
+      - tests/dmem_ctrl_tc00.sv
+      - tests/dmem_ctrl_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
@@ -27,7 +27,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/dmem_ctrl_tc00.sv
+          - tests/dmem_ctrl_tc00.sv
 
 targets:
   default: &default

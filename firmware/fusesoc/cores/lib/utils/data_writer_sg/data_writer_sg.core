@@ -12,8 +12,8 @@ filesets:
 
   tb:
     files:
-      - test/data_writer_sg_tc00.sv
-      - test/data_writer_sg_tests.sv: {is_include_file: true}
+      - tests/data_writer_sg_tc00.sv
+      - tests/data_writer_sg_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
@@ -27,7 +27,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/data_writer_sg_tc00.sv
+          - tests/data_writer_sg_tc00.sv
 
 targets:
   default: &default

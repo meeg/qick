@@ -10,9 +10,9 @@ filesets:
 
   tb:
     files:
-      - test/tb_bram_simple_dp.sv
-        #- test/bram_simple_dp_tc00.sv
-        #- test/tests.sv: {is_include_file: true}
+      - tests/tb_bram_simple_dp.sv
+        #- tests/bram_simple_dp_tc00.sv
+        #- tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
       #depend: 
       #  - qick:common:sim_base
@@ -26,7 +26,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/bram_simple_dp_tc00.sv
+          - tests/bram_simple_dp_tc00.sv
 
 targets:
   default: &default

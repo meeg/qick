@@ -12,8 +12,8 @@ filesets:
   tb:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
-      - test/xcom_link_tx_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/xcom_link_tx_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -31,7 +31,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/xcom_link_tx_tc00.sv
+          - tests/xcom_link_tx_tc00.sv
 
 targets:
   default: &default

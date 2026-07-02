@@ -20,8 +20,8 @@ filesets:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
       - data/opcodes.txt: {file_type : user, copyto : opcodes.txt}
-      - test/xcom_txrx_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/xcom_txrx_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -29,8 +29,8 @@ filesets:
   tb_cmd:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
-      - test/xcom_txrx_tc01.sv
-      - test/tests_cmd.sv: {is_include_file: true}
+      - tests/xcom_txrx_tc01.sv
+      - tests/tests_cmd.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -48,8 +48,8 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          #- test/xcom_txrx_tc00.sv
-          - test/xcom_txrx_tc01.sv
+          #- tests/xcom_txrx_tc00.sv
+          - tests/xcom_txrx_tc01.sv
 
 targets:
   default: &default

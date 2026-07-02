@@ -12,8 +12,8 @@ filesets:
 
   tb:
     files:
-      - test/tpv1_ctrl_tc00.sv
-      - test/tpv1_ctrl_tests.sv: {is_include_file: true}
+      - tests/tpv1_ctrl_tc00.sv
+      - tests/tpv1_ctrl_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -27,7 +27,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/tpv1_ctrl_tc00.sv
+          - tests/tpv1_ctrl_tc00.sv
 
 targets:
   default: &default

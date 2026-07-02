@@ -10,8 +10,8 @@ filesets:
 
   tb:
     files:
-      - test/diff_out_nb_tc00.sv
-      - test/tests.sv: {is_include_file: true}
+      - tests/diff_out_nb_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -29,7 +29,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/diff_out_nb_tc00.sv
+          - tests/diff_out_nb_tc00.sv
 
 targets:
   default: &default
