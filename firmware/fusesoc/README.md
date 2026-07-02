@@ -1,5 +1,3 @@
-# FuseSoC — IP Development and Simulation
-
 This directory provides a [FuseSoC](https://fusesoc.readthedocs.io)-based
 environment for developing and simulating QICK IP cores independently of the
 full Vivado project.
@@ -19,7 +17,7 @@ firmware/
 │   ├── cdc/
 │   ├── dsp/
 │   ├── interfaces/
-│   ├── ip/                       ← top-level IP RTL (e.g. axis_tprocv1.sv)
+│   ├── ip/                       ← top-level IP RTL (e.g. axis_signal_gen_v6.sv)
 │   ├── math/
 │   ├── mem/
 │   ├── misc/
@@ -30,11 +28,13 @@ firmware/
     ├── cores/
     │   ├── ip/                   ← packaged IP cores (with rdl/, driver/)
     │   │   ├── axis_constant_iq/
+    │   │   ├── axis_signal_gen_v6/
     │   │   ├── axis_tprocv1/
     │   │   └── ...
     │   ├── lib/                  ← library cores, by category
     │   │   ├── axi/
     │   │   ├── cdc/
+    │   │   ├── dsp/
     │   │   ├── interfaces/
     │   │   ├── math/
     │   │   ├── mem/
@@ -44,7 +44,8 @@ firmware/
     ├── common/                   ← sim_base, lint rules, xilinx glbl
     ├── generators/               ← FuseSoC generators (systemrdl, svunit)
     ├── scripts/                  ← setup and core-creation scripts
-    ├── docs/                     ← documentation (DRIVER.md, NEW_CORE.md)
+    ├── docs/                     ← documentation (DRIVER.md, NEW_CORE.md, MAKEFILE_DOC.md)
+    ├── pyproject.toml            ← pytest config (markers, pythonpath)
     ├── Makefile
     └── requirements.txt
 ```
@@ -65,7 +66,7 @@ cores/lib/<category>/<core>/
 
 > Two kinds of cores:
 >   - `cores/lib/<category>/<core>/`  — reusable building blocks (RTL + tests).
->   - `cores/ip/<name>/`              — packaged IPs (add rdl/ + driver/).
+>   - `cores/ip/<name>/`              — packaged IPs (add `rdl/` + `driver/`).
 
 ---
 
@@ -106,10 +107,21 @@ source venv/bin/activate
 
 ### Simulate a core
 
+Two flows are available (see **docs/MAKEFILE.md** for the full comparison):
+
 ```bash
-make sim IP=tpv2_alu        # runs the 'test' target (SVUnit) for the core
+# Single core, direct FuseSoC 'test' target (SVUnit via xsim)
+make sim IP=tpv2_alu
 make sim IP=lfsr
+
+# pytest wrapper around SVUnit (JUnit report; filter with IP=, or run all in CI)
+make sim_svunit IP=axis_signal_gen_v6   # only this core
+make sim_svunit                          # all cores with a 'test' target (CI)
 ```
+
+`sim_svunit` produces `report_pytest/pytest-report.xml`. It requires the
+`svunit_test` marker registered in `pyproject.toml` and `PYTHONPATH=scripts`
+(both already wired in the Makefile).
 
 ### Lint a core
 
@@ -123,6 +135,7 @@ make lint IP=tpv2_alu
 make list-cores
 make core-info CORE=qick:math:tpv2_alu
 make deps IP=tpv2_alu
+make verify-core IP=axis_signal_gen_v6
 ```
 
 ### Clean build artifacts
@@ -131,11 +144,15 @@ make deps IP=tpv2_alu
 make clean
 ```
 
+> `make clean` also removes `.fusesoc_libraries/`, so the next `sim_svunit`
+> re-clones the SVUnit library (slower first run). It does not touch `venv/` or
+> the source symlinks.
+
 ---
 
 ## Creating new cores
 
-Two helper scripts automate core creation. See **docs/NEW_CORE.md** for details.
+Two helpers automate core creation. See **docs/NEW_CORE.md** for details.
 
 - **Library core** (reusable block, RTL already in `rtl_lib/<category>/`):
 
@@ -162,9 +179,10 @@ driver/doc generation. Full documentation: **docs/DRIVER.md**.
 Quick reference:
 
 ```bash
-make driver   IP=axis_constant_iq    # generate Python register package + driver symlink
-make rdl-docs IP=axis_constant_iq    # generate HTML register documentation
-make new-ip   IP=my_new_ip           # create a new IP from template
+make driver      IP=axis_constant_iq   # RDL -> Python package + driver symlink + reg tests
+make driver-test IP=axis_constant_iq   # run only the register-layer pytest (no regen)
+make rdl-docs    IP=axis_constant_iq   # generate HTML register documentation
+make new-ip      IP=my_new_ip          # create a new IP from template
 ```
 
 ---
@@ -187,12 +205,12 @@ HOG project as usual.
 
 Vivado's `ipx::infer_bus_interfaces` recognizes:
 
-| Interface type    | Port prefix              |
-|-------------------|--------------------------|
-| AXI4-Lite slave   | `s_axi_*`                |
-| AXI4-Stream slave | `s_axis_*` or `s0_axis_*`|
-| AXI4-Stream master| `m_axis_*` or `m0_axis_*`|
-| Clock             | `*_clk*` or `*_aclk*`    |
+| Interface type    | Port prefix                 |
+|-------------------|-----------------------------|
+| AXI4-Lite slave   | `s_axi_*`                   |
+| AXI4-Stream slave | `s_axis_*` or `s0_axis_*`   |
+| AXI4-Stream master| `m_axis_*` or `m0_axis_*`   |
+| Clock             | `*_clk*` or `*_aclk*`       |
 | Reset             | `*_aresetn*` or `*_resetn*` |
 
 ---
@@ -205,24 +223,29 @@ Vivado's `ipx::infer_bus_interfaces` recognizes:
   generic reusable blocks have no prefix (e.g. `lfsr`, `sync_nxm`).
 - **Constants / opcodes live in packages** (`cores/pkg/*`, `rtl_lib/pkg/*`),
   e.g. `alu_pkg`, `tproc_pkg`.
-- **Test directory is `tests/`** (plural), with `<core>_tc00.sv` (top) and
-  `<core>_tests.sv` (included cases).
+- **Test directory is `tests/`** (plural) for BOTH library cores and packaged
+  IPs, with `<core>_tc00.sv` (top) and `<core>_tests.sv` (included cases).
 - **VLNV pattern**: `qick:<category>:<core>:<version>` for library cores,
   `qick:ip:<name>:<version>` for packaged IPs.
-- PeakRDL-generated files (`*_regmap_pkg/`, generated `.sv`, `docs/`) are **never
-  committed**.
+- PeakRDL-generated files (`*_regmap_pkg/`, generated `.sv`, `docs/`) are
+  **never committed**.
 - IPs that instantiate Xilinx primitives (DSP, XPM, DDS, FIR) require Vivado/xsim
   and cannot be linted/simulated with Verilator alone.
+- **When a real RTL bug is found, fix it in `rtl_lib/`** (not in the testbench)
+  and document it in the module header. Example: the SG-v6 amplitude fix
+  ([31:16] -> [30:15] quantization + ±MAXV saturation) is documented in the
+  `axis_signal_gen_v6` / `sgv6` headers.
+- **A single driver can serve several IP versions** via multiple `bindto`
+  strings. Example: `AxisSignalGen` binds v4/v5/v6. When you change the RTL of
+  one, check the shared driver against the others.
 
 ---
 
 ## Documentation index
 
-| Document            | Purpose                                          |
-|---------------------|--------------------------------------------------|
-| README.md (this)    | Environment overview, setup, daily usage         |
-| docs/NEW_CORE.md    | How to create new library cores and IPs          |
+| Document            | Purpose                                            |
+|---------------------|----------------------------------------------------|
+| README.md (this)    | Environment overview, setup, daily usage           |
+| docs/MAKEFILE_DOC.md    | Full Makefile target reference and pitfalls        |
+| docs/NEW_CORE.md    | How to create new library cores and IPs            |
 | docs/DRIVER.md      | PeakRDL register maps and Python driver generation |
-
----
-

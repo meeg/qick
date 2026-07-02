@@ -13,7 +13,7 @@ IP's register map once in a `.rdl` file and automatically generate:
 - **HTML Documentation**: register map docs (`peakrdl html`)
 - **SystemVerilog** (OPTIONAL): an AXI4-Lite register block (`peakrdl regblock`)
 
-> IMPORTANT — two RTL strategies
+> **IMPORTANT — two RTL strategies**
 >
 > There are two ways an IP can implement its AXI register decode, and this
 > determines whether you generate SystemVerilog from the RDL:
@@ -33,9 +33,9 @@ IP's register map once in a `.rdl` file and automatically generate:
 >    documentation. Pass only `--python` (and optionally `--html`), never
 >    `--hdl`, or the generated regblock will conflict with `axi_slv_tprocv1`.
 >
-> Pick the strategy per IP. The `make new-ip` template defaults to `--hdl
-> --python` (strategy 1); edit the IP's `rdl/Makefile` to remove `--hdl` if
-> the IP uses a custom AXI slave (strategy 2).
+> Pick the strategy per IP. The `make new-ip` template defaults to
+> `--hdl --python` (strategy 1); edit the IP's `rdl/Makefile` to remove `--hdl`
+> if the IP uses a custom AXI slave (strategy 2).
 
 ```
 cores/ip/<ip_name>/
@@ -52,18 +52,26 @@ cores/ip/<ip_name>/
 │       └── test_<ip_name>_regs.py
 ├── hdl/
 │   └── <ip_name>.sv
-└── test/                             ← SVUnit RTL testbenches
+└── tests/                            ← SVUnit RTL testbenches (plural, repo-wide)
     ├── <ip_name>_tc00.sv
     └── <ip_name>_tests.sv
 ```
+
+> Note the two `tests/` locations: `driver/tests/` holds the Python
+> register-layer tests (pytest, run by `make driver-test`), while the top-level
+> `tests/` holds the SVUnit RTL testbenches (run by `make sim` / `make
+> sim_svunit`).
 
 ## How It Works on the RFSoC Board
 
 When you run `make driver`:
 
-1. The generated PeakRDL package is produced in `cores/ip/<ip_name>/rdl/<ip_name>_regmap_pkg/`.
+1. The generated PeakRDL package is produced in
+   `cores/ip/<ip_name>/rdl/<ip_name>_regmap_pkg/`.
 2. The driver is **symlinked** to `qick_lib/qick/drivers/<ip_name>.py`.
-3. (Optional) HTML documentation is generated with `make rdl-docs`.
+3. `make driver` then runs `make driver-test` automatically (register-layer
+   pytest).
+4. (Optional) HTML documentation is generated with `make rdl-docs`.
 
 If your driver imports the generated package, it can search multiple locations
 so it works both in development and on the board:
@@ -116,14 +124,17 @@ class names and import paths below match that version; other versions may differ
 cd firmware/fusesoc
 source venv/bin/activate
 
-# Generate the driver layer (RDL -> Python package + QICK symlink)
+# Generate the driver layer (RDL -> Python package + QICK symlink + reg tests)
 make driver IP=axis_constant_iq
+
+# Run only the register-layer tests (no regeneration)
+make driver-test IP=axis_constant_iq
 
 # Generate HTML documentation
 make rdl-docs IP=axis_constant_iq
 
 # Simulate the RTL (SVUnit)
-make sim IP=axis_constant_iq
+make sim_svunit IP=axis_constant_iq
 ```
 
 ### Creating a new IP
@@ -150,7 +161,7 @@ make rdl-docs IP=my_new_ip
 ## The rdl/Makefile
 
 Each IP's `rdl/Makefile` derives the IP name from the directory and invokes the
-generator. The correct form is:
+generator. The correct form is (recipe lines are TABs):
 
 ```makefile
 IP_NAME    = $(shell basename $(shell dirname $(CURDIR)))
@@ -159,17 +170,15 @@ GEN_SCRIPT = ../../../../generators/systemrdl/rdl_tools.py
 
 gen:
 	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --python   # add --hdl only for regblock IPs
-
 docs:
 	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --html
-
 clean:
 	rm -rf $(IP_NAME)_regmap_pkg $(IP_NAME)_regmap*.sv $(IP_NAME)_regmap*.svh
 
 .PHONY: gen docs clean
 ```
 
-> CRITICAL — common Makefile bugs (learned the hard way)
+> **CRITICAL — common Makefile bugs (learned the hard way)**
 >
 > 1. **IP_NAME path depth**: `$(CURDIR)` inside `rdl/` is
 >    `.../cores/ip/<IP_NAME>/rdl`. To get `<IP_NAME>` you need exactly ONE
@@ -195,7 +204,6 @@ were found and fixed there:
    unquoted `<< EOF` with a duplicated `RDL_FILE = $(IP_NAME)_regmap.rdl` line
    made bash run command substitution `$(IP_NAME)` (an unknown command),
    producing an empty `RDL_FILE = _regmap.rdl`.
-
 2. TABs in heredocs are fragile. Write a placeholder `@@TAB@@` for recipe-line
    indentation and convert it to a real tab after the heredoc:
 
@@ -207,10 +215,8 @@ GEN_SCRIPT = ../../../../generators/systemrdl/rdl_tools.py
 
 gen:
 @@TAB@@python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --hdl --python
-
 docs:
 @@TAB@@python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --html
-
 clean:
 @@TAB@@rm -rf $(IP_NAME)_regmap_pkg $(IP_NAME)_regmap*.sv $(IP_NAME)_regmap*.svh
 
@@ -262,6 +268,40 @@ addrmap axis_constant_iq {
 };
 ```
 
+**Example: `axis_signal_gen_v6_regmap.rdl`** (regblock IP with status/control)
+
+The SG-v6 map includes a read-only status flag driven by hardware
+(`SATURATING`) and a control bit to clear it (`SAT_CLEAR`) — the software face
+of the amplitude-fix saturation.
+
+```systemrdl
+addrmap axis_signal_gen_v6 {
+    name = "AXIS Signal Generator v6 Registers";
+    default regwidth = 32;
+    default accesswidth = 32;
+
+    reg { field { desc = "Envelope write start address."; sw = rw; hw = r; }
+          START_ADDR[31:0] = 0; } START_ADDR_REG @ 0x00;
+
+    reg { field { desc = "Envelope write enable."; sw = rw; hw = r; }
+          WE[0:0] = 0; } WE_REG @ 0x04;
+
+    reg { desc = "Deprecated (rounding-select removed).";
+          field { desc = "Deprecated."; sw = rw; hw = r; }
+          RNDQ[31:0] = 0; } RNDQ_REG @ 0x08;
+
+    reg { desc = "Status (read-only).";
+          field { desc = "Sticky saturation flag: 1 = output clamped to +/-MAXV.";
+                  sw = r; hw = w; }
+          SATURATING[0:0] = 0; } STATUS_REG @ 0x0C;
+
+    reg { desc = "Control.";
+          field { desc = "Write 1 to clear the sticky saturation flag.";
+                  sw = rw; hw = r; }
+          SAT_CLEAR[0:0] = 0; } CTRL_REG @ 0x10;
+};
+```
+
 **Example: `axis_tprocv1_regmap.rdl`** (custom AXI slave IP, strategy 2)
 
 For an IP whose RTL decode is a hand-written `axi_slv_tprocv1`, the RDL describes
@@ -302,7 +342,15 @@ Self-clearing strobe:
 field { swmod; } WE[0:0] = 0;
 ```
 
-Read-only status with write-clear:
+Read-only status set by hardware, cleared by a separate control bit
+(SG-v6 saturation pattern):
+
+```systemrdl
+field { sw = r;  hw = w; } SATURATING[0:0] = 0;   // in STATUS_REG
+field { sw = rw; hw = r; } SAT_CLEAR[0:0]  = 0;   // in CTRL_REG
+```
+
+Read-only status with write-clear (single register):
 
 ```systemrdl
 field { sw = rw; hw = w; swmod; onwrite = woclr; } IRQ_FLAG[7:0];
@@ -339,7 +387,7 @@ After `make driver`, PeakRDL-python (3.1.2) generates a package whose layout is:
     └── test_sim_<ip_name>.py
 ```
 
-> Confirming the generated API
+> **Confirming the generated API**
 >
 > The class name in `reg_model/<ip_name>.py` may be hash-suffixed, e.g.
 > `axis_tprocv1_neg_0x529130c5eb3f85b1_cls`. PeakRDL provides a clean alias at
@@ -347,9 +395,11 @@ After `make driver`, PeakRDL-python (3.1.2) generates a package whose layout is:
 > `reg_model/__init__.py` re-exports it as `RegModel`. Always import the clean
 > aliases:
 >
->   from <ip_name>_regmap_pkg.reg_model import RegModel
->   from <ip_name>_regmap_pkg.sim import Simulator
->   from <ip_name>_regmap_pkg.lib import NormalCallbackSet
+> ```python
+> from <ip_name>_regmap_pkg.reg_model import RegModel
+> from <ip_name>_regmap_pkg.sim import Simulator
+> from <ip_name>_regmap_pkg.lib import NormalCallbackSet
+> ```
 >
 > The authoritative usage pattern is in
 > `tests/_<ip_name>_sim_test_base.py`. Read it before writing your own tests.
@@ -375,8 +425,8 @@ model = RegModel(
 )
 ```
 
-> If you only pass `read_callback`/`write_callback` (older 2-arg pattern), it may
-> fail. The 4-callback form matches the generated `_*_sim_test_base.py`.
+> If you only pass `read_callback` + `write_callback` (older 2-arg pattern), it
+> may fail. The 4-callback form matches the generated `_*_sim_test_base.py`.
 
 ### Sync vs Async
 
@@ -392,7 +442,6 @@ model.REAL_REG.I.write(100)       # write field
 model.REAL_REG.I.read()           # read field -> 100
 model.REAL_REG.write(200)         # write full register
 model.REAL_REG.read()             # read full register -> 200
-
 model.REAL_REG.address            # -> 0x00
 model.REAL_REG.I.high             # -> 15
 model.REAL_REG.I.low              # -> 0
@@ -401,7 +450,8 @@ model.REAL_REG.I.low              # -> 0
 ## Testing Without Hardware (pytest)
 
 You can test the register layer / driver sequences without an RFSoC board using
-the generated simulator. Recommended layout:
+the generated simulator. This is exactly what `make driver-test IP=<name>` runs.
+Recommended layout:
 
 ```
 cores/ip/<ip_name>/driver/tests/
@@ -421,16 +471,17 @@ if str(_RDL_DIR) not in sys.path:
     sys.path.insert(0, str(_RDL_DIR))
 ```
 
-**test_<ip_name>_regs.py** (example for axis_tprocv1)
+**test_<ip_name>_regs.py** (example for axis_signal_gen_v6)
 
 ```python
 import pytest
-from axis_tprocv1_regmap_pkg.reg_model import RegModel
-from axis_tprocv1_regmap_pkg.sim import Simulator
-from axis_tprocv1_regmap_pkg.lib import NormalCallbackSet
+from axis_signal_gen_v6_regmap_pkg.reg_model import RegModel
+from axis_signal_gen_v6_regmap_pkg.sim import Simulator
+from axis_signal_gen_v6_regmap_pkg.lib import NormalCallbackSet
 
 
 def make_sim_regs():
+    """Register model backed by the in-memory simulator (no hardware)."""
     sim = Simulator(address=0)
     return RegModel(
         callbacks=NormalCallbackSet(
@@ -448,39 +499,51 @@ def regs():
 
 
 def test_reset_values(regs):
-    assert regs.START_REG.START.read() == 0
-    assert regs.MEM_MODE_REG.MEM_MODE.read() == 0
+    assert regs.START_ADDR_REG.START_ADDR.read() == 0
+    assert regs.WE_REG.WE.read() == 0
+    assert regs.STATUS_REG.SATURATING.read() == 0
+    assert regs.CTRL_REG.SAT_CLEAR.read() == 0
 
 
-def test_control_bits_roundtrip(regs):
-    regs.MEM_MODE_REG.MEM_MODE.write(1)
-    assert regs.MEM_MODE_REG.MEM_MODE.read() == 1
+def test_start_addr_roundtrip(regs):
+    regs.START_ADDR_REG.START_ADDR.write(0x1234)
+    assert regs.START_ADDR_REG.START_ADDR.read() == 0x1234
 
 
-def test_addr_len_roundtrip(regs):
-    regs.MEM_ADDR_REG.MEM_ADDR.write(0x1234_5678)
-    regs.MEM_LEN_REG.MEM_LEN.write(100)
-    assert regs.MEM_ADDR_REG.MEM_ADDR.read() == 0x1234_5678
-    assert regs.MEM_LEN_REG.MEM_LEN.read() == 100
+def test_load_sequence(regs):
+    # Mirrors driver.load(): _wr_enable(addr) -> <DMA> -> _wr_disable()
+    addr = 0x40
+    regs.START_ADDR_REG.START_ADDR.write(addr)
+    regs.WE_REG.WE.write(1)
+    assert regs.START_ADDR_REG.START_ADDR.read() == addr
+    assert regs.WE_REG.WE.read() == 1
+    regs.WE_REG.WE.write(0)          # _wr_disable
+    assert regs.WE_REG.WE.read() == 0
 
 
-def test_load_dmem_sequence(regs):
-    # Mirrors driver.load_dmem(): MODE=1, ADDR, LEN, START=1, <DMA>, START=0
-    regs.MEM_MODE_REG.MEM_MODE.write(1)
-    regs.MEM_ADDR_REG.MEM_ADDR.write(0)
-    regs.MEM_LEN_REG.MEM_LEN.write(100)
-    regs.MEM_START_REG.MEM_START.write(1)
-    assert regs.MEM_START_REG.MEM_START.read() == 1
-    regs.MEM_START_REG.MEM_START.write(0)
-    assert regs.MEM_START_REG.MEM_START.read() == 0
+def test_saturation_clear_sequence(regs):
+    # SATURATING is HW-set (0 in the pure-register sim); exercise the SW path:
+    assert regs.STATUS_REG.SATURATING.read() == 0
+    regs.CTRL_REG.SAT_CLEAR.write(1)
+    assert regs.CTRL_REG.SAT_CLEAR.read() == 1
+    regs.CTRL_REG.SAT_CLEAR.write(0)
+    assert regs.CTRL_REG.SAT_CLEAR.read() == 0
+
+
+def test_register_independence(regs):
+    regs.START_ADDR_REG.START_ADDR.write(0xABCD)
+    regs.WE_REG.WE.write(1)
+    regs.CTRL_REG.SAT_CLEAR.write(1)
+    assert regs.START_ADDR_REG.START_ADDR.read() == 0xABCD
+    assert regs.WE_REG.WE.read() == 1
+    assert regs.CTRL_REG.SAT_CLEAR.read() == 1
 ```
 
 Run:
 
 ```bash
-cd cores/ip/<ip_name>/driver/tests
-pytest test_<ip_name>_regs.py -v
-# or from the repo root:
+make driver-test IP=<ip_name>          # preferred (from firmware/fusesoc/)
+# or directly:
 pytest cores/ip/<ip_name>/driver/tests/ -v
 ```
 
@@ -490,32 +553,64 @@ There are two valid driver styles.
 
 ### Style A — Manual driver (hardcoded register offsets)
 
-Used by the tProcV1 driver. The driver does NOT import the generated package; it
-accesses registers by index and implements memory access by AXI address (upper
-window). The generated package is then only for docs / register-layer tests.
+Used by the tProcV1 driver and by the shared arb-generator driver
+(`AxisSignalGen`). The driver accesses registers by index via a `REGISTERS`
+dict; the generated package is then used for docs / register-layer tests.
+
+```python
+class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
+    # ONE driver binds several IP versions (same SW interface).
+    bindto = ['user.org:user:axis_signal_gen_v4:1.0',
+              'user.org:user:axis_signal_gen_v5:1.0',
+              'user.org:user:axis_signal_gen_v6:1.0',
+              'QICK:QICK:axis_signal_gen_v4:1.0',
+              'QICK:QICK:axis_signal_gen_v5:1.0',
+              'QICK:QICK:axis_signal_gen_v6:1.0']
+    MAXV = 2**15 - 2
+    REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
+
+    def _wr_enable(self, addr=0):
+        self.start_addr_reg = addr
+        self.we_reg = 1
+
+    def _wr_disable(self):
+        self.we_reg = 0
+
+    def is_saturating(self):
+        return bool(self.status_reg & 1)      # STATUS_REG.SATURATING (amplitude fix)
+
+    def clear_saturation(self):
+        self.ctrl_reg = 1                     # CTRL_REG.SAT_CLEAR
+        self.ctrl_reg = 0
+```
+
+> **Shared driver caveat**: because one `bindto` covers v4/v5/v6, methods like
+> `is_saturating()` / `clear_saturation()` run against all of them. Verify the
+> older versions actually implement STATUS/CTRL (0x0C/0x10) or guard the calls.
+> `rndq()` is deprecated (rounding-select removed by the amplitude fix).
+
+The custom-AXI-slave variant (tProcV1) adds a data-memory window:
 
 ```python
 class AxisTProc64x32_x8(SocIP):
     bindto = ['user.org:user:axis_tproc64x32_x8:1.0',
               'QICK:QICK:axis_tproc64x32_x8:1.0']
-    NREG = 64  # words reserved for registers (256 bytes); DMEM window starts above
-
+    NREG = 64  # words reserved for registers (256 bytes); DMEM window above
     REGISTERS = {'start_src_reg': 0, 'start_reg': 1,
                  'mem_mode_reg': 2, 'mem_start_reg': 3,
                  'mem_addr_reg': 4, 'mem_len_reg': 5}
 
     def single_read(self, addr):
-        # data memory single access via the upper AXI window
         return self.mmio.array[addr + self.NREG]
 
     def single_write(self, addr=0, data=0):
         self.mmio.array[addr + self.NREG] = np.uint32(data)
 ```
 
-> The custom AXI slave (`axi_slv_tprocv1`) is REQUIRED for this style: it decodes
-> low addresses as registers and high addresses (>= NREG*4) as single DMEM
-> accesses with an exec/exec_ack handshake, returning SLVERR while the memory
-> arbiter is busy. A generated `peakrdl regblock` cannot do this.
+> The custom AXI slave (`axi_slv_tprocv1`) is REQUIRED for this style: it
+> decodes low addresses as registers and high addresses (>= NREG*4) as single
+> DMEM accesses with an exec/exec_ack handshake, returning SLVERR while the
+> memory arbiter is busy. A generated `peakrdl regblock` cannot do this.
 
 ### Style B — Generated-package driver
 
@@ -546,6 +641,7 @@ from qick.ip import SocIP
 def _to_unsigned(val, bits=16):
     return val & ((1 << bits) - 1)
 
+
 def _to_signed(val, bits=16):
     half = 1 << (bits - 1)
     return val - (1 << bits) if val >= half else val
@@ -572,8 +668,6 @@ class AxisConstantIQ(SocIP):
 
     def _hw_write(self, addr, width, accesswidth, data):
         self.mmio.write(addr // 4, data)
-
-    # read_block / write_block callbacks as needed by your QICK version
 
     @property
     def regs(self):
@@ -602,29 +696,25 @@ The driver is loaded automatically by QICK when the IP's **VLNV**
 import numpy as np
 from qick import QickSoc
 
-soc = QickSoc('axis_tprocv1.bit')
+soc = QickSoc('my_firmware.bit')
+print(soc.ip_dict.keys())          # find your block (name from block design)
+gen = soc.gens[0]                  # AxisSignalGen instance
 
-# Find your block (name comes from the block design)
-print(soc.ip_dict.keys())
-tproc = soc.axis_tprocv1_0          # adjust to the real instance name
+# Low-level envelope load (int16 I/Q via DMA)
+n = 1024
+env = (gen.MAXV * np.exp(-0.5 * ((np.arange(n) - n/2) / (n/8))**2))
+xin = np.zeros((n, 2), dtype=np.int16)
+xin[:, 0] = env.astype(np.int16)
+gen.load(xin, addr=0)
 
-# Single access to data memory (upper AXI window -> axi_slv_tprocv1)
-tproc.single_write(addr=10, data=0xDEADBEEF)
-print(hex(tproc.single_read(addr=10)))
-
-# Data memory via DMA
-buff = np.arange(100, dtype=np.int32)
-tproc.load_dmem(buff, addr=0)
-out = tproc.read_dmem(addr=0, length=100)
-assert np.array_equal(buff, out)
-
-# Run a program
-tproc.load_bin_program(binprog, load_mem=True)
-tproc.start_src("internal")
-tproc.start()
+# Amplitude-fix saturation check
+gen.clear_saturation()
+# ... play pulses ...
+if gen.is_saturating():
+    print("SG output clamped to +/-MAXV; reduce gain/envelope.")
 ```
 
-> VLNV / bindto MUST MATCH
+> **VLNV / bindto MUST MATCH**
 >
 > If you rename the IP module (e.g. `axis_tproc64x32_x8` -> `axis_tprocv1`), the
 > package VLNV and the driver `bindto` can drift apart and QICK will NOT load the
@@ -632,34 +722,23 @@ tproc.start()
 >   - keep the IP name (`make package IP=... --ip-name axis_tproc64x32_x8`) so
 >     the existing `bindto` matches, OR
 >   - update `bindto` to the new VLNV (e.g. `qick:ip:axis_tprocv1:1.0`).
+>
 > The RTL module name and the IP/VLNV name may differ; what matters for driver
 > loading is the VLNV vs `bindto`.
 
-Smoke test on the board (mirrors the RTL tests tc02/tc05/tc07):
-
-```python
-for a in range(8):
-    tproc.single_write(a, 0x1000_0000 + a)
-for a in range(8):
-    assert tproc.single_read(a) == 0x1000_0000 + a
-print("single R/W OK")
-
-buff = (np.arange(64) + 0xAA00).astype(np.int32)
-tproc.load_dmem(buff, addr=0)
-assert np.array_equal(buff, tproc.read_dmem(0, 64))
-print("DMA R/W OK")
-```
-
-## Makefile Targets
+## Makefile Targets (driver-related)
 
 | Command | Description |
 |---------|-------------|
-| `make driver IP=<name>`  | Generate RDL Python package + QICK driver symlink |
-| `make gen IP=<name>`     | Generate RDL only (no symlink) |
-| `make rdl-docs IP=<name>`| Generate HTML documentation from RDL |
-| `make sim IP=<name>`     | Run the SVUnit RTL testbench |
-| `make new-ip IP=<name>`  | Create a new IP from template |
-| `make driver-all`        | Generate drivers for all IPs |
+| `make driver IP=<name>`      | Generate RDL Python package + QICK driver symlink + run reg tests |
+| `make driver-test IP=<name>` | Run only the register-layer pytest (no regeneration) |
+| `make gen IP=<name>`         | Generate RDL package only (no symlink) |
+| `make rdl-docs IP=<name>`    | Generate HTML documentation from RDL |
+| `make sim_svunit IP=<name>`  | Run the SVUnit RTL testbench (pytest wrapper) |
+| `make new-ip IP=<name>`      | Create a new IP from template |
+| `make driver-all`            | Generate drivers for all IPs |
+
+Full Makefile reference: **docs/MAKEFILE.md**.
 
 ## Files to Version Control
 
@@ -713,38 +792,18 @@ Writing a negative value directly raises
 
 ## Troubleshooting
 
-**`make driver` runs `... _regmap.rdl` (empty name)**
-The `rdl/Makefile` has a duplicated/empty `RDL_FILE`. Fix the Makefile heredoc
-in `create_ip.sh` to use `<< 'EOF'` (no backslashes) and remove the duplicate
-line.
-
-**`make driver` runs `... ip_regmap.rdl`**
-`IP_NAME` uses two `dirname` calls and resolves to `ip`. Use a single `dirname`:
-`IP_NAME = $(shell basename $(shell dirname $(CURDIR)))`.
-
-**`make ... gen: missing separator`**
-Recipe lines use spaces instead of TABs. Use the `@@TAB@@` + `sed` trick.
-
-**`ModuleNotFoundError: No module named '<ip>_regmap_pkg'`**
-The package was not generated. Run `make driver IP=<name>` and ensure
-`conftest.py` adds `rdl/` to `sys.path`.
-
-**`TypeError: callbacks ... NormalCallbackSet`**
-You passed too few callbacks. Provide all four:
-`read_callback`, `write_callback`, `read_block_callback`, `write_block_callback`.
-
-**Import of the model class fails (hash-suffixed name)**
-Do not import `<ip>_neg_0x..._cls` directly. Import the clean alias
-`RegModel` from `<ip>_regmap_pkg.reg_model`.
-
-**Generated regblock SystemVerilog conflicts with the custom AXI slave**
-You left `--hdl` in `gen` for a strategy-2 IP. Remove `--hdl`; keep only
-`--python` (and `--html` for docs).
-
-**Driver works in dev but not on the board**
-Either the generated package was not deployed, or the VLNV does not match
-`bindto`. Re-run `make driver`, redeploy, and verify the IP VLNV equals one of
-the `bindto` strings.
+| Symptom | Cause / fix |
+|---------|-------------|
+| `make driver` runs `... _regmap.rdl` (empty name) | Duplicated/empty `RDL_FILE` in `rdl/Makefile`. Fix the heredoc in `create_ip.sh` (`<< 'EOF'`, no backslashes, remove duplicate line). |
+| `make driver` runs `... ip_regmap.rdl` | `IP_NAME` uses two `dirname` calls -> resolves to `ip`. Use a single `dirname`. |
+| `make ... gen: missing separator` | Recipe lines use spaces instead of TABs. Use the `@@TAB@@` + `sed` trick. |
+| `ModuleNotFoundError: No module named '<ip>_regmap_pkg'` | Package not generated. Run `make driver IP=<name>`; ensure `conftest.py` adds `rdl/` to `sys.path`. |
+| `ModuleNotFoundError: No module named 'models'/'utils'` (sim_svunit) | `get_core_name.py` import must be `from utils.cmd_utils import ...` and needs `PYTHONPATH=scripts`. |
+| `TypeError: callbacks ... NormalCallbackSet` | Too few callbacks. Provide all four (`read`, `write`, `read_block`, `write_block`). |
+| Import of the model class fails (hash-suffixed name) | Don't import `<ip>_neg_0x..._cls`. Import the clean alias `RegModel` from `<ip>_regmap_pkg.reg_model`. |
+| Generated regblock SV conflicts with the custom AXI slave | You left `--hdl` in `gen` for a strategy-2 IP. Remove `--hdl`; keep `--python` (+ `--html`). |
+| `PytestUnknownMarkWarning: svunit_test` | Register the marker in `pyproject.toml` (`[tool.pytest.ini_options] markers = [...]`). |
+| Driver works in dev but not on the board | Package not deployed, or VLNV != `bindto`. Re-run `make driver`, redeploy, verify VLNV. |
 
 ## Lessons Learned (summary)
 
@@ -754,12 +813,20 @@ the `bindto` strings.
 - AXIS writers must advance address/pipeline only on **accepted beats**
   (`tvalid && tready`), not on `tvalid` alone — otherwise the first beat is lost
   when `tvalid` leads `tready` at transaction start.
+- Use **indexed part-selects** (`[base +: WIDTH]`) with a variable base; xsim
+  rejects `[msb:lsb]` when the bounds depend on a loop variable.
 - In testbenches, do not sample combinational outputs of **single-cycle states**
   right after `wait_state`; use a concurrent `fork` monitor or settle a cycle.
-- Synchronize multi-transaction tests on **real state** (`tready`/`busy`), not on
-  fixed `repeat` margins.
+- Synchronize multi-transaction tests on **real state** (`tready`, `busy`), not
+  on fixed `repeat` margins.
 - For PeakRDL: import the **clean aliases** (`RegModel`, `Simulator`), provide
   **four callbacks**, and treat the generated `_*_sim_test_base.py` as the
   source of truth for the API.
-- Keep `axi_slv_tprocv1` for IPs that need a memory window + handshake; the RDL is
-  for the **driver layer and docs only** in that case (no `--hdl`).
+- Keep `axi_slv_tprocv1` for IPs that need a memory window + handshake; the RDL
+  is for the **driver layer and docs only** in that case (no `--hdl`).
+- **Fix RTL bugs in `rtl_lib/`, document them in the module header.** Case
+  study: SG-v6 amplitude fix — the register map even grew STATUS/CTRL registers
+  to expose the new ±MAXV saturation to software.
+- **A single driver can bind multiple IP versions** (`AxisSignalGen` -> v4/v5/v6).
+  When you change one IP's RTL/registers, re-check the shared driver against the
+  others.

@@ -1,16 +1,14 @@
-# Creating New Cores
-
 This guide explains how to create new FuseSoC cores in the QICK environment.
 There are two kinds:
 
-  1. **Library cores** — reusable building blocks (ALU, FIFO, sync, LFSR, ...).
-     Created with `scripts/new_lib_core.sh`. RTL lives in `rtl_lib/<category>/`.
-  2. **Packaged IPs** — top-level IPs with a register map and Python driver.
-     Created with `make new-ip` (PeakRDL flow). See docs/DRIVER.md.
+1. **Library cores** — reusable building blocks (ALU, FIFO, sync, LFSR, ...).
+   Created with `scripts/new_lib_core.sh`. RTL lives in `rtl_lib/<category>/`.
+2. **Packaged IPs** — top-level IPs with a register map and Python driver.
+   Created with `make new-ip` (PeakRDL flow). See docs/DRIVER.md.
 
 ---
 
-## 1. Library cores  (scripts/new_lib_core.sh)
+## 1. Library cores (`scripts/new_lib_core.sh`)
 
 ### What it does
 
@@ -38,8 +36,8 @@ cd firmware/fusesoc
 ./scripts/new_lib_core.sh <category> <core_name> [pkg_depend]
 ```
 
-- `<category>` : one of `utils | math | cdc | mem | axi | interfaces | processors`
-- `<core_name>`: the module name (must match the file in rtl_lib/<category>/)
+- `<category>` : one of `utils | math | cdc | mem | axi | dsp | interfaces | processors`
+- `<core_name>`: the module name (must match the file in `rtl_lib/<category>/`)
 - `[pkg_depend]` (optional): a package the RTL needs, e.g. `qick:pkg:alu_pkg`
 
 ### Examples
@@ -70,7 +68,9 @@ RTL afterward.
    (the script writes a `tc_smoke` placeholder).
 2. Run the test target:
    ```bash
-   make sim IP=<core>
+   make sim IP=<core>            # single core, direct
+   # or
+   make sim_svunit IP=<core>     # pytest wrapper + JUnit report
    ```
 3. Lint:
    ```bash
@@ -86,7 +86,6 @@ targets:
 CAPI=2:
 name: qick:<category>:<core>:1.0.0
 description: <core> (<category> library core).
-
 filesets:
   hdl:
     files:
@@ -104,14 +103,12 @@ filesets:
   lint_files:
     depend:
       - qick:common:lint
-
 generate:
   testrunner_gen:
     generator: svunit_gen
     parameters:
         test_files:
           - tests/<core>_tc00.sv
-
 targets:
   default: &default
     filesets: [hdl]
@@ -156,10 +153,10 @@ module <core>_unit_test;
     svunit_testcase svunit_ut;
 
     localparam real CLOCK_FREQUENCY = 200e6;
-
     logic tb_clk  = 1'b0;
     logic tb_rstn = 1'b1;
-    clk_gen #(.FREQ (CLOCK_FREQUENCY)) u_clk (.i_enable(1'b1), .o_clk(tb_clk));
+
+    clk_gen #(.FREQ(CLOCK_FREQUENCY)) u_clk (.i_enable(1'b1), .o_clk(tb_clk));
 
     // DUT signals ...
     // DUT instance: <core> dut ( ... );
@@ -185,14 +182,20 @@ endmodule
   (`tvalid && tready`), not on `tvalid` alone.
 - Do not sample combinational outputs of single-cycle FSM states right after a
   `wait_state`; use a concurrent `fork` monitor or settle one cycle.
-- Synchronize multi-step / multi-transaction tests on real state (`ready`,
-  `busy`, `tready`) rather than fixed `repeat` delays.
+- Synchronize multi-step / multi-transaction tests on real state
+  (`ready`, `busy`, `tready`) rather than fixed `repeat` delays.
+- **Use indexed part-selects (`[base +: WIDTH]`) with a variable base**, not
+  `[msb:lsb]` with loop-variable bounds — xsim rejects the latter as
+  "range index value is not constant".
 - When a real RTL bug is found, fix it in `rtl_lib/` (not in the testbench) and
-  document it in the module header.
+  document it in the module header. Case study: the SG-v6 amplitude fix — the
+  testbench exposed that `env=MAXV, cos=full, gain=MAXV` produced `0x3FFD`
+  (≈MAXV/2); the fix ([31:16] -> [30:15] + ±MAXV saturation) went into
+  `rtl_lib/dsp/sgv6.sv`, not the TB.
 
 ---
 
-## 3. Packaged IPs  (make new-ip)
+## 3. Packaged IPs (`make new-ip`)
 
 For top-level IPs that expose an AXI register map and a Python driver, use the
 PeakRDL flow:
@@ -201,16 +204,24 @@ PeakRDL flow:
 make new-ip IP=my_new_ip
 ```
 
-This creates `cores/ip/my_new_ip/` with `rdl/`, `driver/`, `hdl/`, and `test/`.
+This creates `cores/ip/my_new_ip/` with `rdl/`, `driver/`, `hdl/`, and `tests/`.
 Then:
 
 1. Edit `cores/ip/my_new_ip/rdl/my_new_ip_regmap.rdl` (the register map).
 2. Write/adjust the RTL in `rtl_lib/ip/my_new_ip.sv` and the symlink.
-3. Generate the driver/register layer:
+3. Generate the driver/register layer (also runs the register tests):
    ```bash
    make driver IP=my_new_ip
    ```
-4. Generate docs:
+4. Run only the register-layer tests (no regeneration):
+   ```bash
+   make driver-test IP=my_new_ip
+   ```
+5. Run the RTL testbench:
+   ```bash
+   make sim_svunit IP=my_new_ip
+   ```
+6. Generate docs:
    ```bash
    make rdl-docs IP=my_new_ip
    ```
@@ -224,6 +235,9 @@ custom AXI slave).
 > fixed; if you create an IP and `make driver` complains about `_regmap.rdl` or
 > `ip_regmap.rdl`, check `scripts/create_ip.sh` against docs/DRIVER.md.
 
+> Packaged IPs also use the `tests/` directory (plural), consistent with library
+> cores — `tests/<ip>_tc00.sv` (top) and `tests/<ip>_tests.sv` (included).
+
 ---
 
 ## 4. Quick checklist for a new library core
@@ -231,9 +245,22 @@ custom AXI slave).
 ```
 1. Write/place RTL          ->  rtl_lib/<category>/<core>.sv  (lowercase ports)
 2. Create the core          ->  ./scripts/new_lib_core.sh <category> <core> [pkg]
-3. Write the testbench       ->  edit tests/<core>_tc00.sv + tests/<core>_tests.sv
-4. Simulate                 ->  make sim IP=<core>
+3. Write the testbench      ->  edit tests/<core>_tc00.sv + tests/<core>_tests.sv
+4. Simulate                 ->  make sim IP=<core>   (or make sim_svunit IP=<core>)
 5. Lint                     ->  make lint IP=<core>
 6. Fix RTL bugs in rtl_lib/ ->  document them in the module header
 7. Re-run until green
+```
+
+## 5. Quick checklist for a new packaged IP
+
+```
+1. Scaffold                 ->  make new-ip IP=<name>
+2. Define registers         ->  edit rdl/<name>_regmap.rdl  (source of truth)
+3. Choose RTL strategy      ->  regblock (--hdl) OR custom AXI slave (drop --hdl)
+4. Write RTL + symlink      ->  rtl_lib/ip/<name>.sv
+5. Generate driver + tests  ->  make driver IP=<name>
+6. RTL verification         ->  make sim_svunit IP=<name>
+7. Docs                     ->  make rdl-docs IP=<name>
+8. Package                  ->  make package IP=<name>
 ```
