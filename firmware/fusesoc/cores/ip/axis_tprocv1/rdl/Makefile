@@ -11,4 +11,7 @@ docs:
 clean:
 	rm -rf $(IP_NAME)_regmap_pkg $(IP_NAME)_regmap*.sv $(IP_NAME)_regmap*.svh
 
-.PHONY: gen docs clean
+clean-docs:
+	rm -rf index.html launcher* data search content css fonts js favicon.png
+
+.PHONY: gen docs clean clean-docs
