@@ -1,0 +1,199 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jul  3 20:48:49 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_dsp_sgv4_1.0.0/test-xsim/sgv4.vcd"
+[dumpfile_mtime] "Fri Jul  3 20:46:50 2026"
+[dumpfile_size] 361203
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/dsp/sgv4/data/sgv4.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-9.878470 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.sgv4_ut.
+[sst_width] 206
+[signals_width] 350
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@22
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[0].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[1].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[2].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[3].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[4].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[5].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[6].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].dout_mux_la[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].last_r[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_imag_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_imag_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_imag_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_imag_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_real_a_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_real_a_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_real_b_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_full_real_b_r2[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prod_y_r1[31:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prodg_imag_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prodg_imag_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prodg_real_r1[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].prodg_real_r2[15:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].round_ext_imag[16:0]
+testrunner.__ts.sgv4_ut.dut.\gen_lane[7].round_ext_real[16:0]
+testrunner.__ts.sgv4_ut.dut.dds_ctrl_int[575:0]
+testrunner.__ts.sgv4_ut.dut.dds_ctrl_int_r[575:0]
+@28
+testrunner.__ts.sgv4_ut.dut.dds_tvalid_r
+testrunner.__ts.sgv4_ut.dut.en_int
+testrunner.__ts.sgv4_ut.dut.en_la
+testrunner.__ts.sgv4_ut.dut.en_la_r
+@22
+testrunner.__ts.sgv4_ut.dut.gain_int[15:0]
+testrunner.__ts.sgv4_ut.dut.gain_la[15:0]
+@28
+testrunner.__ts.sgv4_ut.dut.i_axis_tready
+testrunner.__ts.sgv4_ut.dut.i_clk
+@22
+testrunner.__ts.sgv4_ut.dut.i_fifo_dout[159:0]
+@28
+testrunner.__ts.sgv4_ut.dut.i_fifo_empty
+@22
+testrunner.__ts.sgv4_ut.dut.i_mem_dout_imag[127:0]
+testrunner.__ts.sgv4_ut.dut.i_mem_dout_real[127:0]
+@28
+testrunner.__ts.sgv4_ut.dut.i_rstn
+testrunner.__ts.sgv4_ut.dut.iqsel_la
+@22
+testrunner.__ts.sgv4_ut.dut.mem_addr_int[15:0]
+testrunner.__ts.sgv4_ut.dut.mem_addr_int_r[15:0]
+testrunner.__ts.sgv4_ut.dut.o_axis_tdata[255:0]
+@28
+testrunner.__ts.sgv4_ut.dut.o_axis_tvalid
+testrunner.__ts.sgv4_ut.dut.o_fifo_rd_en
+@22
+testrunner.__ts.sgv4_ut.dut.o_mem_addr[15:0]
+@28
+testrunner.__ts.sgv4_ut.dut.o_sat
+@22
+testrunner.__ts.sgv4_ut.dut.sat_lane[7:0]
+@28
+testrunner.__ts.sgv4_ut.dut.src_int[1:0]
+testrunner.__ts.sgv4_ut.dut.src_la[1:0]
+testrunner.__ts.sgv4_ut.dut.stdy_int
+testrunner.__ts.sgv4_ut.dut.stdy_la
+[pattern_trace] 1
+[pattern_trace] 0
