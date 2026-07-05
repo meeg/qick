@@ -215,7 +215,7 @@ module sgv6 #(
 
          if (GEN_DDS == "TRUE") begin : gen_with_dds
             // DDS (Full_Range, 16-bit, latency 10). Output: {sin[15:0], cos[15:0]}.
-            dds_compiler_0 dds_i (
+            dds_compiler_signal_gen dds_i (
                .aclk                (i_clk),
                .s_axis_phase_tvalid (dds_tvalid_r),
                .s_axis_phase_tdata  (dds_ctrl_int_r[i*72 +: 72]),
