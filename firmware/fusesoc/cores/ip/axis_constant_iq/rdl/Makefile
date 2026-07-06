@@ -1,20 +1,17 @@
-RDL_FILE = axis_constant_iq_regmap.rdl
+IP_NAME    = $(shell basename $(shell dirname $(CURDIR)))
+RDL_FILE   = $(IP_NAME)_regmap.rdl
 GEN_SCRIPT = ../../../../generators/systemrdl/rdl_tools.py
 
 gen:
-	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --hdl --python
+	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --python
 
 docs:
-	python3 -c "\
-	from systemrdl import RDLCompiler; \
-	from peakrdl_html import HTMLExporter; \
-	rdlc = RDLCompiler(); \
-	rdlc.compile_file('$(RDL_FILE)'); \
-	root = rdlc.elaborate(); \
-	HTMLExporter().export(root, './docs'); \
-	print('✓ Docs generated in docs/')"
+	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --html
 
 clean:
-	rm -rf axis_constant_iq_regmap_pkg axis_constant_iq_regmap*.sv axis_constant_iq_regmap*.svh docs
+	rm -rf $(IP_NAME)_regmap_pkg $(IP_NAME)_regmap*.sv $(IP_NAME)_regmap*.svh
 
-.PHONY: gen docs clean
+clean-docs:
+	rm -rf index.html launcher* data search content css fonts js favicon.png
+
+.PHONY: gen docs clean clean-docs
