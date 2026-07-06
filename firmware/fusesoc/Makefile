@@ -197,15 +197,15 @@ driver:
 # Run driver register tests only (no regeneration)
 driver-test:
 	@if [ -z "$(IP)" ]; then echo "Usage: make driver-test IP=<ip_name>"; exit 1; fi
-	@if [ -d cores/ip/$(IP)/driver/tests ]; then \
-		echo "Running driver register tests for $(IP)..."; \
+	@if [ ! -d cores/ip/$(IP)/driver/tests ]; then \
+		echo "No driver/tests/ for $(IP) — scaffolding from RDL..."; \
+    	$(MAKE) --no-print-directory driver-scaffold IP=$(IP); \
+		fi
+	@echo "Running driver register tests for $(IP)..."; \
 		mkdir -p report_pytest; \
-		. venv/bin/activate; \
-		pytest cores/ip/$(IP)/driver/tests/ -v \
-		--junitxml=report_pytest/driver-$(IP)-report.xml; \
-	else \
-		echo "No driver/tests/ for $(IP)"; \
-	fi
+    . venv/bin/activate; \
+    pytest cores/ip/$(IP)/driver/tests/ -v \
+        --junitxml=report_pytest/driver-$(IP)-report.xml
 
 # Generate drivers for all IPs
 driver-all:
@@ -220,6 +220,12 @@ driver-all:
 			fi; \
 		fi; \
 	done
+
+# Scaffold driver/tests/ from the generated RDL package (idempotent).
+driver-scaffold:
+	@if [ -z "$(IP)" ]; then echo "Usage: make driver-scaffold IP=<ip_name>"; exit 1; fi
+	. venv/bin/activate; \
+		python3 scripts/gen_driver_tests.py $(IP)
 
 # Generate HTML documentation from RDL
 # Usage: make rdl-docs IP=axis_constant_iq
