@@ -138,7 +138,11 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     # Remove the IP itself from dependencies
     deps.discard(ip_core_name)
     # Filter out common/pkg dependencies (they don't have RTL)
-    rtl_deps = [d for d in deps if not d.startswith('qick:common:') and not d.startswith('qick:pkg:')]
+    rtl_deps = [d for d in deps
+                if not d.startswith('qick:common:')
+                and not d.startswith('qick:pkg:')
+                and not d.endswith('_model')                    # ← behavioral sim models
+                and ':dds_compiler_model' not in d]             # (defensive, if name get version)
     print(f"  Found {len(rtl_deps)} RTL dependency(ies):")
     for dep in sorted(rtl_deps):
         print(f"    - {dep}")
