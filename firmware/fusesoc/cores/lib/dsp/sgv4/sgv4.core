@@ -10,7 +10,7 @@ filesets:
     depend:
       - qick:utils:delay_line
       - qick:dsp:ctrl_sgv4
-      - qick:dsp:dds_compiler_0    # provides the DDS (model for sim, .xci for synth)
+      - qick:dsp:dds_compiler_dyn_readout   # provides the DDS (model for sim, .xci for synth)
   tb:
     files:
       - tests/sgv4_tc00.sv

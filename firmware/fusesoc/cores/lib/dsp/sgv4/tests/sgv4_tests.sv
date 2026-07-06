@@ -15,137 +15,135 @@
 // TEST 02: Mid-scale envelope, mid-scale gain, full-scale cosine (I/Q).
 // ----------------------------------------------------------------------------
 `SVTEST(tc_level_midscale)
-    logic [31:0] dout0, exp_rtl, exp_ideal;
+    logic [15:0] dout0, exp_rtl;
     logic [159:0] d;
-    set_envelope(16'h4000, 16'h2000);    // env_re=0.5, env_im=0.125
-    d = build_descr(32'd0, 32'd0, 16'd0, 16'h4000, 16'd64, 2'd0, 
-                    1'b0, 1'b0, 1'b0, 1'b0);  // iqsel=0 (I/Q)
+    tb_outsel_reg = 1'b0;                  // parte real
+    set_envelope(16'h4000, 16'h2000);
+    d = build_descr(32'd0, 32'd0, 16'd0, 16'h4000, 16'd64, 2'd0,
+                    1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
     wait_output(dout0);
-    exp_rtl   = ref_rtl_prod_complex(16'sh4000, 16'sh2000, 
-                                     16'sh7FFF, 16'sh0000, 16'sh4000);
-    exp_ideal = ref_ideal_prod_complex(16'sh4000, 16'sh2000,
-                                       16'sh7FFF, 16'sh0000, 16'sh4000);
-    $display("[LEVEL midscale] RTL=0x%08h  faithful=0x%08h  ideal=0x%08h",
-             dout0, exp_rtl, exp_ideal);
+    exp_rtl = ref_rtl_sel(16'sh4000, 16'sh2000,
+                          16'sh7FFF, 16'sh0000, 16'sh4000, 1'b0);
+    $display("[LEVEL midscale] RTL=0x%04h  faithful=0x%04h", dout0, exp_rtl);
     `FAIL_IF_LOG(dout0 !== exp_rtl,
-        $sformatf("RTL 0x%08h != faithful model 0x%08h", dout0, exp_rtl));
+        $sformatf("RTL 0x%04h != faithful 0x%04h", dout0, exp_rtl));
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
 // TEST 03: Full-scale everything — expose wrap-around / level loss.
 // ----------------------------------------------------------------------------
 `SVTEST(tc_level_fullscale)
-    logic [31:0] dout0, exp_rtl, exp_ideal;
+    logic [15:0] dout0, exp_rtl;
     logic [159:0] d;
+    tb_outsel_reg = 1'b0;
     set_envelope(16'(MAXV), 16'(MAXV));
     d = build_descr(32'd0, 32'd0, 16'd0, 16'(MAXV),
                     16'd64, 2'd0, 1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
     wait_output(dout0);
-    exp_rtl   = ref_rtl_prod_complex(16'(MAXV), 16'(MAXV),
-                                      16'sh7FFF, 16'sh0000, 16'(MAXV));
-    exp_ideal = ref_ideal_prod_complex(16'(MAXV), 16'(MAXV),
-                                        16'sh7FFF, 16'sh0000, 16'(MAXV));
-    $display("[LEVEL fullscale] RTL=0x%08h  faithful=0x%08h  ideal=0x%08h",
-             dout0, exp_rtl, exp_ideal);
+    exp_rtl = ref_rtl_sel(16'(MAXV), 16'(MAXV),
+                          16'sh7FFF, 16'sh0000, 16'(MAXV), 1'b0);
+    $display("[LEVEL fullscale] RTL=0x%04h  faithful=0x%04h", dout0, exp_rtl);
     `FAIL_IF_LOG(dout0 !== exp_rtl,
-        $sformatf("RTL 0x%08h != faithful 0x%08h", dout0, exp_rtl));
+        $sformatf("RTL 0x%04h != faithful 0x%04h", dout0, exp_rtl));
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
 // TEST 04: OUTSEL = 1 (I only) — Q should be zeroed.
 // ----------------------------------------------------------------------------
-`SVTEST(tc_outsel_i_only)
-    logic [31:0] dout0;
-    logic [15:0] dout_i, dout_q;
+`SVTEST(tc_outsel_real_vs_imag)
+    logic [15:0] out_re, out_im, exp_re, exp_im;
     logic [159:0] d;
     set_envelope(16'h4000, 16'h2000);
-    // iqsel=1: I only output (Q = 0)
+
+    // outsel = 0 -> parte real
+    tb_outsel_reg = 1'b0;
     d = build_descr(32'd0, 32'd0, 16'd0, 16'h4000, 16'd64, 2'd0,
-                    1'b0, 1'b0, 1'b0, 1'b1);
+                    1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
-    wait_output(dout0);
-    dout_i = dout0[15:0];
-    dout_q = dout0[31:16];
-    $display("[OUTSEL I only] I=0x%04h Q=0x%04h (expect Q=0)", dout_i, dout_q);
-    `FAIL_IF_LOG(dout_q !== 16'h0000,
-        $sformatf("Q should be 0, got 0x%04h", dout_q));
+    wait_output(out_re);
+
+    // outsel = 1 -> parte imag
+    tb_outsel_reg = 1'b1;
+    d = build_descr(32'd0, 32'd0, 16'd0, 16'h4000, 16'd64, 2'd0,
+                    1'b0, 1'b0, 1'b0, 1'b0);
+    load_descriptor(d);
+    wait_output(out_im);
+
+    exp_re = ref_rtl_sel(16'sh4000, 16'sh2000, 16'sh7FFF, 16'sh0000, 16'sh4000, 1'b0);
+    exp_im = ref_rtl_sel(16'sh4000, 16'sh2000, 16'sh7FFF, 16'sh0000, 16'sh4000, 1'b1);
+    $display("[OUTSEL] real=0x%04h (exp 0x%04h)  imag=0x%04h (exp 0x%04h)",
+             out_re, exp_re, out_im, exp_im);
+    `FAIL_IF_LOG(out_re !== exp_re, $sformatf("real path 0x%04h != 0x%04h", out_re, exp_re));
+    `FAIL_IF_LOG(out_im !== exp_im, $sformatf("imag path 0x%04h != 0x%04h", out_im, exp_im));
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
 // TEST 05: src=2 (envelope only) — complex envelope passthrough.
 // ----------------------------------------------------------------------------
 `SVTEST(tc_envelope_only)
-    logic [31:0] dout0;
+    logic [15:0] dout0;
     logic [159:0] d;
+    tb_outsel_reg = 1'b0;               // real -> debe salir env_re
     set_envelope(16'h4000, 16'h2000);
     d = build_descr(32'd0, 32'd0, 16'd0, 16'(MAXV),
                     16'd64, 2'd2, 1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
     wait_output(dout0);
-    $display("[ENV ONLY] env=(0x%04h,0x%04h)  out=(0x%04h,0x%04h)",
-             16'h4000, 16'h2000, dout0[15:0], dout0[31:16]);
+    $display("[ENV ONLY] env_re=0x4000 out=0x%04h", dout0);
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
 // TEST 06: Full-scale product path reaches ~MAXV (not MAXV/2).
 // ----------------------------------------------------------------------------
 `SVTEST(tc_fullscale_fixed)
-    logic [31:0] dout0;
+    logic [15:0] dout0;
     logic [159:0] d;
+    tb_outsel_reg = 1'b0;
     set_envelope(16'(MAXV), 16'h0000);
     d = build_descr(32'd0, 32'd0, 16'd0, 16'(MAXV),
                     16'd64, 2'd0, 1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
     wait_output(dout0);
-    $display("[FIXED fullscale] env=MAXV gain=MAXV cos=full -> out=0x%08h",
-             dout0);
-    `FAIL_IF_LOG($signed(dout0[15:0]) < 16'sd30000,
-        $sformatf("I should be ~MAXV, got 0x%04h (%0d)", 
-                  dout0[15:0], $signed(dout0[15:0])));
+    $display("[FIXED fullscale] -> out=0x%04h (%0d)", dout0, $signed(dout0));
+    `FAIL_IF_LOG($signed(dout0) < 16'sd30000,
+        $sformatf("I should be ~MAXV, got 0x%04h (%0d)", dout0, $signed(dout0)));
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
 // TEST 07: Saturation — no wrap, clamps to MAXV.
 // ----------------------------------------------------------------------------
 `SVTEST(tc_saturation_no_wrap)
-    logic [31:0] dout0;
+    logic [15:0] dout0;
     logic [159:0] d;
+    tb_outsel_reg = 1'b0;
     set_envelope(16'h7FFF, 16'h7FFF);
     d = build_descr(32'd0, 32'd0, 16'd0, 16'h7FFF, 16'd64, 2'd0,
                     1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
     wait_output(dout0);
-    $display("[SATURATION] max*max*max -> I=0x%04h (%0d) Q=0x%04h (%0d)",
-             dout0[15:0], $signed(dout0[15:0]),
-             dout0[31:16], $signed(dout0[31:16]));
-    `FAIL_IF_LOG($signed(dout0[15:0]) < 16'sd0,
-        $sformatf("I wrap detected! out=0x%04h (%0d)", 
-                  dout0[15:0], $signed(dout0[15:0])));
-    `FAIL_IF_LOG($signed(dout0[31:16]) < 16'sd0,
-        $sformatf("Q wrap detected! out=0x%04h (%0d)", 
-                  dout0[31:16], $signed(dout0[31:16])));
+    $display("[SATURATION] -> out=0x%04h (%0d)", dout0, $signed(dout0));
+    `FAIL_IF_LOG($signed(dout0) < 16'sd0,
+        $sformatf("wrap detected! out=0x%04h (%0d)", dout0, $signed(dout0)));
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
 // TEST 08: DDS only, complex carriers.
 // ----------------------------------------------------------------------------
 `SVTEST(tc_dds_only_complex)
-    logic [31:0] dout0;
+    logic [15:0] dout0;
     logic [159:0] d;
-    // src=1 (DDS only), freq=0 -> cos=0x7FFF, sin=0
+    tb_outsel_reg = 1'b0;              // cos -> parte real
     d = build_descr(32'd0, 32'd0, 16'd0, 16'(MAXV),
                     16'd64, 2'd1, 1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
+    // esperar a que el pipe del DDS se llene tras tvalid
     wait_output(dout0);
-    $display("[DDS-ONLY DC] freq=0 src=1 -> I=0x%04h Q=0x%04h",
-             dout0[15:0], dout0[31:16]);
-    // I should be near MAXV, Q should be 0
-    `FAIL_IF_LOG($signed(dout0[15:0]) < 16'sd30000,
-        "DDS-only I path gave near-zero");
-    `FAIL_IF_LOG($signed(dout0[31:16]) > 16'sd1000,
-        "DDS-only Q path should be near 0");
+    repeat(15) @(posedge tb_clk);
+    dout0 = tb_axis_tdata[15:0];
+    $display("[DDS-ONLY DC] freq=0 src=1 outsel=0 -> real=0x%04h", dout0);
+    `FAIL_IF_LOG($signed(dout0) < 16'sd30000, "DDS-only real path gave near-zero");
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
@@ -169,8 +167,6 @@
             if (dut.o_axis_tvalid) begin
                 if (dut.o_axis_tdata[15:0] === 16'h7FFE ||
                     dut.o_axis_tdata[15:0] === 16'h8002) saw_clamp = 1'b1;
-                if (dut.o_axis_tdata[31:16] === 16'h7FFE ||
-                    dut.o_axis_tdata[31:16] === 16'h8002) saw_clamp = 1'b1;
             end
         end
         $display("[SAT COHERENT] env=0x%04h  o_sat=%b  clamp_out=%b",
@@ -183,20 +179,19 @@
 // TEST 10: Multiple lanes — all lanes produce same output.
 // ----------------------------------------------------------------------------
 `SVTEST(tc_all_lanes_match)
-    logic [31:0] lane0, lane7;
+    logic [15:0] lane0, lane7;
     logic [159:0] d;
+    tb_outsel_reg = 1'b0;
     set_envelope(16'h4000, 16'h2000);
     d = build_descr(32'd0, 32'd0, 16'd0, 16'h4000, 16'd64, 2'd0,
                     1'b0, 1'b0, 1'b0, 1'b0);
     load_descriptor(d);
-    // Wait for output and capture lane 0 and lane 7
     wait_output(lane0);
-    // Wait for another cycle and capture lane 7
-    @(posedge tb_clk);
-    lane7 = tb_axis_tdata[32*7 +: 32];
-    $display("[ALL LANES] lane0=0x%08h  lane7=0x%08h", lane0, lane7);
+    lane0 = tb_axis_tdata[0*16 +: 16];
+    lane7 = tb_axis_tdata[7*16 +: 16];
+    $display("[ALL LANES] lane0=0x%04h  lane7=0x%04h", lane0, lane7);
     `FAIL_IF_LOG(lane0 !== lane7,
-        $sformatf("Lanes differ: lane0=0x%08h lane7=0x%08h", lane0, lane7));
+        $sformatf("Lanes differ: lane0=0x%04h lane7=0x%04h", lane0, lane7));
 `SVTEST_END
 
 // ----------------------------------------------------------------------------

@@ -41,11 +41,11 @@ module sgv4_unit_test;
     logic [N-1:0]        tb_mem_addr;
     logic [N_DDS*16-1:0] tb_mem_real = '0;
     logic [N_DDS*16-1:0] tb_mem_imag = '0;
+    logic                tb_outsel_reg  = 1'b0;   // 0 = real, 1 = imag
     logic                tb_axis_tready = 1'b1;
     logic                tb_axis_tvalid;
-    logic [N_DDS*32-1:0] tb_axis_tdata;  // v4: 32 bits per lane (I/Q)
+    logic [N_DDS*16-1:0] tb_axis_tdata;           // v4: 16 bits per lane (real OR imag)
     logic                tb_sat;
-
     // =========================================================================
     // Dump
     // =========================================================================
@@ -69,6 +69,7 @@ module sgv4_unit_test;
         .o_mem_addr      (tb_mem_addr),
         .i_mem_dout_real (tb_mem_real),
         .i_mem_dout_imag (tb_mem_imag),
+        .i_outsel_reg    (tb_outsel_reg),
         .i_axis_tready   (tb_axis_tready),
         .o_axis_tvalid   (tb_axis_tvalid),
         .o_axis_tdata    (tb_axis_tdata),
@@ -130,7 +131,7 @@ module sgv4_unit_test;
     task automatic wait_output(output logic [31:0] dout0, input int timeout = 100);
         int t = 0;
         while (!tb_axis_tvalid && t < timeout) begin @(posedge tb_clk); t++; end
-        dout0 = tb_axis_tdata[31:0];
+        dout0 = tb_axis_tdata[15:0];
     endtask
 
     // =========================================================================
@@ -215,6 +216,25 @@ module sgv4_unit_test;
             
             return {out_im, out_re};
         end
+    endfunction
+
+    // Wrapper: gives half (real or imag) selected by outsel.
+    function automatic logic [15:0] ref_rtl_sel(
+        input logic signed [15:0] env_re, input logic signed [15:0] env_im,
+        input logic signed [15:0] cos,    input logic signed [15:0] sin,
+        input logic signed [15:0] gain,   input logic outsel
+    );
+        logic [31:0] full = ref_rtl_prod_complex(env_re, env_im, cos, sin, gain);
+        return (outsel == 1'b0) ? full[15:0] : full[31:16];
+    endfunction
+
+    function automatic logic [15:0] ref_ideal_sel(
+        input logic signed [15:0] env_re, input logic signed [15:0] env_im,
+        input logic signed [15:0] cos,    input logic signed [15:0] sin,
+        input logic signed [15:0] gain,   input logic outsel
+    );
+        logic [31:0] full = ref_ideal_prod_complex(env_re, env_im, cos, sin, gain);
+        return (outsel == 1'b0) ? full[15:0] : full[31:16];
     endfunction
 
     // =========================================================================
