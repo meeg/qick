@@ -45,13 +45,16 @@ targets:
   default: 
     filesets: [hdl]
     toplevel: axis_signal_gen_v6
+
   lint:
     filesets: [hdl, lint_files]
+    toplevel: axis_signal_gen_v6
     default_tool: veriblelint
     tools:
       verilator:
         mode: lint-only
         verilator_options: [-Wall]
+
   test:
     description: Simulate the design
     filesets: [hdl, tb]
