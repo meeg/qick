@@ -1,16 +1,30 @@
+//! Combinational/pipelined arithmetic ALU: add, subtract, and low-half multiply.
+//!
+//! Registers operands and opcode on entry, computes add/sub/mul in parallel,
+//! muxes the result by opcode, and outputs it two cycles later (dout_rr).
+//! Zero-flags on the raw (unregistered) operands are combinational.
 module alu_arith_unit import alu_pkg::*;
-  #(
-    parameter int B = alu_pkg::B
-  )(
-    input  logic             clk,
-    input  logic             rstn,
-    input  logic [B-1:0]     din_a,
-    input  logic [B-1:0]     din_b,
-    input  logic [3:0]       op,
-    output logic             zero_a,
-    output logic             zero_b,
-    output logic [B-1:0]     dout
-  );
+   #(
+      //! Operand/result width in bits.
+      parameter int B = alu_pkg::B
+   )(
+      //! Clock.
+      input  logic         clk,
+      //! Active-low synchronous reset.
+      input  logic         rstn,
+      //! Operand A.
+      input  logic [B-1:0] din_a,
+      //! Operand B.
+      input  logic [B-1:0] din_b,
+      //! Opcode: selects add/sub/mul (see alu_pkg::ARITH_*).
+      input  logic [3:0]   op,
+      //! Asserted when din_a == 0 (combinational).
+      output logic          zero_a,
+      //! Asserted when din_b == 0 (combinational).
+      output logic          zero_b,
+      //! Registered result, 2-cycle latency from din_a/din_b/op.
+      output logic [B-1:0] dout
+   );
 
   // Internal signals (signed for arithmetic)
   logic signed [B-1:0] din_a_r;
