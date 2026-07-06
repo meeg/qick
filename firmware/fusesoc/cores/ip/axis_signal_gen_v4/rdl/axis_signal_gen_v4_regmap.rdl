@@ -1,0 +1,52 @@
+addrmap axis_signal_gen_v4 {
+    name = "AXIS Signal Generator v4 Registers";
+    default regwidth = 32;
+    default accesswidth = 32;
+
+    reg {
+        name = "START_ADDR_REG";
+        field { desc = "Envelope write start address."; sw = rw; hw = r; } START_ADDR[31:0] = 0;
+    } START_ADDR_REG @ 0x00;
+
+    reg {
+        name = "WE_REG";
+        field { desc = "Envelope write enable."; sw = rw; hw = r; } WE[0:0] = 0;
+    } WE_REG @ 0x04;
+
+    reg {
+        name = "RNDQ_REG";
+        desc = "Deprecated (rounding-select removed). Retained as a dummy for
+                register-map / driver bindto compatibility (no functional effect).";
+        field { desc = "Deprecated."; sw = rw; hw = r; } RNDQ[31:0] = 0;
+    } RNDQ_REG @ 0x08;
+
+    reg {
+        name = "STATUS_REG";
+        desc = "Status (read-only).";
+        field {
+            desc = "Sticky saturation flag: 1 = output clamped to +/-MAXV since
+                    last clear. Clear via CTRL_REG.SAT_CLEAR.";
+            sw = r; hw = w;
+        } SATURATING[0:0] = 0;
+    } STATUS_REG @ 0x0C;
+
+    reg {
+        name = "CTRL_REG";
+        desc = "Control.";
+        field {
+            desc = "Write 1 to clear the sticky saturation flag.";
+            sw = rw; hw = r;
+        } SAT_CLEAR[0:0] = 0;
+    } CTRL_REG @ 0x10;
+
+    reg {
+        name = "OUTSEL_REG";
+        desc = "v4-only static output select. Chooses which component of the
+                envelope/datapath result is emitted on M_AXIS (real or imag).
+                Not a per-descriptor field: this is a static register.";
+        field {
+            desc = "Output select: 0 = real, 1 = imag.";
+            sw = rw; hw = r;
+        } OUTSEL[0:0] = 0;
+    } OUTSEL_REG @ 0x14;
+};
