@@ -14,7 +14,7 @@ IP_DIR="cores/ip/$IP_NAME"
 echo "Creating IP: $IP_NAME"
 
 # Create directories
-mkdir -p $IP_DIR/{hdl,rdl,driver,test,data}
+mkdir -p $IP_DIR/{hdl,rdl,driver,tests,data}
 
 # Create symlink to HDL (assuming it is in rtl_lib/ip/)
 ln -s ../../../../../rtl_lib/ip/${IP_NAME}.sv $IP_DIR/hdl/${IP_NAME}.sv 2>/dev/null || echo "  rtl_lib/ip/${IP_NAME}.sv was not found!"
@@ -120,8 +120,8 @@ filesets:
 
   tb:
     files:
-      - test/${IP_NAME}_tc00.sv
-      - test/${IP_NAME}_tests.sv: {is_include_file: true}
+      - tests/${IP_NAME}_tc00.sv
+      - tests/${IP_NAME}_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
@@ -131,7 +131,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/${IP_NAME}_tc00.sv
+          - tests/${IP_NAME}_tc00.sv
 
 targets:
   default:
@@ -206,7 +206,7 @@ class ${IP_NAME^}:
 EOF
 
 # Create template for the testbench
-cat > $IP_DIR/test/${IP_NAME}_tc00.sv << EOF
+cat > $IP_DIR/tests/${IP_NAME}_tc00.sv << EOF
 \`include "svunit_defines.svh"
 
 module ${IP_NAME}_unit_test;
@@ -237,7 +237,7 @@ module ${IP_NAME}_unit_test;
 endmodule
 EOF
 
-cat > $IP_DIR/test/${IP_NAME}_tests.sv << EOF
+cat > $IP_DIR/tests/${IP_NAME}_tests.sv << EOF
 \`include "${IP_NAME}_tc00.sv"
 EOF
 
