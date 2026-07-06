@@ -120,7 +120,7 @@ module sgv4_top #(
       .rd_err        ()
    );
 
-   assign fifo_wr_en = s1_axis_tvalid_i;
+   assign fifo_wr_en = s1_axis_tvalid_i & ~fifo_full;
    assign fifo_din   = s1_axis_tdata_i;
 
    // --------------------------------------------------------------------------
