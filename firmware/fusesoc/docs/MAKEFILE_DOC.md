@@ -97,6 +97,37 @@ Regenerates drivers + symlinks for every IP under `cores/ip/` that has an
 
 ---
 
+## RTL library documentation
+
+### `make rtl-docs [INPUT=<file>]`
+Generates Markdown documentation for every module in `../rtl_lib` (the RTL
+source of truth), mirroring TerosHDL's Generics/Ports tables. Output goes to
+`docs/rtl-md/` (one `.md` per module + a `README.md` index).
+
+- `make rtl-docs` — document the whole library.
+- `make rtl-docs INPUT=../rtl_lib/dsp/sgv4_top.sv` — a single file.
+
+Driven by `scripts/gen_docs.py`. Reads doc from BOTH styles:
+- Modern: `//!` block above `module`, `//!` adjacent to each port/param.
+- Legacy: `/** ... */` header with `@brief`/`@description`/`@port`/`@param`
+  (a fallback fills port/param descriptions from `@port`/`@param` tags).
+
+Excludes are read from `../rtl_lib/.docsignore` (globs; e.g.
+`*_entity_declarations.sv`, `ssr_*.sv`) plus a built-in default.
+
+### `make rtl-docs-clean`
+Removes `docs/rtl-md/` (and the old `docs/rtl/` if present).
+
+**Gotchas (learned the hard way):**
+- Doxygen is NOT used for HDL: with `sv=C++` it renders ports as functions and
+  chokes on `generate`. The custom generator replaces it.
+- `teroshdl` pip 3.0.0 has no documentation CLI (only the VS Code extension),
+  hence the in-house generator.
+- Single-file `INPUT=` and full-tree runs must anchor output at the `rtl_lib`
+  root, or a file lands in `docs/rtl-md/<name>.md` (root) while you read the
+  stale `docs/rtl-md/dsp/<name>.md`. (Anchoring fix in `gen_docs.py:main`.)
+- The index flags modules with 0 parsed ports (!) as documentation debt.
+
 ## Core creation
 
 ### `make new-ip IP=<name>`
@@ -153,6 +184,7 @@ make driver     IP=my_ip      # gen + symlink + driver-test
 make sim_svunit IP=my_ip      # RTL verification
 make rdl-docs   IP=my_ip
 make package    IP=my_ip
+make rtl-docs                 # complete RTL documentation from RTL modules
 ```
 
 **Close an IP (what we did for SG-v6):**

@@ -226,3 +226,44 @@ driver-all:
 rdl-docs:
 	cd cores/ip/$(IP)/rdl && $(MAKE) docs
 	@echo "✓ Docs: cores/ip/$(IP)/rdl/docs/index.html"
+
+## ----------------------------------------------------------------------------
+## RTL Library Documentation (Doxygen over ../rtl_lib)
+## ----------------------------------------------------------------------------
+## Generate HTML docs for the whole RTL library.
+##   make rtl-docs                     # document all of ../rtl_lib
+##   make rtl-docs INPUT=../rtl_lib/dsp/ctrl_sgv4.sv   # single file/dir
+#rtl-docs:
+#	@command -v doxygen >/dev/null 2>&1 || { echo "doxygen not found (sudo apt install doxygen graphviz)"; exit 1; }
+#	@mkdir -p docs/rtl
+#	@if [ -n "$(INPUT)" ]; then \
+#		( cat docs/Doxyfile; echo "INPUT = $(INPUT)" ) | doxygen -; \
+#	else \
+#		doxygen docs/Doxyfile; \
+#	fi
+#	@echo "✓ RTL docs: docs/rtl/html/index.html"
+#
+#rtl-docs-clean:
+#	@rm -rf docs/rtl
+#	@echo "✓ Cleaned docs/rtl"
+
+# ----------------------------------------------------------------------------
+# RTL Library Documentation (custom Markdown generator over ../rtl_lib)
+# ----------------------------------------------------------------------------
+# Generate Markdown docs (TerosHDL-style tables) for the RTL library.
+#   make rtl-docs                                  # document all of ../rtl_lib
+#   make rtl-docs INPUT=../rtl_lib/dsp/sgv4_top.sv # single file
+RTL_DOCS_IN  ?= ../rtl_lib
+RTL_DOCS_OUT ?= docs/rtl-md
+
+rtl-docs:
+	. venv/bin/activate; \
+  python3 scripts/gen_docs.py \
+      --input  $(if $(INPUT),$(INPUT),$(RTL_DOCS_IN)) \
+      --outdir $(RTL_DOCS_OUT) \
+      --index
+	@echo "✓ RTL docs: $(RTL_DOCS_OUT)/README.md"
+
+rtl-docs-clean:
+	@rm -rf $(RTL_DOCS_OUT) docs/rtl
+	@echo "✓ Cleaned RTL docs"
