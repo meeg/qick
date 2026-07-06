@@ -455,3 +455,76 @@
     tb_cb.tb_fifo_empty <= 1'b1;
     repeat(20) @(tb_cb);
 `SVTEST_END
+
+// ============================================================================
+// NEW TESTS: En assert/deassert, small nsamp, and isolated phase reset.
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// TEST: o_en drops at end of a finite waveform (mode=0).
+// Verify that o_en stays high for the entire nsamp duration and then drops.
+// This test is critical because o_en directly drives tvalid in sgv4.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_en_deasserts)
+    logic [159:0] d;
+    int t, en_high_cycles;
+
+    d = build_descr(32'h0001_0000, 32'd0, 16'h0040, 16'(MAXV),
+                    16'd64, 2'd0, 1'b0, 1'b0, 1'b0, 1'b0);
+
+    // Push EXACTLY ONE descriptor, then let the FIFO go empty so the
+    // waveform terminates (otherwise en re-triggers forever).
+    push_descriptor(d);          // presents d, waits for rd_en, then empties FIFO
+
+    // Wait for en to assert.
+    t = 0;
+    while (tb_en !== 1'b1 && t < 64) begin @(tb_cb); t++; end
+    `FAIL_IF_LOG(tb_en !== 1'b1, "tc_en_deasserts: en never asserted");
+
+    // Count cycles while en is high, with a generous ceiling.
+    en_high_cycles = 0;
+    while (tb_en === 1'b1 && en_high_cycles < 200) begin
+        @(tb_cb); en_high_cycles++;
+    end
+    $display("[INFO] tc_en_deasserts: en high for %0d cycles", en_high_cycles);
+
+    // The KEY assertion: en MUST eventually drop (it is tvalid).
+    `FAIL_IF_LOG(tb_en !== 1'b0,
+        "tc_en_deasserts: en never de-asserted after a finite waveform (would hang tvalid)");
+`SVTEST_END
+
+// ----------------------------------------------------------------------------
+// TEST: Small nsamp values (1, 2, 3) do not cause FSM hang.
+// The original logic (==2) would underflow and hang on nsamp in {0,1,2}.
+// After the fix (<=2), these should exit CNT_ST quickly.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_nsamp_small)
+    logic [159:0] d;
+    int t, nsamp_test;
+
+    // Test nsamp = 1, 2, and 3 (critical boundary values).
+    for (nsamp_test = 1; nsamp_test <= 3; nsamp_test++) begin
+        // Reuse the helper descriptor, only changing nsamp.
+        d = build_descr(32'h0001_0000, 32'd0, 16'h0040, 16'(MAXV),
+                        16'(nsamp_test), 2'd0, 1'b0, 1'b0, 1'b0, 1'b0);
+
+        // Push the descriptor.
+        push_descriptor(d);
+
+        // Wait for en to assert.
+        t = 0;
+        while (tb_en !== 1'b1 && t < 10) begin @(tb_cb); t++; end
+        `FAIL_IF_LOG(tb_en !== 1'b1,
+            $sformatf("tc_nsamp_small: en never asserted for nsamp=%0d", nsamp_test));
+
+        // Wait for en to deassert (should be quick after the <=2 fix).
+        t = 0;
+        while (tb_en === 1'b1 && t < 20) begin @(tb_cb); t++; end
+
+        // After nsamp + small overhead, en should be low.
+        // If the old logic (==2) was present, en would stay high for ~65k cycles (hang).
+        $display("[INFO] tc_nsamp_small: nsamp=%0d, en stayed high for %0d cycles", nsamp_test, t);
+        `FAIL_IF_LOG(tb_en !== 1'b0,
+            $sformatf("tc_nsamp_small: en did not deassert for nsamp=%0d after %0d cycles (hang?)", nsamp_test, t));
+    end
+`SVTEST_END

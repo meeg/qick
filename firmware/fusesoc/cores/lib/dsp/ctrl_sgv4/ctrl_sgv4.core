@@ -7,8 +7,6 @@ filesets:
     files:
       - hdl/ctrl_sgv4.sv
     file_type: systemVerilogSource
-    # depend:
-    #   - qick:pkg:<your_pkg>   # add package deps here if needed
   tb:
     files:
       - tests/ctrl_sgv4_tc00.sv

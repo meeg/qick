@@ -273,7 +273,7 @@ module ctrl_sgv4 #(
                if (mode_int || ~i_fifo_empty)
                   state <= CNT_ST;
             CNT_ST:
-               if (cnt_nsamp_r == 2)
+               if (cnt_nsamp_r <= 2)
                   state <= READ_ST;
             default: state <= READ_ST;
          endcase
@@ -375,11 +375,16 @@ module ctrl_sgv4 #(
             cnt_nsamp_r <= cnt_nsamp_r - 1'b1;
 
          // Output enable register.
-         if (~mode_int && rd_en_int)
+         // o_en drives o_axis_tvalid in sgv4; it must stay high for the whole
+         // waveform and drop at its end. Updated only when a descriptor is being
+         // read (READ_ST); held during CNT_ST.
+         if (~mode_int && rd_en_int) begin
             if (~i_fifo_empty)
                en_reg <= 1'b1;
             else
                en_reg <= 1'b0;
+         end
+         // (mode_int==1 -> continuous: en_reg holds high once set)
 
          en_reg_r1 <= en_reg;
          en_reg_r2 <= en_reg_r1;
