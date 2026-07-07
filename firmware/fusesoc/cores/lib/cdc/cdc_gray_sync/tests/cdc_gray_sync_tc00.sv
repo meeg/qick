@@ -1,10 +1,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module sync_nxm_unit_test;
+module cdc_gray_sync_unit_test;
 import svunit_pkg::svunit_testcase;
 
-  string name = "sync_nxm_ut";
+  string name = "cdc_gray_sync_ut";
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
@@ -19,7 +19,7 @@ import svunit_pkg::svunit_testcase;
   logic [M-1:0]     tb_o_data  = '0;
 
 initial begin
-  $dumpfile("sync_nxm.vcd");
+  $dumpfile("cdc_gray_sync.vcd");
   $dumpvars();
 end
 
@@ -45,10 +45,10 @@ endclocking
 // running the Unit Tests on
 //===================================
 
-sync_nxm #(
+cdc_gray_sync #(
   .N (N),
   .M (M)
-) u_sync_nxm (
+) u_cdc_gray_sync (
   .i_clk      ( tb_clk     ),
   .i_rstn     ( tb_rstn    ),
 
@@ -104,7 +104,7 @@ endtask
 
 
 `SVUNIT_TESTS_BEGIN
-`include "tests.sv"
+`include "cdc_gray_sync_tests.sv"
 `SVUNIT_TESTS_END 
 
 endmodule

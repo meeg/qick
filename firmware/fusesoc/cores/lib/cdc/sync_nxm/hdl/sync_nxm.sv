@@ -1,1 +1,0 @@
-../../../../../../rtl_lib/cdc/sync_nxm.sv

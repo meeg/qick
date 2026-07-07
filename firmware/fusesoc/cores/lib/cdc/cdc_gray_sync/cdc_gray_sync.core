@@ -1,18 +1,18 @@
 CAPI=2:
-name: qick:cdc:sync_nxm:1.0.0
+name: qick:cdc:cdc_gray_sync:1.0.0
 description: Parametrizable N stages by M data width register synchronizer core.
              Minimum value of N=2.
 
 filesets:
   hdl:
     files:
-      - hdl/sync_nxm.sv
+      - hdl/cdc_gray_sync.sv
     file_type: systemVerilogSource
 
   tb:
     files:
-      - tests/sync_nxm_tc00.sv
-      - tests/tests.sv: {is_include_file: true}
+      - tests/cdc_gray_sync_tc00.sv
+      - tests/cdc_gray_sync_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -26,12 +26,12 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - tests/sync_nxm_tc00.sv
+          - tests/cdc_gray_sync_tc00.sv
 
 targets:
   default: &default
     filesets: [hdl]
-    toplevel: sync_nxm
+    toplevel: cdc_gray_sync
     parameters:
       - NB
 
@@ -39,7 +39,7 @@ targets:
     <<: *default
     filesets_append: [lint_files]
     default_tool: veriblelint
-    toplevel: sync_nxm
+    toplevel: cdc_gray_sync
     tools:
       verilator:
         mode: lint-only
