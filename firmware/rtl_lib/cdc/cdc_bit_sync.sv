@@ -3,7 +3,7 @@
 //
 // Fermi National Accelerator Laboratory
 //
-// Module: sync_n.sv
+// Module: cdc_bit_sync.sv
 // Project: QICK
 // Description: 2 FF, NB-bit data synchronizer.
 //              It serves as clock domain crossing (CDC) logic.
@@ -11,7 +11,7 @@
 // Change history: 04/29/25 - Created by @lharnaldi
 //
 ///////////////////////////////////////////////////////////////////////////////
-module synchronizer #(
+module cdc_bit_sync #(
    //number of bits in data
    parameter int NB = 1
 )(
@@ -22,7 +22,7 @@ module synchronizer #(
 );
 
     (* ASYNC_REG = "TRUE" *) logic [NB-1:0] meta_r, sync_r;
-    logic [NB-1:0] meta_n, sync_n;
+    logic [NB-1:0] meta_n, cdc_bit_sync;
 
     //two D FFs
     always_ff @ (posedge i_clk) begin
@@ -31,13 +31,13 @@ module synchronizer #(
        sync_r <= '0;
      end else begin
        meta_r <= meta_n;
-       sync_r <= sync_n;
+       sync_r <= cdc_bit_sync;
      end
     end
 
     //next-state logic
     assign meta_n = i_async;
-    assign sync_n = meta_r;
+    assign cdc_bit_sync = meta_r;
 
     //output logic
     assign o_sync = sync_r;

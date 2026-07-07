@@ -1,17 +1,17 @@
 CAPI=2:
-name: qick:cdc:synchronizer:1.0.0
+name: qick:cdc:cdc_bit_sync:1.0.0
 description: 2 FF, NB-bit data synchronizer.
 
 filesets:
   hdl:
     files:
-      - hdl/synchronizer.sv
+      - hdl/cdc_bit_sync.sv
     file_type: systemVerilogSource
 
   tb:
     files:
-      - tests/synchronizer_tc00.sv
-      - tests/tests.sv: {is_include_file: true}
+      - tests/cdc_bit_sync_tc00.sv
+      - tests/cdc_bit_sync_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
@@ -25,12 +25,12 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - tests/synchronizer_tc00.sv
+          - tests/cdc_bit_sync_tc00.sv
 
 targets:
   default: &default
     filesets: [hdl]
-    toplevel: synchronizer
+    toplevel: cdc_bit_sync
     parameters:
       - NB
 
@@ -38,7 +38,7 @@ targets:
     <<: *default
     filesets_append: [lint_files]
     default_tool: veriblelint
-    toplevel: synchronizer
+    toplevel: cdc_bit_sync
     tools:
       verilator:
         mode: lint-only

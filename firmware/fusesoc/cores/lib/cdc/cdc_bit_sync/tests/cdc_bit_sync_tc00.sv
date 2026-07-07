@@ -1,10 +1,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module synchronizer_unit_test;
+module cdc_bit_sync_unit_test;
 import svunit_pkg::svunit_testcase;
 
-  string name = "synchronizer_ut";
+  string name = "cdc_bit_sync_ut";
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
@@ -18,7 +18,7 @@ import svunit_pkg::svunit_testcase;
   logic [NB-1:0] tb_o_data  = 1'b0;
 
 initial begin
-  $dumpfile("synchronizer.vcd");
+  $dumpfile("cdc_bit_sync.vcd");
   $dumpvars();
 end
 
@@ -44,10 +44,10 @@ endclocking
 // running the Unit Tests on
 //===================================
 
-synchronizer
+cdc_bit_sync
 #(
     .NB(NB)
-    ) u_synchronizer (
+    ) u_cdc_bit_sync (
   .i_clk      ( tb_clk     ),
   .i_rstn     ( tb_rstn    ),
 
@@ -103,7 +103,7 @@ endtask
 
 
 `SVUNIT_TESTS_BEGIN
-`include "tests.sv"
+`include "cdc_bit_sync_tests.sv"
 `SVUNIT_TESTS_END 
 
 endmodule

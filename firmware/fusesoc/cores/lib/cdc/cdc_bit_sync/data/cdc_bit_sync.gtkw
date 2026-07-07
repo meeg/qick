@@ -1,0 +1,34 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jul  7 15:11:18 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_cdc_cdc_bit_sync_1.0.0/test-xsim/cdc_bit_sync.vcd"
+[dumpfile_mtime] "Tue Jul  7 15:09:32 2026"
+[dumpfile_size] 7458
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/cdc/cdc_bit_sync/data/cdc_bit_sync.gtkw"
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-15.698950 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.cdc_bit_sync_ut.
+[sst_width] 206
+[signals_width] 166
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.i_clk
+[color] 3
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.i_rstn
+@22
+[color] 3
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.i_async[7:0]
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.cdc_bit_sync[7:0]
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.meta_r[7:0]
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.sync_r[7:0]
+[color] 6
+testrunner.__ts.cdc_bit_sync_ut.u_cdc_bit_sync.o_sync[7:0]
+[pattern_trace] 1
+[pattern_trace] 0
