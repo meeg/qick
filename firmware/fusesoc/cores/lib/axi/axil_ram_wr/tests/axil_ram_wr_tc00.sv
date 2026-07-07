@@ -22,12 +22,12 @@ initial begin
   $dumpvars();
 end
 
-    axi4lite_intf#(
+    axi4_lite_if#(
         .DATA_WIDTH  (AXI_DWIDTH),
         .ADDR_WIDTH  (AXI_AWIDTH)
     )axi4_lite_in_if(
-        .i_clk          (tb_clk),
-        .i_rst          (tb_rst)
+        .aclk          (tb_clk),
+        .aresetn       (tb_rst)
     );
 
     bram_if#(
@@ -77,21 +77,21 @@ end
         repeat(10) @(negedge tb_clk);
         svunit_ut.setup();
 
-        axi4_lite_in_if.AWVALID = 1'b0;
-        axi4_lite_in_if.AWADDR  = '0;
-        axi4_lite_in_if.AWPROT  = 3'b000;
+        axi4_lite_in_if.awvalid = 1'b0;
+        axi4_lite_in_if.awaddr  = '0;
+        axi4_lite_in_if.awprot  = 3'b000;
 
-        axi4_lite_in_if.WVALID  = 1'b0;
-        axi4_lite_in_if.WDATA   = '0;
-        axi4_lite_in_if.WSTRB   = '0;
+        axi4_lite_in_if.wvalid  = 1'b0;
+        axi4_lite_in_if.wdata   = '0;
+        axi4_lite_in_if.wstrb   = '0;
 
-        axi4_lite_in_if.BREADY  = 1'b0;
+        axi4_lite_in_if.bready  = 1'b0;
 
-        axi4_lite_in_if.ARVALID = 1'b0;
-        axi4_lite_in_if.ARADDR  = '0;
-        axi4_lite_in_if.ARPROT  = 3'b000;
+        axi4_lite_in_if.arvalid = 1'b0;
+        axi4_lite_in_if.araddr  = '0;
+        axi4_lite_in_if.arprot  = 3'b000;
 
-        axi4_lite_in_if.RREADY  = 1'b0;
+        axi4_lite_in_if.rready  = 1'b0;
 
         tb_rst = 1'b1;
         @(negedge tb_clk);
