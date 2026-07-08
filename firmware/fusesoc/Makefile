@@ -2,16 +2,50 @@
 # QICK FuseSoC Makefile
 # ============================================================================
 #
-# Usage examples:
-#   make package IP=xcom                    # Package IP (always resolves deps)
-#   make package IP=xcom VERSION=2.0        # Package with specific version
-#   make package-all                        # Package all IPs
-#   make sim IP=xcom                        # Simulate IP
-#   make lint IP=xcom                       # Lint IP
-#   make list-cores                         # List all available cores
-#   make core-info CORE=qick:ip:xcom        # Show core info
-#   make deps IP=xcom                       # Show dependencies
+# Central entry point for the QICK FuseSoC environment. All targets run from
+# firmware/fusesoc/ and activate venv/ internally (no need to `source` it first).
 #
+# QUICK REFERENCE
+#   Setup:
+#     make setup_environment              # one-time: submodules + venv + fusesoc env
+#   Simulation / lint:
+#     make sim         IP=<core>          # run SVUnit test target (single core, xsim)
+#     make sim_svunit  [IP=<core>]        # pytest+SVUnit wrapper; all cores if no IP
+#     make lint        IP=<core>          # veriblelint / verilator lint-only
+#   Registers / drivers (PeakRDL):
+#     make gen         IP=<ip>            # generate regmap package from RDL
+#     make driver      IP=<ip>            # gen + symlink driver + register tests
+#     make driver-test IP=<ip>           # register tests only (scaffolds if needed)
+#     make driver-all                    # regenerate drivers for every IP
+#     make rdl-docs    IP=<ip>           # HTML register docs
+#   RTL library docs:
+#     make rtl-docs    [INPUT=<file>]    # Markdown docs for ../rtl_lib (all or one)
+#     make rtl-docs-clean
+#   Packaging (Vivado):
+#     make package     IP=<ip> [VERSION=] [PART=] [DESCRIPTION=] [DISPLAY_NAME=]
+#     make package-all
+#     make package-dry IP=<ip>
+#   Inspection:
+#     make list-cores | core-info CORE=<vlnv> | deps IP=<ip> | verify-core IP=<ip>
+#   Cleanup:
+#     make clean
+#
+# VARIABLES
+#   IP            Core / IP short name, e.g. axis_signal_gen_v4 (most targets).
+#   CORE          Full VLNV, e.g. qick:ip:axis_signal_gen_v4 (core-info).
+#   TOOL          EDA tool override (default: verilator; xsim used by .core target).
+#   VERSION       IP version for packaging (default: 1.0).
+#   PART          Target FPGA part (default: xczu49dr-ffvf1760-2-e).
+#   INPUT         Single file/dir for rtl-docs (default: whole ../rtl_lib).
+#   DESCRIPTION / DISPLAY_NAME   Optional IP metadata for packaging.
+#
+# GOTCHAS (learned the hard way)
+#   * Recipes need TABs, not spaces (else "*** missing separator").
+#   * venv activation must be on the SAME logical recipe line as the command
+#     that needs it (joined with '\'), because each recipe line is a new shell.
+#   * Sub-makes into cores/ip/<ip>/rdl/ (gen, driver, rdl-docs) MUST activate the
+#     venv first, or python3 uses the system interpreter and systemrdl is missing.
+#   * Use '$$VAR' (double $) for shell vars inside recipes; single $ is Make's.
 # ============================================================================
 
 FUSESOC_CORES := --cores-root cores \
@@ -19,257 +53,284 @@ FUSESOC_CORES := --cores-root cores \
                  --cores-root common \
                  --cores-root generators
 
-# Default tool for simulation and linting
+# Default tool for simulation and linting.
 TOOL ?= verilator
+
+# RTL library documentation input/output (overridable).
+RTL_DOCS_IN  ?= ../rtl_lib
+RTL_DOCS_OUT ?= docs/rtl-md
+
+.PHONY: help setup_environment \
+        sim sim_svunit lint \
+        package package-all package-dry \
+        clean \
+        list-cores core-info deps verify-core \
+        gen new-ip driver driver-test driver-all driver-scaffold \
+        rdl-docs rtl-docs rtl-docs-clean
+
+# Default target: show the quick reference.
+help:
+    @sed -n '2,60p' $(MAKEFILE_LIST) | sed 's/^# \{0,1\}//'
 
 # ----------------------------------------------------------------------------
 # Environment Setup
 # ----------------------------------------------------------------------------
+# One-time setup after cloning: init submodules, build the Python venv (installs
+# pyproject.toml deps incl. systemrdl-compiler / peakrdl-*), build the FuseSoC
+# env, and create source symlinks. Run this before any other target on a fresh
+# checkout (e.g. on a new machine).
 setup_environment:
-	git submodule init && git submodule update
-	bash scripts/utils/build_virtualenv.sh
-	bash scripts/utils/build_fusesocenv.sh
-	bash scripts/utils/create_symlinks.sh
+    git submodule init && git submodule update
+    bash scripts/utils/build_virtualenv.sh
+    bash scripts/utils/build_fusesocenv.sh
+    bash scripts/utils/create_symlinks.sh
 
 # ----------------------------------------------------------------------------
 # Simulation and Testing
 # ----------------------------------------------------------------------------
+# pytest wrapper around SVUnit. With IP=<core> runs only that core; without IP
+# runs all cores that have a 'test' target (CI mode). Emits a JUnit report.
+# Requires PYTHONPATH=scripts for the get_core_name.py helper.
 sim_svunit: clean
-	mkdir -p report_pytest
-	. venv/bin/activate; \
-	PYTHONPATH=scripts:$$PYTHONPATH \
-	python3 scripts/tests/svunit_test/get_core_name.py $(IP) && \
-	pytest scripts/tests/ -v -m svunit_test \
-		$(if $(IP),-k "$(IP)",) \
-		--junitxml=report_pytest/pytest-report.xml
+    mkdir -p report_pytest
+    . venv/bin/activate; \
+    PYTHONPATH=scripts:$$PYTHONPATH \
+    python3 scripts/tests/svunit_test/get_core_name.py $(IP) && \
+    pytest scripts/tests/ -v -m svunit_test \
+    $(if $(IP),-k "$(IP)",) \
+    --junitxml=report_pytest/pytest-report.xml
 
+# Run the FuseSoC 'test' target (SVUnit via xsim) for a single core. Fast path.
+#   make sim IP=lfsr
 sim:
-	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) run --target test $(IP)
-	#fusesoc $(FUSESOC_CORES) run --target test --tool $(TOOL) $(IP)
+    . venv/bin/activate; \
+    fusesoc $(FUSESOC_CORES) run --target test $(IP)
+    #fusesoc $(FUSESOC_CORES) run --target test --tool $(TOOL) $(IP)
 
+# Run the FuseSoC 'lint' target (veriblelint / verilator lint-only).
+# NOTE: IPs instantiating Xilinx primitives (DSP/XPM/DDS) can't be linted by
+# Verilator alone.
 lint:
-	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) run --target lint $(IP)
-	#fusesoc $(FUSESOC_CORES) run --target lint --tool $(TOOL) $(IP)
+    . venv/bin/activate; \
+    fusesoc $(FUSESOC_CORES) run --target lint $(IP)
+    #fusesoc $(FUSESOC_CORES) run --target lint --tool $(TOOL) $(IP)
 
 # ----------------------------------------------------------------------------
-# IP Packaging (always resolves dependencies from rtl_lib/)
+# IP Packaging (Vivado; always resolves dependencies from rtl_lib/)
 # ----------------------------------------------------------------------------
+# Package a single IP via the ip_packager generator into build/package_<ip>/.
 package:
-	@if [ -z "$(IP)" ]; then \
-		echo " Usage: make package IP=<ip_name> [DESCRIPTION=<description>] [VERSION=1.0] [PART=<part>]"; \
-		echo ""; \
-		echo "Examples:"; \
-		echo "  make package IP=xcom"; \
-		echo "  make package IP=xcom VERSION=2.0"; \
-		echo "  make package IP=xcom PART=xczu28dr-ffvg1517-2-e"; \
-		exit 1; \
-	fi
-	@echo " Packaging IP: $(IP)"
-	. venv/bin/activate; \
-	mkdir -p build/package_$(IP); \
-	cd build/package_$(IP) && \
-	python3 ../../generators/ip_gen/ip_packager.py \
-		--ip-name    $(IP) \
-		--version    $(or $(VERSION),1.0) \
-		--part       $(or $(PART),xczu49dr-ffvf1760-2-e) \
-		--display-name "$(or $(DISPLAY_NAME),$(IP))" \
-		$(if $(DESCRIPTION),--description "$(DESCRIPTION)",)
+    @if [ -z "$(IP)" ]; then \
+        echo " Usage: make package IP=<ip_name> [DESCRIPTION=<description>] [VERSION=1.0] [PART=<part>]"; \
+        echo ""; \
+        echo "Examples:"; \
+        echo "  make package IP=xcom"; \
+        echo "  make package IP=xcom VERSION=2.0"; \
+        echo "  make package IP=xcom PART=xczu28dr-ffvg1517-2-e"; \
+        exit 1; \
+    fi
+    @echo " Packaging IP: $(IP)"
+    . venv/bin/activate; \
+    mkdir -p build/package_$(IP); \
+    cd build/package_$(IP) && \
+    python3 ../../generators/ip_gen/ip_packager.py \
+        --ip-name    $(IP) \
+        --version    $(or $(VERSION),1.0) \
+        --part       $(or $(PART),xczu49dr-ffvf1760-2-e) \
+        --display-name "$(or $(DISPLAY_NAME),$(IP))" \
+        $(if $(DESCRIPTION),--description "$(DESCRIPTION)",)
 
-# Package all IPs found in cores/ip/
+# Package every IP under cores/ip/.
 package-all:
-	@echo " Packaging all IPs in cores/ip/..."
-	@for ip_dir in cores/ip/*/; do \
-		ip=$$(basename $$ip_dir); \
-		echo ""; \
-		echo "=== Packaging $$ip ==="; \
-		$(MAKE) package IP=$$ip; \
-	done
-	@echo ""
-	@echo " All IPs packaged successfully!"
+    @echo " Packaging all IPs in cores/ip/..."
+    @for ip_dir in cores/ip/*/; do \
+        ip=$$(basename $$ip_dir); \
+        echo ""; \
+        echo "=== Packaging $$ip ==="; \
+        $(MAKE) package IP=$$ip; \
+    done
+    @echo ""
+    @echo " All IPs packaged successfully!"
 
-# Dry-run: generate TCL without running Vivado
+# Generate the packaging TCL without running Vivado (inspection / debug).
 package-dry:
-	@if [ -z "$(IP)" ]; then \
-		echo " Usage: make package-dry IP=<ip_name>"; \
-		exit 1; \
-	fi
-	. venv/bin/activate; \
-	mkdir -p build/package_$(IP); \
-	cd build/package_$(IP) && \
-	python3 ../../generators/ip_gen/ip_packager.py \
-		--ip-name $(IP) \
-		--dry-run
+    @if [ -z "$(IP)" ]; then \
+        echo " Usage: make package-dry IP=<ip_name>"; \
+        exit 1; \
+    fi
+    . venv/bin/activate; \
+    mkdir -p build/package_$(IP); \
+    cd build/package_$(IP) && \
+    python3 ../../generators/ip_gen/ip_packager.py \
+        --ip-name $(IP) \
+        --dry-run
 
 # ----------------------------------------------------------------------------
 # Cleanup
 # ----------------------------------------------------------------------------
+# Removes build artifacts and the cloned SVUnit lib (re-cloned next sim_svunit).
+# Does NOT touch venv/ or source symlinks.
 clean:
-	rm -rf build report_pytest vivado* .Xil .fusesoc_libraries
+    rm -rf build report_pytest vivado* .Xil .fusesoc_libraries
 
 # ----------------------------------------------------------------------------
 # Core Information and Inspection
 # ----------------------------------------------------------------------------
+# List all cores across the four roots.
 list-cores:
-	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) list-cores
+    . venv/bin/activate; \
+    fusesoc $(FUSESOC_CORES) list-cores
 
+# Show a core's filesets / targets / deps.  make core-info CORE=qick:ip:xcom
 core-info:
-	@if [ -z "$(CORE)" ]; then \
-		echo " Usage: make core-info CORE=<core_name>"; \
-		echo "Example: make core-info CORE=qick:ip:xcom"; \
-		exit 1; \
-	fi
-	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) core-info $(CORE)
+    @if [ -z "$(CORE)" ]; then \
+        echo " Usage: make core-info CORE=<core_name>"; \
+        echo "Example: make core-info CORE=qick:ip:xcom"; \
+        exit 1; \
+    fi
+    . venv/bin/activate; \
+    fusesoc $(FUSESOC_CORES) core-info $(CORE)
 
+# Grep the dependency block of qick:ip:<ip>.
 deps:
-	@if [ -z "$(IP)" ]; then \
-		echo " Usage: make deps IP=<ip_name>"; \
-		echo "Example: make deps IP=xcom"; \
-		exit 1; \
-	fi
-	. venv/bin/activate; \
-	echo "=== Dependencies for qick:ip:$(IP) ==="; \
-	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) 2>&1 | grep -E "depend|depends" -A 20 || \
-	echo "No dependencies found or core not found"
+    @if [ -z "$(IP)" ]; then \
+        echo " Usage: make deps IP=<ip_name>"; \
+        echo "Example: make deps IP=xcom"; \
+        exit 1; \
+    fi
+    . venv/bin/activate; \
+    echo "=== Dependencies for qick:ip:$(IP) ==="; \
+    fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) 2>&1 | grep -E "depend|depends" -A 20 || \
+    echo "No dependencies found or core not found"
 
+# Sanity-check that a core's dir, .core, RTL source and packaged source exist.
 verify-core:
-	@if [ -z "$(IP)" ]; then \
-		echo " Usage: make verify-core IP=<ip_name>"; \
-		exit 1; \
-	fi
-	@echo "=== Verifying core: qick:ip:$(IP) ==="
-	@if [ -d "cores/ip/$(IP)" ]; then \
-		echo " Core directory exists: cores/ip/$(IP)"; \
-	else \
-		echo " Core directory missing: cores/ip/$(IP)"; \
-	fi
-	@if [ -f "cores/ip/$(IP)/$(IP).core" ]; then \
-		echo " Core file exists: cores/ip/$(IP)/$(IP).core"; \
-	else \
-		echo " Core file missing: cores/ip/$(IP)/$(IP).core"; \
-	fi
-	@if [ -d "../rtl_lib/ip/$(IP)" ]; then \
-		echo " RTL source exists: ../rtl_lib/ip/$(IP)/"; \
-	else \
-		echo "  RTL source missing: ../rtl_lib/ip/$(IP)/ (create it!)"; \
-	fi
-	@if [ -d "../ip/$(IP)/src" ]; then \
-		echo " Packaged IP source exists: ../ip/$(IP)/src"; \
-	else \
-		echo "  IP not packaged yet (run 'make package IP=$(IP)')"; \
-	fi
-	@echo ""
-	@echo "=== Dependencies ==="
-	$(MAKE) --no-print-directory deps IP=$(IP)
+    @if [ -z "$(IP)" ]; then \
+        echo " Usage: make verify-core IP=<ip_name>"; \
+        exit 1; \
+    fi
+    @echo "=== Verifying core: qick:ip:$(IP) ==="
+    @if [ -d "cores/ip/$(IP)" ]; then \
+        echo " Core directory exists: cores/ip/$(IP)"; \
+    else \
+        echo " Core directory missing: cores/ip/$(IP)"; \
+    fi
+    @if [ -f "cores/ip/$(IP)/$(IP).core" ]; then \
+        echo " Core file exists: cores/ip/$(IP)/$(IP).core"; \
+    else \
+        echo " Core file missing: cores/ip/$(IP)/$(IP).core"; \
+    fi
+    @if [ -d "../rtl_lib/ip/$(IP)" ]; then \
+        echo " RTL source exists: ../rtl_lib/ip/$(IP)/"; \
+    else \
+        echo "  RTL source missing: ../rtl_lib/ip/$(IP)/ (create it!)"; \
+    fi
+    @if [ -d "../ip/$(IP)/src" ]; then \
+        echo " Packaged IP source exists: ../ip/$(IP)/src"; \
+    else \
+        echo "  IP not packaged yet (run 'make package IP=$(IP)')"; \
+    fi
+    @echo ""
+    @echo "=== Dependencies ==="
+    $(MAKE) --no-print-directory deps IP=$(IP)
 
-# Generate regmap for any IP
-# Use: make gen IP=axis_constant_iq
+# ----------------------------------------------------------------------------
+# Register map & driver (PeakRDL)
+# ----------------------------------------------------------------------------
+# Generate the PeakRDL regmap package from the IP's RDL.
+# NOTE: activates venv and uses -C so systemrdl is available in the sub-make.
+#   make gen IP=axis_constant_iq
 gen:
-	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make gen IP=<ip_name>"; \
-		exit 1; \
-	fi
-	cd cores/ip/$(IP)/rdl && $(MAKE) gen
+    @if [ -z "$(IP)" ]; then \
+        echo "Usage: make gen IP=<ip_name>"; \
+        exit 1; \
+    fi
+    . venv/bin/activate; \
+    $(MAKE) -C cores/ip/$(IP)/rdl gen
 
-# Create new IP
+# Scaffold cores/ip/<ip>/ (rdl/, driver/, hdl/, tests/).
 new-ip:
-	@if [ -z "$(IP)" ]; then \
-		echo "Usage: make new-ip IP=<ip_name>"; \
-		exit 1; \
-	fi
-	./scripts/create_ip.sh $(IP)
+    @if [ -z "$(IP)" ]; then \
+        echo "Usage: make new-ip IP=<ip_name>"; \
+        exit 1; \
+    fi
+    ./scripts/create_ip.sh $(IP)
 
-# Generate driver + run register tests
+# Full driver flow: regmap gen -> symlink into qick_lib -> register tests.
 driver:
-	@if [ -z "$(IP)" ]; then echo "Usage: make driver IP=<ip_name>"; exit 1; fi
-	@echo "Generating driver for $(IP)..."
-	cd cores/ip/$(IP)/rdl && $(MAKE) gen
-	@if [ -f cores/ip/$(IP)/driver/$(IP).py ]; then \
-		ln -sf ../../../firmware/fusesoc/cores/ip/$(IP)/driver/$(IP).py \
-		../../qick_lib/qick/drivers/$(IP).py; \
-		echo "  Symlink created"; \
-	fi
-	@$(MAKE) --no-print-directory driver-test IP=$(IP)
+    @if [ -z "$(IP)" ]; then echo "Usage: make driver IP=<ip_name>"; exit 1; fi
+    @echo "Generating driver for $(IP)..."
+    . venv/bin/activate; \
+    $(MAKE) -C cores/ip/$(IP)/rdl gen
+    @if [ -f cores/ip/$(IP)/driver/$(IP).py ]; then \
+        ln -sf ../../../firmware/fusesoc/cores/ip/$(IP)/driver/$(IP).py \
+            ../../qick_lib/qick/drivers/$(IP).py; \
+        echo "  Symlink created"; \
+    fi
+    @$(MAKE) --no-print-directory driver-test IP=$(IP)
 
-# Run driver register tests only (no regeneration)
+# Run the register-layer pytest only (no regeneration). Scaffolds tests if
+# absent. Writes report_pytest/driver-<ip>-report.xml.
 driver-test:
-	@if [ -z "$(IP)" ]; then echo "Usage: make driver-test IP=<ip_name>"; exit 1; fi
-	@if [ ! -d cores/ip/$(IP)/driver/tests ]; then \
-		echo "No driver/tests/ for $(IP) — scaffolding from RDL..."; \
-    	$(MAKE) --no-print-directory driver-scaffold IP=$(IP); \
-		fi
-	@echo "Running driver register tests for $(IP)..."; \
-		mkdir -p report_pytest; \
+    @if [ -z "$(IP)" ]; then echo "Usage: make driver-test IP=<ip_name>"; exit 1; fi
+    @if [ ! -d cores/ip/$(IP)/driver/tests ]; then \
+        echo "No driver/tests/ for $(IP) — scaffolding from RDL..."; \
+        $(MAKE) --no-print-directory driver-scaffold IP=$(IP); \
+    fi
+    @echo "Running driver register tests for $(IP)..."; \
+    mkdir -p report_pytest; \
     . venv/bin/activate; \
     pytest cores/ip/$(IP)/driver/tests/ -v \
         --junitxml=report_pytest/driver-$(IP)-report.xml
 
-# Generate drivers for all IPs
+# Regenerate drivers + symlinks for every IP under cores/ip/ that has rdl/Makefile.
+# NOTE: activates venv once and uses -C (no fragile cd ../../../..).
 driver-all:
-	@for ip in $$(ls -d cores/ip/*/); do \
-		ip_name=$$(basename $$ip); \
-		if [ -f $$ip/rdl/Makefile ]; then \
-			echo "Generating $$ip_name..."; \
-			cd $$ip/rdl && $(MAKE) gen && cd ../../../..; \
-			if [ -f $$ip/driver/$$ip_name.py ]; then \
-				ln -sf ../../../firmware/fusesoc/$$ip/driver/$$ip_name.py \
-					../../qick_lib/qick/drivers/$$ip_name.py; \
-			fi; \
-		fi; \
-	done
+    . venv/bin/activate; \
+    for ip in $$(ls -d cores/ip/*/); do \
+        ip_name=$$(basename $$ip); \
+        if [ -f $$ip/rdl/Makefile ]; then \
+            echo "Generating $$ip_name..."; \
+            $(MAKE) -C $$ip/rdl gen; \
+            if [ -f $$ip/driver/$$ip_name.py ]; then \
+                ln -sf ../../../firmware/fusesoc/$$ip/driver/$$ip_name.py \
+                    ../../qick_lib/qick/drivers/$$ip_name.py; \
+            fi; \
+        fi; \
+    done
 
 # Scaffold driver/tests/ from the generated RDL package (idempotent).
 driver-scaffold:
-	@if [ -z "$(IP)" ]; then echo "Usage: make driver-scaffold IP=<ip_name>"; exit 1; fi
-	. venv/bin/activate; \
-		python3 scripts/gen_driver_tests.py $(IP)
+    @if [ -z "$(IP)" ]; then echo "Usage: make driver-scaffold IP=<ip_name>"; exit 1; fi
+    . venv/bin/activate; \
+    python3 scripts/gen_driver_tests.py $(IP)
 
-# Generate HTML documentation from RDL
-# Usage: make rdl-docs IP=axis_constant_iq
+# Generate HTML register documentation from RDL.
+# NOTE: activates venv for the sub-make (PeakRDL needs systemrdl/peakrdl-html).
+#   make rdl-docs IP=axis_constant_iq
 rdl-docs:
-	cd cores/ip/$(IP)/rdl && $(MAKE) docs
-	@echo "✓ Docs: cores/ip/$(IP)/rdl/docs/index.html"
-
-## ----------------------------------------------------------------------------
-## RTL Library Documentation (Doxygen over ../rtl_lib)
-## ----------------------------------------------------------------------------
-## Generate HTML docs for the whole RTL library.
-##   make rtl-docs                     # document all of ../rtl_lib
-##   make rtl-docs INPUT=../rtl_lib/dsp/ctrl_sgv4.sv   # single file/dir
-#rtl-docs:
-#	@command -v doxygen >/dev/null 2>&1 || { echo "doxygen not found (sudo apt install doxygen graphviz)"; exit 1; }
-#	@mkdir -p docs/rtl
-#	@if [ -n "$(INPUT)" ]; then \
-#		( cat docs/Doxyfile; echo "INPUT = $(INPUT)" ) | doxygen -; \
-#	else \
-#		doxygen docs/Doxyfile; \
-#	fi
-#	@echo "✓ RTL docs: docs/rtl/html/index.html"
-#
-#rtl-docs-clean:
-#	@rm -rf docs/rtl
-#	@echo "✓ Cleaned docs/rtl"
+    @if [ -z "$(IP)" ]; then echo "Usage: make rdl-docs IP=<ip_name>"; exit 1; fi
+    . venv/bin/activate; \
+    $(MAKE) -C cores/ip/$(IP)/rdl docs
+    @echo "✓ Docs: cores/ip/$(IP)/rdl/docs/index.html"
 
 # ----------------------------------------------------------------------------
 # RTL Library Documentation (custom Markdown generator over ../rtl_lib)
 # ----------------------------------------------------------------------------
-# Generate Markdown docs (TerosHDL-style tables) for the RTL library.
-#   make rtl-docs                                  # document all of ../rtl_lib
-#   make rtl-docs INPUT=../rtl_lib/dsp/sgv4_top.sv # single file
-RTL_DOCS_IN  ?= ../rtl_lib
-RTL_DOCS_OUT ?= docs/rtl-md
-
+# Generate Markdown docs (TerosHDL-style Generics/Ports tables) for the RTL
+# library. Reads doc from //! blocks and legacy /** @port/@param */ headers.
+# Excludes come from ../rtl_lib/.docsignore.
+#   make rtl-docs                                   # document all of ../rtl_lib
+#   make rtl-docs INPUT=../rtl_lib/dsp/sgv4_top.sv  # single file
 rtl-docs:
-	. venv/bin/activate; \
-  python3 scripts/gen_docs.py \
-      --input  $(if $(INPUT),$(INPUT),$(RTL_DOCS_IN)) \
-      --outdir $(RTL_DOCS_OUT) \
-      --index
-	@echo "✓ RTL docs: $(RTL_DOCS_OUT)/README.md"
+    . venv/bin/activate; \
+    python3 scripts/gen_docs.py \
+        --input  $(if $(INPUT),$(INPUT),$(RTL_DOCS_IN)) \
+        --outdir $(RTL_DOCS_OUT) \
+        --index
+    @echo "✓ RTL docs: $(RTL_DOCS_OUT)/README.md"
 
+# Remove generated RTL docs (and any stale Doxygen output).
 rtl-docs-clean:
-	@rm -rf $(RTL_DOCS_OUT) docs/rtl
-	@echo "✓ Cleaned RTL docs"
+    @rm -rf $(RTL_DOCS_OUT) docs/rtl
+    @echo "✓ Cleaned RTL docs"
