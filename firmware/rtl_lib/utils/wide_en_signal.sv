@@ -23,7 +23,7 @@ module wide_en_signal(
 
  logic en_strobe;
 
-    synchronizer#(
+    cdc_bit_sync#(
        .NB(1)
        ) u_sync(
           .i_clk      ( i_clk        ),

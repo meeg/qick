@@ -8,7 +8,7 @@ filesets:
       - hdl/wide_en_signal.sv
     file_type: systemVerilogSource
     depend: 
-      - qick:cdc:synchronizer
+      - qick:cdc:cdc_bit_sync
       - qick:utils:rising_edge_det
 
   tb:
