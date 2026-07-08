@@ -273,15 +273,15 @@ driver:
 # absent. Writes report_pytest/driver-<ip>-report.xml.
 driver-test:
 	@if [ -z "$(IP)" ]; then echo "Usage: make driver-test IP=<ip_name>"; exit 1; fi
-	@if [ ! -d cores/ip/$(IP)/driver/tests ]; then \
-	echo "No driver/tests/ for $(IP) — scaffolding from RDL..."; \
-	$(MAKE) --no-print-directory driver-scaffold IP=$(IP); \
+	@if [ ! -f cores/ip/$(IP)/driver/tests/test_$(IP)_regs.py ]; then \
+     echo "No driver tests for $(IP) — scaffolding from RDL..."; \
+     $(MAKE) --no-print-directory driver-scaffold IP=$(IP); \
 	fi
 	@echo "Running driver register tests for $(IP)..."; \
 	mkdir -p report_pytest; \
 	. venv/bin/activate; \
 	pytest cores/ip/$(IP)/driver/tests/ -v \
-	--junitxml=report_pytest/driver-$(IP)-report.xml
+	  --junitxml=report_pytest/driver-$(IP)-report.xml
 
 # Regenerate drivers + symlinks for every IP under cores/ip/ that has rdl/Makefile.
 # NOTE: activates venv once and uses -C (no fragile cd ../../../..).
