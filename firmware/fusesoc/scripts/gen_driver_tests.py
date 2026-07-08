@@ -58,17 +58,17 @@ def introspect(ip):
     model = RegModel(callbacks=lib_mod.NormalCallbackSet(
         read_callback=sim.read, write_callback=sim.write,
         read_block_callback=sim.read_block, write_block_callback=sim.write_block))
-
     regs = []
     for reg in model.get_registers():          # PeakRDL 3.1.2 iterator
         rname = reg.inst_name
+        # Build a set of writable field names for this register.
+        writable_names = {f.inst_name for f in reg.writable_fields}
         fields = []
-        for f in reg.get_fields():
-            writable = hasattr(f, "write")
+        for f in reg.fields:                   # 'fields' property (NOT get_fields())
+            writable = f.inst_name in writable_names
             fields.append((f.inst_name, f.width, writable))
         regs.append((rname, reg.address, fields))
     return regs
-
 
 def emit(ip, regs):
     lines = [TEST_HEADER.format(ip=ip)]
