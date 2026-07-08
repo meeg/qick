@@ -10,7 +10,7 @@ filesets:
     depend:
       - qick:interfaces:axi4_stream_if
       - qick:interfaces:bram_if
-      - qick:cdc:sync_nxm
+      - qick:cdc:cdc_gray_sync
 
   tb:
     files:

@@ -8,7 +8,7 @@ filesets:
       - hdl/mr_buffer.sv
     file_type: systemVerilogSource
     depend:
-      - qick:cdc:sync_nxm
+      - qick:cdc:cdc_gray_sync
       - qick:axi:axis_to_bram_trig
       - qick:mem:bram_tdp
       - qick:axi:bram_to_axis_nt

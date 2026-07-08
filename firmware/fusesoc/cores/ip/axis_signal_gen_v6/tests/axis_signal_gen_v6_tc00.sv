@@ -162,7 +162,7 @@ module axis_signal_gen_v6_unit_test;
         // Configure writer registers over AXI-Lite.
         reg_write(REG_START_ADDR, 32'd0);
         reg_write(REG_WE, 32'd1);           // enable writes
-        // CDC margin: we_reg crosses to s0_axis_aclk via sync_nxm.
+        // CDC margin: we_reg crosses to s0_axis_aclk via cdc_gray_sync.
         repeat(10) @(posedge s0_axis_aclk);
         // Stream envelope samples on S0.
         for (int k = 0; k < count; k++) begin

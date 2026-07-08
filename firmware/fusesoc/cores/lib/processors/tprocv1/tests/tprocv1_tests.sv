@@ -8,7 +8,7 @@
 //   - DUT slave inputs  (s0..s3): drive via axis_if.m_cb.tdata/tvalid
 //   - DUT master outputs (m0..m7): read via axis_if.s_cb.tdata/tvalid,
 //                                   tready already driven high in setup().
-//   - start_and_sync() handles sync_nxm 2-cycle delay.
+//   - start_and_sync() handles cdc_gray_sync 2-cycle delay.
 //   - Each test preloads only what it needs; rest of pmem = OP_END.
 //------------------------------------------------------------------------------
 
@@ -498,9 +498,9 @@
     `FAIL_UNLESS_LOG(u_dut.fifo_wr_en_mux == 1'b0, "END: fifo_wr_en deasserted");
     `FAIL_UNLESS_LOG(u_dut.dmem_we        == 1'b0, "END: dmem_we deasserted");
 
-    // Deassert start → FSM returns to INIT_ST after sync_nxm
+    // Deassert start → FSM returns to INIT_ST after cdc_gray_sync
     cb.tb_start <= 1'b0;
-    repeat(6) @(cb); // sync_nxm delay + transition
+    repeat(6) @(cb); // cdc_gray_sync delay + transition
     `FAIL_UNLESS_LOG(u_dut.pc_en_i  == 1'b0, "INIT_ST: pc_en=0");
     `FAIL_UNLESS_LOG(u_dut.pc_rst_i == 1'b0, "INIT_ST: pc_rst=0");
 `SVTEST_END

@@ -122,7 +122,7 @@ All instructions are **64-bit words**. Field layout:
 
 | Element | Latency | Notes |
 |---------|---------|-------|
-| start -> FSM | 2 cycles | `sync_nxm #(.N(2))`; handled by `start_and_sync()` |
+| start -> FSM | 2 cycles | `cdc_gray_sync #(.N(2))`; handled by `start_and_sync()` |
 | regfile read | 1 cycle | `pnum_r` pipeline |
 | comparator | 1 cycle | registered inputs |
 | ALU | registered out | use multi-cycle MATH/MATHI states |

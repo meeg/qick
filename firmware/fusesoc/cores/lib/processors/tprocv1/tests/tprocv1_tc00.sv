@@ -18,7 +18,7 @@
 //                      Sample tdata/tvalid via s_cb.
 //
 // Key timing constraints:
-//   - start → FSM: sync_nxm #(.N(2)) adds 2 cycles; start_and_sync() handles this.
+//   - start → FSM: cdc_gray_sync #(.N(2)) adds 2 cycles; start_and_sync() handles this.
 //   - regfile_8p read latency: 2 cycles (pnum_r pipeline).
 //   - ALU latency: 2 cycles (dout_r → dout_rr).
 //   - axis_set_reg on slave inputs adds 1 cycle of holding latency.
@@ -311,7 +311,7 @@ module tprocv1_unit_test;
     endtask
 
     //--------------------------------------------------------------------------
-    // drive_start: assert/deassert start and wait 2 cycles for sync_nxm.
+    // drive_start: assert/deassert start and wait 2 cycles for cdc_gray_sync.
     // use_input = 1: use the external input (tb_start) with start_src_reg=1
     // use_input = 0: use the input start_reg (tb_start_reg) with start_src_reg=0
     //--------------------------------------------------------------------------
@@ -325,7 +325,7 @@ module tprocv1_unit_test;
             cb.tb_start     <= 1'b0;
         end
         @(cb);
-        @(cb); // 2 cycle sync (sync_nxm)
+        @(cb); // 2 cycle sync (cdc_gray_sync)
     endtask
     
     //--------------------------------------------------------------------------

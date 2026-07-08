@@ -8,7 +8,7 @@ filesets:
       - hdl/data_writer_sg.sv
     file_type: systemVerilogSource
     depend:
-      - qick:cdc:sync_nxm
+      - qick:cdc:cdc_gray_sync
 
   tb:
     files:

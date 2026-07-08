@@ -9,7 +9,7 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - qick:utils:data_capture_ctrl
-      - qick:cdc:sync_nxm
+      - qick:cdc:cdc_gray_sync
       - qick:mem:bram_dp
       - qick:utils:data_reader
 
