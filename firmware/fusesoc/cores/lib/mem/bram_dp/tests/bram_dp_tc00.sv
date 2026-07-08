@@ -8,102 +8,68 @@ import svunit_pkg::svunit_testcase;
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
+  localparam int N = 8;   // address width (256 entries)
+  localparam int B = 16;  // data width
 
-  localparam NB             = 8; //[Hz]
+  logic          tb_clk = 1'b0;
 
-  logic          tb_clk     = 1'b0;
-  logic          tb_rstn    = 1'b1;
-
-  logic [NB-1:0] tb_i_data  = 1'b0;
-  logic [NB-1:0] tb_o_data  = 1'b0;
+  // Port A
+  logic          ena, wea;
+  logic [N-1:0]  addra;
+  logic [B-1:0]  dia, doa;
+  // Port B
+  logic          enb, web;
+  logic [N-1:0]  addrb;
+  logic [B-1:0]  dib, dob;
 
 initial begin
   $dumpfile("bram_dp.vcd");
   $dumpvars();
 end
 
-clk_gen
-#(
-  .FREQ       ( CLOCK_FREQUENCY   )
-)
-u_clk_gen
-(
-  .i_enable   ( 1'b1              ),
-  .o_clk      ( tb_clk            )
+clk_gen #(
+  .FREQ     ( CLOCK_FREQUENCY )
+) u_clk_gen (
+  .i_enable ( 1'b1   ),
+  .o_clk    ( tb_clk )
 );
 
-
 default clocking cb @(posedge tb_clk);
-output tb_rstn   ;
-output tb_i_data ;
-input  tb_o_data ;
+  default input #1step output #2;
 endclocking
 
 //===================================
-// This is the UUT that we're
-// running the Unit Tests on
+// UUT — both ports share tb_clk here (single clock domain test)
 //===================================
-
-bram_dp
-#(
-    .NB(NB)
-    ) u_bram_dp (
-  .i_clk      ( tb_clk     ),
-  .i_rstn     ( tb_rstn    ),
-
-  .i_async    ( tb_i_data  ),
-                           
-  .o_sync     ( tb_o_data  )
+bram_dp #(
+  .N (N),
+  .B (B)
+) u_bram_dp (
+  .clka  (tb_clk), .clkb  (tb_clk),
+  .ena   (ena),    .enb   (enb),
+  .wea   (wea),    .web   (web),
+  .addra (addra),  .addrb (addrb),
+  .dia   (dia),    .dib   (dib),
+  .doa   (doa),    .dob   (dob)
 );
-
-//===================================
-// Build
-//===================================
 
 function void build();
   svunit_ut = new(name);
 endfunction
 
-//===================================
-// Setup for running the Unit Tests
-//===================================
 task setup();
   svunit_ut.setup();
-  cb.tb_i_data  <= '0;
-  
-  @(cb);
-  cb.tb_rstn             <= 1'b0;
-  repeat(2) @(cb);
-  cb.tb_rstn             <= 1'b1;
-  repeat(5) @(cb);
-
+  ena = 1'b0; wea = 1'b0; addra = '0; dia = '0;
+  enb = 1'b0; web = 1'b0; addrb = '0; dib = '0;
+  repeat(4) @(posedge tb_clk);
 endtask
 
-//===================================
-// Here we deconstruct anything we 
-// need after running the Unit Tests
-//===================================
 task teardown();
   svunit_ut.teardown();
 endtask
 
-//===================================
-// All tests are defined between the
-// SVUNIT_TESTS_BEGIN/END macros
-//
-// Each individual test must be
-// defined between `SVTEST(_NAME_)
-// `SVTEST_END
-//
-// i.e.
-//   `SVTEST(mytest)
-//     <test code>
-//   `SVTEST_END
-//===================================
-
-
 `SVUNIT_TESTS_BEGIN
 `include "tests.sv"
-`SVUNIT_TESTS_END 
+`SVUNIT_TESTS_END
 
 endmodule
