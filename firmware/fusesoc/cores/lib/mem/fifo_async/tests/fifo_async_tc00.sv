@@ -70,13 +70,16 @@ module fifo_async_unit_test;
   );
 
   // Structural assertion safeguards for tracking testbench behavior
+  // El overflow real sería: escribir efectivamente cuando ya estaba lleno el ciclo previo
   property p_no_overflow;
-    @(posedge wr_clk) disable iff (!wr_rstn) full |-> !wr_en;
+    @(posedge wr_clk) disable iff (!wr_rstn)
+      (full && $past(full)) |-> !wr_en;
   endproperty
   assert property(p_no_overflow);
-
+  
   property p_no_underflow;
-    @(posedge rd_clk) disable iff (!rd_rstn) empty |-> !rd_en;
+    @(posedge rd_clk) disable iff (!rd_rstn)
+      (empty && $past(empty)) |-> !rd_en;
   endproperty
   assert property(p_no_underflow);
 
