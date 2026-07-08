@@ -53,7 +53,7 @@ io_buffer
 u_io_buffer
 (
   .i_clk      ( tb_clk ),
-  .i_rst      ( tb_rst ),
+  .i_rstn     ( ~tb_rst ),
 
   .i_data     ( tb_i_data  ),
   .i_valid    ( tb_i_valid ),
