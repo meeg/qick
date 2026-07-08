@@ -89,9 +89,6 @@ module axis_pipe_unit_test;
     @(cb);
     tb_rstn          <= 1'b1;
     
-    s_axis_if.m_reset();
-    m_axis_if.s_reset();
-
   endtask
 
   //===================================
