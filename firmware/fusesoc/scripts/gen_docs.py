@@ -25,7 +25,7 @@ RE_DOC_LINE   = re.compile(r'^\s*//[!/]\s?(?P<txt>.*)$')
 # Banner / decoration line: only slashes (and maybe spaces). Not documentation.
 RE_BANNER     = re.compile(r'^\s*/{2,}\s*$|^\s*/{5,}.*$')
 # Module declaration.
-RE_MODULE     = re.compile(r'^\s*module\s+(\w+)')
+RE_MODULE = re.compile(r'^\s*(?:module|interface|package)\s+(\w+)')
 # End of a module port list.
 RE_PORTLIST_END = re.compile(r'^\s*\)\s*;')
 
@@ -85,8 +85,9 @@ def collect_doc_block_above(lines, module_idx):
     Returns a list of text lines (comment markers stripped).
     """
     i = module_idx - 1
-    # Skip blank lines just above.
-    while i >= 0 and lines[i].strip() == '':
+    # Skip blank lines AND compiler directives just above.
+    while i >= 0 and (lines[i].strip() == ''
+                      or lines[i].strip().startswith('`')):
         i -= 1
     if i < 0:
         return []
@@ -224,7 +225,7 @@ def parse_file(path):
         ports  = [(n, dr, w, d or port_docs.get(n, "")) for (n, dr, w, d) in ports]
 
         mods.append({
-            'name': name, 'file': os.path.basename(path),
+            'name': name, 'file': os.path.basename(path), 'path': path,
             'brief': brief, 'details': details, 'author': author,
             'version': version, 'note': note,
             'params': params, 'ports': ports,
@@ -235,7 +236,15 @@ def to_markdown(mod):
     L = [f"# {mod['name']}\n"]
     if mod['brief']:
         L.append(f"**{mod['brief']}**\n")
-    L.append(f"*Source: `{mod['file']}`*\n")
+
+    # Source line (clickable link when available).
+    src  = mod.get('src_rel') or mod['file']
+    link = mod.get('src_link')
+    if link:
+        L.append(f"*Source: [`{src}`]({link})*\n")
+    else:
+        L.append(f"*Source: `{src}`*\n")
+
     if mod['details']:
         L.append("## Description\n")
         L.append(mod['details'] + "\n")
@@ -258,8 +267,10 @@ def to_markdown(mod):
     if mod['author'] or mod['version']:
         L.append("---")
         meta = []
-        if mod['author']:  meta.append(f"**Author:** {mod['author']}")
-        if mod['version']: meta.append(f"**Version:** {mod['version']}")
+        if mod['author']:
+            meta.append(f"**Author:** {mod['author']}")
+        if mod['version']:
+            meta.append(f"**Version:** {mod['version']}")
         L.append(' · '.join(meta))
     return '\n'.join(L) + '\n'
 
@@ -336,6 +347,10 @@ def main():
                        else f"{stem}__{mod['name']}.md")
             out_path = os.path.join(args.outdir, out_rel)
             os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            # link from the .md back to the source .sv, relative to the .md file
+            src_link = os.path.relpath(path, os.path.dirname(out_path))
+            mod['src_link'] = src_link
+            mod['src_rel']  = rel          # e.g. math/alu.sv
             with open(out_path, 'w') as f:
                 f.write(to_markdown(mod))
             documented.append((mod['name'], out_rel, mod['brief'] or '',
