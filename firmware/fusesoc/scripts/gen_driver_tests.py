@@ -59,14 +59,23 @@ def introspect(ip):
         read_callback=sim.read, write_callback=sim.write,
         read_block_callback=sim.read_block, write_block_callback=sim.write_block))
     regs = []
-    for reg in model.get_registers():          # PeakRDL 3.1.2 iterator
+    for reg in model.get_registers():
         rname = reg.inst_name
-        # Build a set of writable field names for this register.
-        writable_names = {f.inst_name for f in reg.writable_fields}
-        fields = []
-        for f in reg.fields:                   # 'fields' property (NOT get_fields())
-            writable = f.inst_name in writable_names
-            fields.append((f.inst_name, f.width, writable))
+        # Read-only registers do NOT expose writable_fields -> default to [].
+        writable_names = {f.inst_name for f in getattr(reg, "writable_fields", [])}
+        # 'fields' may be absent on some register types; fall back to the union
+        # of readable_fields and writable_fields.
+        if hasattr(reg, "fields"):
+            all_fields = list(reg.fields)
+        else:
+            seen, all_fields = set(), []
+            for src in ("readable_fields", "writable_fields"):
+                for f in getattr(reg, src, []):
+                    if f.inst_name not in seen:
+                        seen.add(f.inst_name)
+                        all_fields.append(f)
+        fields = [(f.inst_name, f.width, f.inst_name in writable_names)
+                  for f in all_fields]
         regs.append((rname, reg.address, fields))
     return regs
 
