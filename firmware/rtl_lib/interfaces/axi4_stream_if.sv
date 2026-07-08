@@ -173,17 +173,23 @@ interface axi4_stream_if #(
        * @task s_reset
        * @brief Places the slave interface in an unready state until reset deassertion, then sets tready high.
        */
-      task automatic s_reset();
+      task automatic s_reset(input int timeout_cycles = 1000);
         s_cb.tready <= 1'b0;
-        if (aresetn !== 1'b0) begin
-          wait(aresetn === 1'b0);
+        // If the reset is active, wait with timeout for it to be released.
+        // If it's already released, don't block.
+        if (aresetn === 1'b0) begin
+          fork
+            begin wait(aresetn === 1'b1); end
+            begin
+              repeat (timeout_cycles) @(s_cb);
+              $fatal(1, "[AXIS_FATAL] Slave reset sequencing timed out.");
+            end
+          join_any
+          disable fork;
         end
-        s_cb.tready <= 1'b0;
-        wait(aresetn === 1'b1);
-        repeat (3) @(s_cb);
+        repeat (3) @(s_cb);   // stabilization
         s_cb.tready <= 1'b1;
       endtask
-
       // ------------------------------------------------------------
       // TRANSACTION API TASKS (SINGLE BEAT)
       // ------------------------------------------------------------
@@ -483,7 +489,7 @@ interface axi4_stream_if #(
 
           if (HAS_TDEST == 1'b1) begin : g_tdest_assertions
             property AXI4STREAM_ERRM_TDEST_STABLE;
-              @(posedge aclk) (!aresetn && tvalid && !tready) |=> $stable(tdest);
+              @(posedge aclk) (aresetn && tvalid && !tready) |=> $stable(tdest);
             endproperty
             `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TDEST_STABLE,
             "AXIS_ERR: tdest was not stable when tvalid was asserted and tready was low")
