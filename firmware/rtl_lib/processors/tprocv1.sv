@@ -1,32 +1,20 @@
-//------------------------------------------------------------------------------
-// Module      : tprocv1
-// Origin      : tproc64x32_x8
-// Description : QICK tProcessor with 64-bit instruction, 32-bit datapath,
-//               8 channels (AXIS master/slave), program and data memories.
-//              Uses AXI4-Stream interfaces for all I/O channels.
-//
-// Architecture:
-//   - 64-bit instruction word with opcode, page, channel, operands, immediate.
-//   - 32-bit registers (8 read ports, 1 write port) with page selection.
-//   - Stack (depth 16) for push/pop.
-//   - ALU for arithmetic and bitwise operations (multi-cycle).
-//   - Conditional unit for jump conditions.
-//   - 8 independent channels for timed instructions (FIFO + timed_ictrl).
-//   - AXI4-Stream slave inputs (4 channels, 64-bit) and master outputs (8 channels, 160-bit).
-//   - Program memory (depth N, 64-bit) and data memory (depth M, 32-bit).
-//
-// Parameters:
-//   N : program memory address width (default 16)
-//   M : data memory address width (default 10)
-//
-// Instruction set summary (see tpv1_ctrl for detailed opcode list):
-//   I-Type : pushi, popi, mathi, seti, synci, waiti, bitwi, memri, memwi, regwi, setbi
-//   J-Type : loopnz, condj, end
-//   R-Type : math, set, sync, read, wait, bitw, memr, memw, setb
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : tprocv1
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    tprocv1.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module tprocv1 import tproc_pkg::*;
   #(
+    //! program memory address width (default 16)
     parameter int N = 16,  // Program memory address width
+    //! data memory address width (default 10)
     parameter int M = 10   // Data memory address width
   )
   (

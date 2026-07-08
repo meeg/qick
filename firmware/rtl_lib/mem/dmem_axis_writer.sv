@@ -1,29 +1,36 @@
-//------------------------------------------------------------------------------
-// Module  : dmem_axis_writer
-// Origin  : Converted from axis_write.v (tProcV1 data memory AXIS writer)
-//
-// Description:
-//   Receives an AXI4-Stream burst (delimited by tlast) and writes each beat
-//   sequentially to BRAM starting at addr_i. Controlled by exec/exec_ack
-//   handshake from dmem_ctrl.
-//
-//   FSM:
-//     INIT_ST  : wait for exec_i; latch addr_i as address counter
-//     WRITE_ST : assert tready; write each valid beat to BRAM;
-//                advance address on each accepted beat;
-//                when tlast & tvalid → transition to ACK
-//     ACK_ST   : assert exec_ack_o for one cycle
-//     END_ST   : wait for exec_i to deassert before returning to INIT
-//
-//   Pipeline: one register stage (data_r, addr_cnt_r, we_int_r) delays
-//   the BRAM write by one cycle to match the address pipeline.
-//
-// Parameters:
-//   N : address width (must match bram_if NB_ADDR)
-//   B : data width    (must match bram_if NB_DATA and axis TDATA_WIDTH)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : dmem_axis_writer
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    dmem_axis_writer.sv
+//!
+//! @brief   Receives an AXI4-Stream burst (delimited by tlast) and writes each beat
+//!
+//! @details
+//!
+//!
+//! sequentially to BRAM starting at addr_i. Controlled by exec/exec_ack
+//! handshake from dmem_ctrl.
+//!
+//! FSM:
+//! INIT_ST  : wait for exec_i; latch addr_i as address counter
+//! WRITE_ST : assert tready; write each valid beat to BRAM;
+//! advance address on each accepted beat;
+//! when tlast & tvalid → transition to ACK
+//! ACK_ST   : assert exec_ack_o for one cycle
+//! END_ST   : wait for exec_i to deassert before returning to INIT
+//!
+//! Pipeline: one register stage (data_r, addr_cnt_r, we_int_r) delays
+//! the BRAM write by one cycle to match the address pipeline.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dmem_axis_writer #(
+    //! address width (must match bram_if NB_ADDR)
     parameter int N = 10,
+    //! data width    (must match bram_if NB_DATA and axis TDATA_WIDTH)
     parameter int B = 16
 )(
     input  logic        clk,

@@ -1,11 +1,24 @@
-/***********************************************
- *  File: data_to_axis_fifo.sv
- *  Description: adds back-pressure to data/valid 
- *               stream by means of a FIFO buffer 
- *               and adapting the outputs to 
- *               AXI-4 Stream
- *
- * ********************************************/
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_to_axis_fifo
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_to_axis_fifo.sv
+//!
+//! @brief   adds back-pressure to data/valid
+//!
+//! @details
+//!
+//! stream by means of a FIFO buffer
+//! and adapting the outputs to
+//! AXI-4 Stream
+//!
+//!
+//! *******************************************
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module data_to_axis_fifo#(
     parameter integer unsigned      DEPTH   = 16

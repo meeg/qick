@@ -1,8 +1,15 @@
-//! Combinational/pipelined arithmetic ALU: add, subtract, and low-half multiply.
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : alu_arith_unit
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    alu_arith_unit.sv
 //!
-//! Registers operands and opcode on entry, computes add/sub/mul in parallel,
-//! muxes the result by opcode, and outputs it two cycles later (dout_rr).
-//! Zero-flags on the raw (unregistered) operands are combinational.
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module alu_arith_unit import alu_pkg::*;
    #(
       //! Operand/result width in bits.

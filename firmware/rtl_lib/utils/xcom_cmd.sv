@@ -1,47 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: xcom_cmd.sv
+// Module : xcom_cmd
 // Project: QICK
-// Description:
-// Wrapper and synchronizer block for the XCOM core.
-//
-//Inputs:
-// - i_clk        clock signal
-// - i_rstn       active low reset signal
-// - i_core_en    data valid signal coming from the core processor. Indicates
-//                a valid data is ready for transmission.
-// - i_core_op    opcode from the core. See xcom opcodes in qick_pkg
-// - i_core_data  data to be transmitted, coming from the core processor.
-// - i ps_ctrl    port used to send opcode and data valid signal from Python.
-//                bits [5:1] determines the operation to be done. See xcom
-//                           opcodes in qick_pkg.
-//                bit 0      data valid signal coming from Python. Indicates
-//                           a valid data is ready for transmission.
-// - i_ps_data    the data to be transmitted, coming from Python
-// - i_ack_loc    acknowledge signal to LOCAL commands. This signal is
-//                generated internally in the core xcom_txrx.
-// - i_ack_net    acknowledge signal to NETWORK commands. This signal is
-//                generated internally in the core xcom_txrx.
-//
-//Outputs:
-// - o_req_loc    signal requesting a LOCAL command.
-// - o_req_net    signal requesting a NETWORK command.
-// - o_op         opcode transmitted
-// - o_data       data transmittted
-// - o_data_cntr  data counter for debug
-//
-// Change history: 09/20/24 - v1 Started by @mdifederico
-//                 05/06/25 - Refactored by @lharnaldi
-//                          - the sync_n core was removed to sync all signals
-//                            in one place (external).
-//                 11/24/25 - @lharnaldi - Bug fix. Change the selection
-//                            of valid signals using i_core_en
-//                            or i_ps_ctrl[0].
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    xcom_cmd.sv
+//!
+//! @brief   Wrapper and synchronizer block for the XCOM core.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module xcom_cmd(
   input  logic                  i_clk            ,
   input  logic                  i_rstn           ,

@@ -1,35 +1,42 @@
 `timescale 1ns/1ps
-//------------------------------------------------------------------------------
-// Module  : axis_tprocv1  (formerly axis_tproc64x32_x8)
-// Origin  : Converted from axis_tproc64x32_x8.v (tProcV1 top-level)
-//
-// Description:
-//   Top-level wrapper for the QICK tProcessor V1. Assembles:
-//     axi_slv_tprocv1: custom AXI4-Lite slave (registers + single DMEM access)
-//     dmem           : data-memory arbiter (single R/W, AXIS read, AXIS write)
-//     bram_tdp       : true dual-port data memory (port A = AXI side,
-//                                                   port B = tProcessor side)
-//     tprocv1        : the tProcessor core (program execution, 4 in / 8 out
-//                      AXI4-Stream channels)
-//
-//   Two clock domains:
-//     - s_axi_aclk : AXI-Lite configuration + DMEM port A + dmem arbiter.
-//     - aclk       : tProcessor core + DMEM port B.
-//
-//   AXIS top-level ports are kept FLAT (Vivado IP / block-design compatible).
-//   Internally they are bridged to axi4_stream_if instances required by
-//   dmem (s0/m0, 32-bit) and tprocv1 (s1..s4 64-bit in, m1..m8 160-bit out).
-//
-//   Driver compatibility: axi_slv_tprocv1 (custom) is retained unchanged so
-//   the existing Python driver (register access + single_read/single_write
-//   via the upper AXI address map) works without modification.
-//
-// Parameters:
-//   PMEM_N : program memory depth (log2 of 64-bit words)
-//   DMEM_N : data memory depth    (log2 of 32-bit words)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axis_tprocv1
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_tprocv1.sv
+//!
+//! @brief     Top-level wrapper for the QICK tProcessor V1. Assembles:
+//!
+//! @details
+//!
+//! axi_slv_tprocv1: custom AXI4-Lite slave (registers + single DMEM access)
+//! dmem           : data-memory arbiter (single R/W, AXIS read, AXIS write)
+//! bram_tdp       : true dual-port data memory (port A = AXI side,
+//! port B = tProcessor side)
+//! tprocv1        : the tProcessor core (program execution, 4 in / 8 out
+//! AXI4-Stream channels)
+//!
+//! Two clock domains:
+//!
+//! - s_axi_aclk : AXI-Lite configuration + DMEM port A + dmem arbiter.
+//! - aclk       : tProcessor core + DMEM port B.
+//!
+//! AXIS top-level ports are kept FLAT (Vivado IP / block-design compatible).
+//! Internally they are bridged to axi4_stream_if instances required by
+//! dmem (s0/m0, 32-bit) and tprocv1 (s1..s4 64-bit in, m1..m8 160-bit out).
+//!
+//! Driver compatibility: axi_slv_tprocv1 (custom) is retained unchanged so
+//! the existing Python driver (register access + single_read/single_write
+//! via the upper AXI address map) works without modification.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module axis_tprocv1 #(
+    //! program memory depth (log2 of 64-bit words)
     parameter int PMEM_N = 16,
+    //! data memory depth    (log2 of 32-bit words)
     parameter int DMEM_N = 10
 )(
     //==========================================================================

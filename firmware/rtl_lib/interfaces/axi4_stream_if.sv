@@ -1,33 +1,43 @@
 `timescale 1ns/1ps
-
-/**
- * @interface axi4_stream_if
- * @brief SystemVerilog interface encapsulating the AXI4-Stream protocol signals, verification tasks, and assertions.
- *
- * @description
- * This interface provides standard hardware modports for RTL integration alongside specialized
- * clocking blocks and automated tasks for testbench environments (e.g., SVUnit). It centralizes
- * simulation drivers and bus-compliance protocol checking.
- * References:
- * - AXI4-Stream protocol specification: https://developer.arm.com/documentation/ihi0051/a/
- * - AXI4-Stream protocol assertions: https://developer.arm.com/documentation/dui0534/b/
- *
- * @param TDATA_WIDTH Data channel width in bits. Must be an integer multiple of 8.
- * @param HAS_TKEEP   Flag to indicate presence of the TKEEP signal.
- * @param HAS_TUSER   Flag to indicate presence of the TUSER signal.
- * @param HAS_TID     Flag to indicate presence of the TID signal.
- * @param HAS_TDEST   Flag to indicate presence of the TDEST signal.
- * @param HAS_TSTRB   Flag to indicate presence of the TSTRB signal.
- */
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Interface : axi4_stream_if
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axi4_stream_if.sv
+//!
+//! @brief   SystemVerilog interface encapsulating the AXI4-Stream protocol signals, verification tasks, and assertions.
+//!
+//! @details
+//!
+//!
+//! This interface provides standard hardware modports for RTL integration alongside specialized
+//! clocking blocks and automated tasks for testbench environments (e.g., SVUnit). It centralizes
+//! simulation drivers and bus-compliance protocol checking.
+//! References:
+//!
+//!
+//! - AXI4-Stream protocol specification: https://developer.arm.com/documentation/ihi0051/a/
+//! - AXI4-Stream protocol assertions: https://developer.arm.com/documentation/dui0534/b/
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 interface axi4_stream_if #(
+  //! Data channel width in bits. Must be an integer multiple of 8.
   parameter int TDATA_WIDTH = 32,
   parameter int TUSER_WIDTH = 32,
   parameter int TID_WIDTH   = 32,
   parameter int TDEST_WIDTH = 32,
+  //! Flag to indicate presence of the TKEEP signal.
   parameter bit HAS_TKEEP   = 0,
+  //! Flag to indicate presence of the TUSER signal.
   parameter bit HAS_TUSER   = 0,
+  //! Flag to indicate presence of the TID signal.
   parameter bit HAS_TID     = 0,
+  //! Flag to indicate presence of the TDEST signal.
   parameter bit HAS_TDEST   = 0,
+  //! Flag to indicate presence of the TSTRB signal.
   parameter bit HAS_TSTRB   = 0
 )(
   input logic aclk,    /**< Global system clock source */

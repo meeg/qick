@@ -1,30 +1,41 @@
-//------------------------------------------------------------------------------
-// Module  : dmem_single_rw
-// Origin  : Converted from mem_rw.v (tProcV1 single memory access)
-//
-// Description:
-//   Performs a single synchronous read or write to the data memory.
-//   Controlled by an exec/exec_ack handshake:
-//     - Caller asserts exec_i with rw_i, addr_i, din_i valid.
-//     - Module completes the operation and asserts exec_ack_o.
-//     - Caller deasserts exec_i to return to idle.
-//
-//   rw_i = 0 : read  (INIT → READ0 → READ1 → ACK)
-//   rw_i = 1 : write (INIT → WRITE → ACK)
-//
-//   The data memory (e.g. bram_tdp) has a SYNCHRONOUS, registered read:
-//   the output 'bram.dout' is valid ONE clock after 'bram.en' + 'bram.addr'
-//   are presented. To accommodate this latency the read uses two pipeline
-//   cycles:
-//     - READ0 : assert bram.en and present bram.addr (start the read)
-//     - READ1 : bram.dout is now valid -> capture it into dout_r
-//
-// Parameters:
-//   N : address width  (must match bram_if NB_ADDR)
-//   B : data width     (must match bram_if NB_DATA)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : dmem_single_rw
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    dmem_single_rw.sv
+//!
+//! @brief   Performs a single synchronous read or write to the data memory.
+//!
+//! @details
+//!
+//!
+//! Controlled by an exec/exec_ack handshake:
+//!
+//!
+//! - Caller asserts exec_i with rw_i, addr_i, din_i valid.
+//! - Module completes the operation and asserts exec_ack_o.
+//! - Caller deasserts exec_i to return to idle.
+//!
+//! rw_i = 0 : read  (INIT → READ0 → READ1 → ACK)
+//! rw_i = 1 : write (INIT → WRITE → ACK)
+//!
+//! The data memory (e.g. bram_tdp) has a SYNCHRONOUS, registered read:
+//! the output 'bram.dout' is valid ONE clock after 'bram.en' + 'bram.addr'
+//! are presented. To accommodate this latency the read uses two pipeline
+//! cycles:
+//!
+//!
+//! - READ0 : assert bram.en and present bram.addr (start the read)
+//! - READ1 : bram.dout is now valid -> capture it into dout_r
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dmem_single_rw #(
+    //! address width  (must match bram_if NB_ADDR)
     parameter int N = 10,
+    //! data width     (must match bram_if NB_DATA)
     parameter int B = 16
 )(
     input  logic        clk,

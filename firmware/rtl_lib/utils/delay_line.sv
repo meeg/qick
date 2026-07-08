@@ -1,29 +1,30 @@
 ///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
 // Module : delay_line
-// Project: QICK (generic utility, rtl_lib/utils)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module delay_line
- * @brief Parameterizable M-bit, N-stage delay line for latency matching.
- *
- * @description
- *   Delays an M-bit data word by exactly N clock cycles. Used to align signals
- *   travelling through datapaths of different pipeline depths within the SAME
- *   clock domain (latency matching). This is NOT a CDC synchronizer — for clock
- *   domain crossing use sync_nxm (which adds the ASYNC_REG attribute).
- *
- *   Latency: exactly N cycles. Synchronous active-low reset clears all stages.
- *
- * @param N  Number of delay stages / latency in cycles (minimum 1).
- * @param M  Data width in bits.
- *
- * @port i_clk   Clock.
- * @port i_rstn  Active-low synchronous reset.
- * @port i_data  M-bit input.
- * @port o_data  M-bit input delayed by N cycles.
- */
+//! @file    delay_line.sv
+//!
+//! @brief   delay_line
+//!
+//! @details
+//!
+//! Parameterizable M-bit, N-stage delay line for latency matching.
+//!
+//! Delays an M-bit data word by exactly N clock cycles. Used to align signals
+//! travelling through datapaths of different pipeline depths within the SAME
+//! clock domain (latency matching). This is NOT a CDC synchronizer — for clock
+//! domain crossing use sync_nxm (which adds the ASYNC_REG attribute).
+//!
+//! Latency: exactly N cycles. Synchronous active-low reset clears all stages.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module delay_line #(
+   //! Number of delay stages / latency in cycles (minimum 1).
    parameter int N = 2,
+   //! Data width in bits.
    parameter int M = 8
 )(
    input  logic         i_clk  ,

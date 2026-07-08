@@ -1,34 +1,45 @@
 ///////////////////////////////////////////////////////////////////////////////
-// File: mr_buffer.sv
-// Description: Multi-channel buffer with AXI4-Stream interfaces
-//              Uses axis_to_bram_trig for writing and bram_to_axis_nt for
-//              reading
-// mr_buffer – SystemVerilog conversion
-//   Replaces VHDL data_writer   -> axis_to_bram_trig
-//               data_reader     -> bram_to_axis
-//               synchronizer    -> sync_nxm
-//
-//
-//  Design overview:
-//   mr_buffer captures NM parallel channels of B bits each into NM independent
-//   BRAMs (depth = 2**N per BRAM) on the write side (s_axis_aclk domain).
-//   On the read side (m_axis_aclk domain), bram_to_axis_nt serialises all
-//   NM*2**N words into a single B-bit AXI4-Stream:
-//
-//     Output word order (TOTAL_WORDS = NM * 2**N words per read burst):
-//       word 0            : ch0 @ addr 0
-//       word 1            : ch1 @ addr 0
-//       ...
-//       word NM-1         : ch(NM-1) @ addr 0
-//       word NM           : ch0 @ addr 1
-//       ...
-//       word NM*2**N - 1  : ch(NM-1) @ addr (2**N - 1)  ← tlast here
-//
-// IMPORTANT: every call to start_reader() starts a burst of exactly
-// TOTAL_WORDS beats ending with tlast=1.  Always consume all TOTAL_WORDS
-// beats before calling stop_reader(), otherwise the next start_reader() will
-// see stale data from the previous incomplete burst still in the output FIFO.
-// ============================================================================
+// Fermi National Accelerator Laboratory
+// Module : mr_buffer
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    mr_buffer.sv
+//!
+//! @brief   Multi-channel buffer with AXI4-Stream interfaces
+//!
+//! @details
+//!
+//!
+//! Uses axis_to_bram_trig for writing and bram_to_axis_nt for
+//! reading
+//! mr_buffer – SystemVerilog conversion
+//! Replaces VHDL data_writer   -> axis_to_bram_trig
+//! data_reader     -> bram_to_axis
+//! synchronizer    -> sync_nxm
+//!
+//! Design overview:
+//! mr_buffer captures NM parallel channels of B bits each into NM independent
+//! BRAMs (depth = 2**N per BRAM) on the write side (s_axis_aclk domain).
+//! On the read side (m_axis_aclk domain), bram_to_axis_nt serialises all
+//! NM*2**N words into a single B-bit AXI4-Stream:
+//!
+//! Output word order (TOTAL_WORDS = NM * 2**N words per read burst):
+//! word 0            : ch0 @ addr 0
+//! word 1            : ch1 @ addr 0
+//! ...
+//! word NM-1         : ch(NM-1) @ addr 0
+//! word NM           : ch0 @ addr 1
+//! ...
+//! word NM*2**N - 1  : ch(NM-1) @ addr (2**N - 1)  ← tlast here
+//!
+//! IMPORTANT: every call to start_reader() starts a burst of exactly
+//! TOTAL_WORDS beats ending with tlast=1.  Always consume all TOTAL_WORDS
+//! beats before calling stop_reader(), otherwise the next start_reader() will
+//! see stale data from the previous incomplete burst still in the output FIFO.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module mr_buffer #(
   parameter int NM = 8,          // Number of memories (parallel channels)

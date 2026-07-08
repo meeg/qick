@@ -1,16 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: wide_en_signal.sv
-// Project: UTILS
-// Description: Enable pulse generator for a wide enable signal.
-//              It serves as clock domain crossing (CDC) logic.
-//
-// Change history: 05/15/25 - Created by @lharnaldi
-//
+// Module : wide_en_signal
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    wide_en_signal.sv
+//!
+//! @brief   Enable pulse generator for a wide enable signal.
+//!
+//! @details
+//!
+//! It serves as clock domain crossing (CDC) logic.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module wide_en_signal(
     input logic  i_clk    ,
     input logic  i_rstn   ,

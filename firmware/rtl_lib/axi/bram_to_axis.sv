@@ -1,9 +1,20 @@
-// ============================================================================
-// File: bram_to_axis.sv (formerly data_reader.sv)
-// Description: Reads sequential data from BRAM and outputs AXI4-Stream.
-//              tlast is packed into the FIFO along with the data to guarantee
-//              perfect synchronization and immunity to FIFO propagation latencies.
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : bram_to_axis
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    bram_to_axis.sv
+//!
+//! @brief   Reads sequential data from BRAM and outputs AXI4-Stream.
+//!
+//! @details
+//!
+//! tlast is packed into the FIFO along with the data to guarantee
+//! perfect synchronization and immunity to FIFO propagation latencies.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 `timescale 1ns/1ps
 

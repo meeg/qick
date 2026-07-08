@@ -1,18 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-// axis_pid.sv
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: axis_pipe.sv
+// Module : axis_pipe
 // Project: QICK
-// Description:
-// AXI-Stream pipeline stage
-//
-//
-// Change history: 01/27/26 - Created by @lharnaldi
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_pipe.sv
+//!
+//! @brief   AXI-Stream pipeline stage
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module axis_pipe #(
   parameter int DWIDTH = 32
 )(

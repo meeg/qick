@@ -1,28 +1,37 @@
-//------------------------------------------------------------------------------
-// Module  : dmem_ctrl
-// Origin  : Converted from data_mem_ctrl.v (tProcV1 data memory arbiter)
-//
-// Description:
-//   Arbitrates access to the data memory between three modes:
-//     sel=0 : single read/write (via dmem_single_rw)
-//     sel=1 : AXIS read  — memory → m_axis (via dmem_axis_reader)
-//     sel=2 : AXIS write — s_axis → memory (via dmem_axis_writer)
-//
-//   While an AXIS transaction is in progress, busy_o is asserted and the
-//   single-access interface is locked out.
-//
-// FSM:
-//   INIT_ST          : idle; single-access available (sel=0)
-//   AXIS_READ_ST     : one-cycle setup before asserting ar_exec
-//   AXIS_READ_ACK_ST : wait for dmem_axis_reader to complete (ar_exec_ack)
-//   AXIS_WRITE_ST    : one-cycle setup before asserting aw_exec
-//   AXIS_WRITE_ACK_ST: wait for dmem_axis_writer to complete (aw_exec_ack)
-//   END_ST           : wait for start_reg to deassert before returning
-//
-// Registers (from AXI-Lite or processor):
-//   mode_reg  : 0 = AXIS read, 1 = AXIS write
-//   start_reg : 1 = start AXIS transaction, 0 = idle
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : dmem_ctrl
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    dmem_ctrl.sv
+//!
+//! @brief   Arbitrates access to the data memory between three modes:
+//!
+//! @details
+//!
+//!
+//! sel=0 : single read/write (via dmem_single_rw)
+//! sel=1 : AXIS read  — memory → m_axis (via dmem_axis_reader)
+//! sel=2 : AXIS write — s_axis → memory (via dmem_axis_writer)
+//!
+//! While an AXIS transaction is in progress, busy_o is asserted and the
+//! single-access interface is locked out.
+//!
+//! FSM:
+//! INIT_ST          : idle; single-access available (sel=0)
+//! AXIS_READ_ST     : one-cycle setup before asserting ar_exec
+//! AXIS_READ_ACK_ST : wait for dmem_axis_reader to complete (ar_exec_ack)
+//! AXIS_WRITE_ST    : one-cycle setup before asserting aw_exec
+//! AXIS_WRITE_ACK_ST: wait for dmem_axis_writer to complete (aw_exec_ack)
+//! END_ST           : wait for start_reg to deassert before returning
+//!
+//! Registers (from AXI-Lite or processor):
+//! mode_reg  : 0 = AXIS read, 1 = AXIS write
+//! start_reg : 1 = start AXIS transaction, 0 = idle
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dmem_ctrl #(
     parameter int N = 16    // kept for future address-width awareness
 )(

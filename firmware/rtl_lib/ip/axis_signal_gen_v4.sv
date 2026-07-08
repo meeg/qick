@@ -2,56 +2,67 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Fermi National Accelerator Laboratory
 // Module : axis_signal_gen_v4
-// Project: QICK arbitrary signal generator v4 (IP top level)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
 //! @file    axis_signal_gen_v4.sv
+//!
 //! @brief   Top level of the QICK v4 arbitrary signal generator IP.
 //!
-//! @details Wraps the SG-v4 datapath (sgv4_top) with an AXI4-Lite register
-//!          block (axil_slv) that exposes the envelope-writer control/status
-//!          registers plus the v4-specific static output select (real/imag).
+//! @details
 //!
-//!          Three clock domains (SYNCHRONOUS active-low reset in each):
-//!            - s_axi_aclk   : AXI4-Lite configuration.
-//!            - s0_axis_aclk : envelope sample loading (BRAM write side).
-//!            - aclk         : descriptor FIFO, signal generator, output.
 //!
-//!          Register map (axil_slv, byte-addressed, regwidth = 32):
-//!            0x00 START_ADDR_REG : envelope write start address (sw=rw).
-//!            0x04 WE_REG         : envelope write enable, bit 0 (sw=rw).
-//!            0x08 RNDQ_REG       : DEPRECATED - rounding-select removed by the
-//!                                  amplitude fix. Retained as a dummy for
-//!                                  register-map / driver bindto compatibility
-//!                                  (sw=rw, no functional effect).
-//!            0x0C STATUS_REG     : status (read-only from SW).
-//!                                    bit 0 SATURATING - sticky flag, set to 1
-//!                                    when the output has been clamped to
-//!                                    +/-MAXV since the last clear. Cleared via
-//!                                    CTRL_REG.SAT_CLEAR.
-//!            0x10 CTRL_REG       : control (sw=rw).
-//!                                    bit 0 SAT_CLEAR - write 1 to clear the
-//!                                    sticky SATURATING flag in STATUS_REG.
-//!            0x14 OUTSEL_REG     : v4-only static output select, bit 0
-//!                                    (0 = real, 1 = imag). Wired to
-//!                                    sgv4_top.outsel_reg (sw=rw).
+//! Wraps the SG-v4 datapath (sgv4_top) with an AXI4-Lite register
+//! block (axil_slv) that exposes the envelope-writer control/status
+//! registers plus the v4-specific static output select (real/imag).
 //!
-//! @note Kept identical to axis_signal_gen_v6 for the shared driver bindto
-//!       (v4/v5/v6): START_ADDR/WE/RNDQ/STATUS/CTRL at 0x00..0x10. OUTSEL_REG
-//!       is appended at 0x14 as a v4-only extension so STATUS/CTRL offsets do
-//!       not drift from v6.
+//! Three clock domains (SYNCHRONOUS active-low reset in each):
 //!
-//! @note Amplitude fix (BREAKING, shared v4/v6): envelope x DDS product
-//!       quantized as [30:15], baseband >>1 removed, gain-stage output
-//!       saturated to +/-MAXV. STATUS_REG.SATURATING / CTRL_REG.SAT_CLEAR
-//!       expose that saturation to software.
+//! - s_axi_aclk   : AXI4-Lite configuration.
+//! - s0_axis_aclk : envelope sample loading (BRAM write side).
+//! - aclk         : descriptor FIFO, signal generator, output.
 //!
-//! @author  FNAL / QICK
+//! Register map (axil_slv, byte-addressed, regwidth = 32):
+//! 0x00 START_ADDR_REG : envelope write start address (sw=rw).
+//! 0x04 WE_REG         : envelope write enable, bit 0 (sw=rw).
+//! 0x08 RNDQ_REG       : DEPRECATED - rounding-select removed by the
+//! amplitude fix. Retained as a dummy for
+//! register-map / driver bindto compatibility
+//! (sw=rw, no functional effect).
+//! 0x0C STATUS_REG     : status (read-only from SW).
+//! bit 0 SATURATING - sticky flag, set to 1
+//! when the output has been clamped to
+//! +/-MAXV since the last clear. Cleared via
+//! CTRL_REG.SAT_CLEAR.
+//! 0x10 CTRL_REG       : control (sw=rw).
+//! bit 0 SAT_CLEAR - write 1 to clear the
+//! sticky SATURATING flag in STATUS_REG.
+//! 0x14 OUTSEL_REG     : v4-only static output select, bit 0
+//! (0 = real, 1 = imag). Wired to
+//! sgv4_top.outsel_reg (sw=rw).
+//!
+//! @note    Kept identical to axis_signal_gen_v6 for the shared driver bindto
+//!
+//! @note    (v4/v5/v6): START_ADDR/WE/RNDQ/STATUS/CTRL at 0x00..0x10. OUTSEL_REG
+//!
+//! @note    is appended at 0x14 as a v4-only extension so STATUS/CTRL offsets do
+//!
+//! @note    not drift from v6.
+//!
+//! @note    Amplitude fix (BREAKING, shared v4/v6): envelope x DDS product
+//!
+//! @note    quantized as [30:15], baseband >>1 removed, gain-stage output
+//!
+//! @note    saturated to +/-MAXV. STATUS_REG.SATURATING / CTRL_REG.SAT_CLEAR
+//!
+//! @note    expose that saturation to software.
+//!
+//! @author  QICK Development Team
+//!
 //! @version 1.0
-//!
-//! @param N             Envelope-memory address width per bank (depth 2**N).
-//! @param N_DDS         Number of parallel banks / DDS lanes (HW = 16).
 module axis_signal_gen_v4 #(
+   //! Envelope-memory address width per bank (depth 2**N).
    parameter int N     = 12,
+   //! Number of parallel banks / DDS lanes (HW = 16).
    parameter int N_DDS = 16
 )(
    // AXI4-Lite slave (configuration).

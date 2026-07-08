@@ -1,30 +1,36 @@
-// ============================================================================
-// File: avg.sv
-// Description: Fixed-point accumulator and photon edge counter for the QICK
-// pipeline.
-//
-// Two operating modes selected by photon_mode_reg:
-//   0 - Accumulation mode: stores the sum of I and Q samples over len_reg
-//       samples into memory at address addr_reg.
-//   1 - Photon edge counter mode: counts rising edges on the I channel
-//       using hysteresis thresholds h_thrsh_reg (high) and l_thrsh_reg (low).
-//
-// Capture is initiated by an external trigger after start_reg is asserted.
-// start_reg must remain high through the entire capture cycle.
-// After WRITE_MEM_ST the FSM holds in WAIT_TRIGGER_ST until trigger_i
-// de-asserts, then returns to TRIGGER_ST ready for the next capture.
-// Asserting start_reg=0 at any point after TRIGGER_ST aborts back to START_ST.
-//
-// Parameters:
-//   N : memory address width (depth = 2**N)
-//   B : sample data width in bits
-//
-// Data format on din_i:   {Q[2B-1:B], I[B-1:0]}
-// Data format on mem_di_o: {acc_q[2B-1:0], acc_i[2B-1:0]} or acc_photon
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : avg
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    avg.sv
+//!
+//! @brief   Fixed-point accumulator and photon edge counter for the QICK
+//!
+//! @details
+//!
+//! pipeline.
+//!
+//! Two operating modes selected by photon_mode_reg:
+//! 0 - Accumulation mode: stores the sum of I and Q samples over len_reg
+//! samples into memory at address addr_reg.
+//! 1 - Photon edge counter mode: counts rising edges on the I channel
+//! using hysteresis thresholds h_thrsh_reg (high) and l_thrsh_reg (low).
+//!
+//! Capture is initiated by an external trigger after start_reg is asserted.
+//! start_reg must remain high through the entire capture cycle.
+//! After WRITE_MEM_ST the FSM holds in WAIT_TRIGGER_ST until trigger_i
+//! de-asserts, then returns to TRIGGER_ST ready for the next capture.
+//! Asserting start_reg=0 at any point after TRIGGER_ST aborts back to START_ST.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module avg #(
+  //! memory address width (depth = 2**N)
   parameter int N = 10,
+  //! sample data width in bits
   parameter int B = 16
 ) (
   input  logic              rstn,

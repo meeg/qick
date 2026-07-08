@@ -1,45 +1,20 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: req_ack_cmd.sv
+// Module : req_ack_cmd
 // Project: QICK
-// Description:
-// Block to determine if the command must be executed locally (LOC_REQ) to
-// the board or if it should be executed through the network of
-// connected QICKs (NET_REQ).
-//
-//Inputs:
-// - i_clk       clock signal
-// - i_rstn      active low reset signal
-// - i_valid     indicates a valid data is available
-// - i_op        5-bit port indicating the operation over the data. MSB bit is
-//               used to indicate a local command operation (LOC_REQ) when it
-//               is 1 and a network (remote) operation (NET_REQ) when it is 0.
-// - i_addr      addr of register to work on.
-// - i data      data port.
-// - i_ack       acknowledgement port. The xcom_txrx core side should acknowledge
-//               the command processing requirement
-//Outputs:
-// - o_req_loc   local command requirement signal. Indicates a local command
-//               should be excecuted.
-// - o_req_net   network (remote) command requirement signal. Indicates a
-//               network (remote) command should be excecuted.
-// - o_op        operation to be excecuted (local or remote).
-// - o_data      data to be excecuted (local or remote).
-// - o_data_cntr command counter. It counts the number of commands received
-//               locally. This is a port for debug purposes.
-//
-//
-// Change history: 10/20/24 - v2 Started by @mdifederico
-//                 04/27/25 - Refactored by @lharnaldi
-//                          - the sync_n core was removed to sync all signals
-//                          in one place (external).
-//                 05/07/25 - Added header documentation @lharnaldi
-//                 05/27/25 - @lharnaldi Modify the FSM
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    req_ack_cmd.sv
+//!
+//! @brief   Block to determine if the command must be executed locally (LOC_REQ) to
+//!
+//! @details
+//!
+//! the board or if it should be executed through the network of
+//! connected QICKs (NET_REQ).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module req_ack_cmd(
     input  logic          i_clk       ,
     input  logic          i_rstn      ,

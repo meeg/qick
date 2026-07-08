@@ -30,6 +30,18 @@
 //------------------------------------------------------------------------------
 
 `timescale 1ns / 1ps
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : tpv1_stack
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    tpv1_stack.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module tpv1_stack #(
     parameter int B = 16       // Data width

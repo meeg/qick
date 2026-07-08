@@ -1,77 +1,67 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
 // Module : ctrl_sgv4
-// Project: QICK signal generator v4 (axis_signal_gen_v4)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module ctrl_sgv4
- * @brief Control / sequencer for the v4 arbitrary signal generator.
- *
- * @description
- *   Reads waveform descriptors from an input FIFO and produces, cycle by cycle,
- *   the control signals that drive the sgv4 datapath: the per-DDS phase
- *   control word (dds_ctrl_o), the envelope-memory read address (mem_addr_o),
- *   the output gain (gain_o), the output source selector (src_o), the steady
- *   value selector (stdy_o), the output enable (en_o), and the I/Q output
- *   selector (outsel_o).
- *
- *   Each FIFO word is a 160-bit waveform descriptor with the following layout
- *   (v4 format - note bit 149 for iqsel):
- *
- *     | bits      | field   | width | meaning                                |
- *     |-----------|---------|-------|----------------------------------------|
- *     | 159 .. 150| (unused)|  10   | -                                      |
- *     | 149       | iqsel   |   1   | I/Q output selection (0=I/Q, 1=I only) |
- *     | 148       | phrst   |   1   | phase reset                            |
- *     | 147       | stdysel |   1   | steady-value select (end of waveform)  |
- *     | 146       | mode    |   1   | mode (1 = periodic/non-stop)           |
- *     | 145 .. 144| outsel  |   2   | output source: 0=prod,1=dds,2=mem      |
- *     | 143 .. 128| nsamp   |  16   | number of output samples               |
- *     | 127 .. 112| (unused)|  16   | -                                      |
- *     | 111 ..  96| gain    |  16   | output gain (signed)                   |
- *     |  95 ..  80| (unused)|  16   | -                                      |
- *     |  79 ..  64| addr    |  16   | envelope start address in memory       |
- *     |  63 ..  32| phase   |  32   | initial phase                          |
- *     |  31 ..   0| freq    |  32   | phase increment (pinc), sets frequency |
- *
- *   FSM (one-hot):
- *     READ_ST : assert fifo_rd_en; when a descriptor is available (or mode is
- *               set), latch it and move to CNT_ST.
- *     CNT_ST  : count down nsamp; when cnt_nsamp reaches 2, return to READ_ST.
- *
- *   Phase generation:
- *     The DDS phase per parallel lane i is phase_v1[i] = phase_v0[i] + phase_0,
- *     where phase_v0[i] = pinc*i (per-lane offset for the N_DDS parallel DDS
- *     blocks) and phase_0 = pinc*cnt_n + phase. The pinc*cnt_n product uses a
- *     split multiplier (low/high halves, WL=17) so it maps to DSP slices and
- *     meets timing.
- *
- *   Pipelines:
- *     Most outputs are pushed through fixed delay pipelines (gain_r*, outsel_r*,
- *     stdysel_r*, addr_cnt_r*, en_reg_r*) so they line up with the latency of
- *     the datapath in sgv4.
- *
- * @param N      Envelope-memory address width in bits (default 16).
- * @param N_DDS  Number of parallel DDS lanes (default 8 for v4).
- *
- * @port i_rstn       Active-low synchronous reset.
- * @port i_clk        Clock.
- * @port o_fifo_rd_en Read-enable to the waveform FIFO.
- * @port i_fifo_empty FIFO empty flag.
- * @port i_fifo_dout  160-bit waveform descriptor from the FIFO.
- * @port o_dds_ctrl   N_DDS x 72-bit packed DDS phase control words.
- * @port o_mem_addr   Envelope-memory read address.
- * @port o_gain       Output gain (signed, delayed to match the datapath).
- * @port o_src        Output source selector (0=prod, 1=dds, 2=mem).
- * @port o_stdy       Steady-value selector.
- * @port o_en         Output enable.
- * @port o_iqsel      I/Q output selector (0=I/Q, 1=I only).
- */
+//! @file    ctrl_sgv4.sv
+//!
+//! @brief   ctrl_sgv4
+//!
+//! @details
+//!
+//!
+//! Control / sequencer for the v4 arbitrary signal generator.
+//!
+//! Reads waveform descriptors from an input FIFO and produces, cycle by cycle,
+//! the control signals that drive the sgv4 datapath: the per-DDS phase
+//! control word (dds_ctrl_o), the envelope-memory read address (mem_addr_o),
+//! the output gain (gain_o), the output source selector (src_o), the steady
+//! value selector (stdy_o), the output enable (en_o), and the I/Q output
+//! selector (outsel_o).
+//!
+//! Each FIFO word is a 160-bit waveform descriptor with the following layout
+//! (v4 format - note bit 149 for iqsel):
+//!
+//! | bits      | field   | width | meaning                                |
+//! |-----------|---------|-------|----------------------------------------|
+//! | 159 .. 150| (unused)|  10   | -                                      |
+//! | 149       | iqsel   |   1   | I/Q output selection (0=I/Q, 1=I only) |
+//! | 148       | phrst   |   1   | phase reset                            |
+//! | 147       | stdysel |   1   | steady-value select (end of waveform)  |
+//! | 146       | mode    |   1   | mode (1 = periodic/non-stop)           |
+//! | 145 .. 144| outsel  |   2   | output source: 0=prod,1=dds,2=mem      |
+//! | 143 .. 128| nsamp   |  16   | number of output samples               |
+//! | 127 .. 112| (unused)|  16   | -                                      |
+//! | 111 ..  96| gain    |  16   | output gain (signed)                   |
+//! |  95 ..  80| (unused)|  16   | -                                      |
+//! |  79 ..  64| addr    |  16   | envelope start address in memory       |
+//! |  63 ..  32| phase   |  32   | initial phase                          |
+//! |  31 ..   0| freq    |  32   | phase increment (pinc), sets frequency |
+//!
+//! FSM (one-hot):
+//! READ_ST : assert fifo_rd_en; when a descriptor is available (or mode is
+//! set), latch it and move to CNT_ST.
+//! CNT_ST  : count down nsamp; when cnt_nsamp reaches 2, return to READ_ST.
+//!
+//! Phase generation:
+//! The DDS phase per parallel lane i is phase_v1[i] = phase_v0[i] + phase_0,
+//! where phase_v0[i] = pinc*i (per-lane offset for the N_DDS parallel DDS
+//! blocks) and phase_0 = pinc*cnt_n + phase. The pinc*cnt_n product uses a
+//! split multiplier (low/high halves, WL=17) so it maps to DSP slices and
+//! meets timing.
+//!
+//! Pipelines:
+//! Most outputs are pushed through fixed delay pipelines (gain_r*, outsel_r*,
+//! stdysel_r*, addr_cnt_r*, en_reg_r*) so they line up with the latency of
+//! the datapath in sgv4.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module ctrl_sgv4 #(
+   //! Envelope-memory address width in bits (default 16).
    parameter int N     = 16,
+   //! Number of parallel DDS lanes (default 8 for v4).
    parameter int N_DDS = 8          // v4 has 8 lanes
 )(
    // Reset and clock.

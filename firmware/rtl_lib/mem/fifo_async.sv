@@ -1,11 +1,15 @@
-//====================================================================
-//  fifo_async.sv
-//  Asynchronous FIFO based on XPM_FIFO_ASYNC
-//  –  Parameters, port names and reset polarity match the SVUnit
-//     test‑bench you are using.
-//  –  XPM configuration follows the UG‑974 example (READ_MODE = "std",
-//     FIFO_READ_LATENCY = 1, etc.).
-//====================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : fifo_async
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    fifo_async.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module fifo_async #(
     // -----------------------------------------------------------------

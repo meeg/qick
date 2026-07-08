@@ -1,23 +1,33 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
-// Module : bram_if
-// Project: BRAM Interface
-// Description:
-//   Single‑port BRAM interface with optional byte‑enable support.
-//   For a true dual‑port RAM instantiate this interface twice (port_a, port_b).
-//
-//   • `en`  – enable (read or write)
-//   • `we`  – write enable (1 = write, 0 = read)  (single‑bit version)
-//   • `we_be` – byte‑enable vector, each bit corresponds to a byte of `din`.
-//               For a full‑word write set `we_be = {(NB_DATA/8){1'b1}}`.
-//   • `addr` – address
-//   • `din`  – data to write
-//   • `dout` – data read (registered output of the BRAM)
-//
-// Change history:
-//   12/23/25 – Created by @lharnaldi
+// Fermi National Accelerator Laboratory
+// Interface : bram_if
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    bram_if.sv
+//!
+//! @brief   Single‑port BRAM interface with optional byte‑enable support.
+//!
+//! @details
+//!
+//!
+//! For a true dual‑port RAM instantiate this interface twice (port_a, port_b).
+//!
+//! • `en`  – enable (read or write)
+//!
+//! • `we`  – write enable (1 = write, 0 = read)  (single‑bit version)
+//!
+//! • `we_be` – byte‑enable vector, each bit corresponds to a byte of `din`.
+//! For a full‑word write set `we_be = {(NB_DATA/8){1'b1}}`.
+//!
+//! • `addr` – address
+//!
+//! • `din`  – data to write
+//!
+//! • `dout` – data read (registered output of the BRAM)
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 interface bram_if #(
     parameter int unsigned NB_DATA = 32,

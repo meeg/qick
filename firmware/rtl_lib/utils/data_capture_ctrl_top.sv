@@ -1,22 +1,20 @@
-// ============================================================================
-// File: data_capture_ctrl_top.sv Description: data_capture_ctrl_top block
-// receives an input stream of samples (s_axis), captures and stores them in an
-// internal memory when indicated and generates one output stream with raw
-// captured data (m_axis).  Capturing flow is controlled by the data_capture_ctrl FSM block
-// and is initiated by an external trigger after the data_capture_ctrl has been enabled.
-// Number of captured samples and address where to store them are configurable.
-// Captured samples are internally stored in BRAM memory. Output stream is
-// generated and controlled from the DATA_READER FSM block. Address to start
-// reading and number of samples are configurable. It can be interfaced with an
-// AXIS DMA module.
-//
-// Parameters:
-//   N : memory depth as 2**N
-//   B : memory data width
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_capture_ctrl_top
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_capture_ctrl_top.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module data_capture_ctrl_top #(
+    //! memory depth as 2**N
     parameter int N = 10,  // Memory depth (2**N)
+    //! memory data width
     parameter int B = 16   // Number of bits
   ) (
     // Reset and clock

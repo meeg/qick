@@ -1,31 +1,20 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: axil_slv.sv
+// Module : axil_slv
 // Project: QICK
-// Description:
-// AXI4-Lite Slave interface for the XCOM core.
-// I/O ports corresponds to the AXI4 Interface definition.
-//
-// Change history: 05/14/25 - v0.1.0 Started by @lharnaldi
-//                 12/03/25 - @lharnaldi
-//                            Fixed issues:
-//                            1. awready_reg, wready_reg, arready_reg
-//                               now properly initialized
-//                            2. Ready signals have defined values in
-//                               all FSM states
-//                            3. Cleaner FSM structure with explicit
-//                               defaults
-//                 05/23/26 @lharnaldi
-//                          Improvements over original version:
-//                          1. Added aw_en logic to prevent overlapping transactions (like VHDL)
-//                          2. Generic parameters for reusability
-//                          3. Support for read-only registers
-//                          4. Configurable register initialization
-//                          5. Standard AXI interface for FuseSoC
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    axil_slv.sv
+//!
+//! @brief   AXI4-Lite Slave interface for the XCOM core.
+//!
+//! @details
+//!
+//!
+//! I/O ports corresponds to the AXI4 Interface definition.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module axil_slv#(
   // AXI parameters
   parameter integer AXI_DW = 32,           // Data width (32 or 64 bits)

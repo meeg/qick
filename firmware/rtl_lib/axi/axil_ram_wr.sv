@@ -1,10 +1,21 @@
-/***********************************************
- *
- *  File: axil_ram_wr.sv
- *  Description: Interface between AXI4-Lite and DP BRAM block
- *
- *
- * ********************************************/
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axil_ram_wr
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axil_ram_wr.sv
+//!
+//! @brief   Interface between AXI4-Lite and DP BRAM block
+//!
+//! @details
+//!
+//!
+//!
+//! *****************************************
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module axil_ram_wr#(
   parameter integer unsigned AXI_DWIDTH  = 32,

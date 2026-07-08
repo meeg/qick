@@ -1,31 +1,38 @@
-//------------------------------------------------------------------------------
-// Module  : dmem_axis_reader
-// Origin  : Converted from axis_read.v (tProcV1 data memory AXIS reader)
-//
-// Description:
-//   Reads 'len_i' words from BRAM starting at 'addr_i' and streams them
-//   out via AXI4-Stream. Controlled by exec/exec_ack handshake from dmem_ctrl.
-//
-//   FSM:
-//     INIT_ST  : wait for exec_i
-//     LOAD0_ST : latch addr_i and len_i; present first address to BRAM
-//     LOAD1_ST : wait one cycle for BRAM read latency; advance address
-//     SEND_ST  : stream data — advance address on each tready; assert tlast
-//                on last word; transition to ACK when last word accepted
-//     ACK_ST   : assert exec_ack_o for one cycle
-//     END_ST   : wait for exec_i to deassert before returning to INIT
-//
-//   Backpressure: when tready is low, sel_r holds the last BRAM output in
-//   data_r so the address does not advance and data is not lost.
-//
-//   tlast is asserted when cnt == len_r-1 during SEND_ST.
-//
-// Parameters:
-//   N : address width (must match bram_if NB_ADDR)
-//   B : data width    (must match bram_if NB_DATA and axis TDATA_WIDTH)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : dmem_axis_reader
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    dmem_axis_reader.sv
+//!
+//! @brief   Reads 'len_i' words from BRAM starting at 'addr_i' and streams them
+//!
+//! @details
+//!
+//!
+//! out via AXI4-Stream. Controlled by exec/exec_ack handshake from dmem_ctrl.
+//!
+//! FSM:
+//! INIT_ST  : wait for exec_i
+//! LOAD0_ST : latch addr_i and len_i; present first address to BRAM
+//! LOAD1_ST : wait one cycle for BRAM read latency; advance address
+//! SEND_ST  : stream data — advance address on each tready; assert tlast
+//! on last word; transition to ACK when last word accepted
+//! ACK_ST   : assert exec_ack_o for one cycle
+//! END_ST   : wait for exec_i to deassert before returning to INIT
+//!
+//! Backpressure: when tready is low, sel_r holds the last BRAM output in
+//! data_r so the address does not advance and data is not lost.
+//!
+//! tlast is asserted when cnt == len_r-1 during SEND_ST.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dmem_axis_reader #(
+    //! address width (must match bram_if NB_ADDR)
     parameter int N = 10,
+    //! data width    (must match bram_if NB_DATA and axis TDATA_WIDTH)
     parameter int B = 16
 )(
     input  logic        clk,

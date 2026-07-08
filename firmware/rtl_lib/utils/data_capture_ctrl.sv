@@ -1,18 +1,28 @@
-// Description: data_capture_ctrl block is a FSM that receives an input stream of samples
-// (din), and controls the interface to a memory to capture and store them.
-// Capturing is initiated by an external trigger after the data_capture_ctrl has been
-// enabled. Number of captured samples and address where to store them are
-// configurable.  When number of captured samples is reached, it can be
-// triggered again.
-//
-// Old name: buffer.sv
-// Used in:
-// ../ip/axis_weighted_buffer/src/buffer.sv
-// ../ip/axis_avg_buffer/src/buffer.sv
-//
-// Parameters: N: memory depth as 2**N; B: memory data width
-
-// Data is I,Q.  I: lower B bits.  Q: upper B bits.
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_capture_ctrl
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_capture_ctrl.sv
+//!
+//! @brief   data_capture_ctrl block is a FSM that receives an input stream of samples
+//!
+//! @details
+//!
+//! (din), and controls the interface to a memory to capture and store them.
+//! Capturing is initiated by an external trigger after the data_capture_ctrl has been
+//! enabled. Number of captured samples and address where to store them are
+//! configurable.  When number of captured samples is reached, it can be
+//! triggered again.
+//!
+//! Old name: buffer.sv
+//! Used in:
+//! ../ip/axis_weighted_buffer/src/buffer.sv
+//! ../ip/axis_avg_buffer/src/buffer.sv
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module data_capture_ctrl#(
     parameter int N = 10,  // Address width
     parameter int B = 16   // Data width

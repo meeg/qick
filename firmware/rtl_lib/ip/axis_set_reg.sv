@@ -1,38 +1,40 @@
 `timescale 1ns / 1ps
-
-/**
- * @module axis_set_reg
- * @brief Simple AXI‑Stream receiver that stores the latest data word.
- *
- * @description
- *   This module implements a minimal AXI‑Stream slave that:
- *   * Accepts a data word of width **DATA_WIDTH** (default 16 bits)
-*    when *tvalid* is asserted.
- *   * Always asserts *tready* (`1`) → the master can always send data.
- *   * Stores the received word in a one‑cycle‑deep register (`data_r`).
- *   * Presents the registered value on the output port **dout**.
- *
- *   The design has a **latency of one clock cycle** from the moment the input
- *   data is captured (`tvalid` high) to when it appears on **dout**.
- *
- *   No flow‑control logic beyond the constant *tready* is required; therefore,
- *   this block is typically used in test‑bench environments or in pipelines
- *   where back‑pressure is not needed.
- *
- * @generic
- *   DATA_WIDTH : integer = 16
- *       Width of the AXI‑Stream data bus (must be >0).
- *
- * @port
- *   input  logic                 s_axis_aclk    : AXI‑Stream clock
- *   input  logic                 s_axis_aresetn : Synchronous reset, active low
- *   input  logic [DATA_WIDTH-1:0]s_axis_tready  : Slave ready (always '1')
- *   input  logic                 s_axis_tdata   : Data input
- *   output logic                 s_axis_tstrb   : Byte strobe (present for completeness, not used
- *   output logic [DATA_WIDTH-1:0]s_axis_tlast   : End‑of‑packet flag (present for completeness, not used)
- *   input  logic                 s_axis_tvalid  : Data valid flag
- *   output logic [DATA_WIDTH-1:0] dout          : Registered output data
- */
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axis_set_reg
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_set_reg.sv
+//!
+//! @brief   axis_set_reg
+//!
+//! @details
+//!
+//! Simple AXI‑Stream receiver that stores the latest data word.
+//!
+//! This module implements a minimal AXI‑Stream slave that:
+//!
+//! * Accepts a data word of width **DATA_WIDTH** (default 16 bits)
+//! when *tvalid* is asserted.
+//!
+//! * Always asserts *tready* (`1`) → the master can always send data.
+//! * Stores the received word in a one‑cycle‑deep register (`data_r`).
+//! * Presents the registered value on the output port **dout**.
+//!
+//! The design has a **latency of one clock cycle** from the moment the input
+//! data is captured (`tvalid` high) to when it appears on **dout**.
+//!
+//! No flow‑control logic beyond the constant *tready* is required; therefore,
+//! this block is typically used in test‑bench environments or in pipelines
+//! where back‑pressure is not needed.
+//!
+//! @generic
+//! DATA_WIDTH : integer = 16
+//! Width of the AXI‑Stream data bus (must be >0).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module axis_set_reg #(
     parameter int DATA_WIDTH = 16               // Data bus width
   ) (

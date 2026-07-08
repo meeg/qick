@@ -1,20 +1,29 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Module: zn_nb.sv
-// Description: N-stage B-bit shift register delay (z^-N).
-//   Each cycle where s_axis_tvalid=1 the input is shifted in.
-//   Output is the data that entered N valid-cycles ago.
-//   m_axis_tvalid mirrors s_axis_tvalid (latency not compensated).
-//
-// Reset: synchronous, active-low (matches VHDL original).
-//
-// Parameters:
-//   B : data width in bits  (default 16)
-//   N : number of delay stages (default 4)
+// Fermi National Accelerator Laboratory
+// Module : zn_nb
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    zn_nb.sv
+//!
+//! @brief   N-stage B-bit shift register delay (z^-N).
+//!
+//! @details
+//!
+//! Each cycle where s_axis_tvalid=1 the input is shifted in.
+//! Output is the data that entered N valid-cycles ago.
+//! m_axis_tvalid mirrors s_axis_tvalid (latency not compensated).
+//!
+//! Reset: synchronous, active-low (matches VHDL original).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns / 1ps
 
 module zn_nb #(
+    //! data width in bits  (default 16)
     parameter int B = 16,
+    //! number of delay stages (default 4)
     parameter int N = 4
 ) (
     input  logic             aclk,

@@ -1,35 +1,45 @@
-// ============================================================================
-// File: axis_to_bram_sg.sv
-// Source: axis_sg_int4_v2/src/data_writer.vhd
-// Description: AXI4-Stream to single BRAM writer with configurable start
-//   address. Receives a continuous stream and writes it to memory starting
-//   at start_addr_reg. capture_reg enables/disables writing and may come
-//   from a different clock domain — synchronised internally with sync_nxm.
-//
-// FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
-//
-//   INIT_ST            : wait for capture_reg=1
-//   READ_START_ADDR_ST : latch start_addr_reg into address counter (1 cycle)
-//   WAIT_TVALID_ST     : assert tready, wait for first valid beat
-//   RW_TDATA_ST        : stream active — write on every valid beat,
-//                        return to WAIT_TVALID_ST if tvalid drops,
-//                        return to INIT_ST if capture_reg deasserts
-//
-// Pipeline: 3 register stages (d1/d2/d3, v1/v2/v3) align tdata and tvalid
-//   with the FSM state transitions before presenting data to the BRAM.
-//
-// Interfaces:
-//   axis : axi4_stream_if.slave  — incoming data stream
-//   bram : bram_if.master        — write-only BRAM port
-//
-// Parameters:
-//   N : BRAM address width (depth = 2**N)
-//   B : data width in bits
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axis_to_bram_sg
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_to_bram_sg.sv
+//!
+//! @brief   AXI4-Stream to single BRAM writer with configurable start
+//!
+//! @details
+//!
+//! address. Receives a continuous stream and writes it to memory starting
+//! at start_addr_reg. capture_reg enables/disables writing and may come
+//! from a different clock domain — synchronised internally with sync_nxm.
+//!
+//! FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
+//!
+//! INIT_ST            : wait for capture_reg=1
+//! READ_START_ADDR_ST : latch start_addr_reg into address counter (1 cycle)
+//! WAIT_TVALID_ST     : assert tready, wait for first valid beat
+//! RW_TDATA_ST        : stream active — write on every valid beat,
+//! return to WAIT_TVALID_ST if tvalid drops,
+//! return to INIT_ST if capture_reg deasserts
+//!
+//! Pipeline: 3 register stages (d1/d2/d3, v1/v2/v3) align tdata and tvalid
+//! with the FSM state transitions before presenting data to the BRAM.
+//!
+//! Interfaces:
+//! axis : axi4_stream_if.slave  — incoming data stream
+//! bram : bram_if.master        — write-only BRAM port
+//!
+//! @note    Ported from axis_sg_int4_v2/src/data_writer.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module axis_to_bram_sg #(
+    //! BRAM address width (depth = 2**N)
     parameter int N = 16,
+    //! data width in bits
     parameter int B = 16
 ) (
     input  logic             rstn,

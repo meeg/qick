@@ -2,39 +2,51 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Fermi National Accelerator Laboratory
 // Module : cmult
-// Project: axis_kidsim_v3
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
 //! @file    cmult.sv
+//!
 //! @brief   Configurable complex (I/Q) multiplier with optional conjugation,
-//!          rounding and saturation.
 //!
-//! @details Computes  dout = op(dina) * op(dinb)  where op() optionally
-//!          conjugates each operand:
-//!              a = a_r + j*a_i    (a_i negated if conja)
-//!              b = b_r + j*b_i    (b_i negated if conjb)
-//!              dout_real = a_r*b_r - a_i*b_i     (ac - bd)
-//!              dout_imag = a_r*b_i + a_i*b_r     (ad + bc)
+//! @details
 //!
-//!          Packing convention (matches iir_iq / kidsim datapath):
-//!              dina/dinb/dout = { Q[.-1:0], I[.-1:0] }  (I low half, Q high).
 //!
-//!          Fixed-point handling (anti-overflow):
-//!            - Each partial product a*b is signed (BIN x BIN) -> 2*BIN bits.
-//!            - Sum/difference of two partial products is accumulated with ONE
-//!              guard bit (ACCW = 2*BIN+1) so ac-bd / ad+bc never overflow.
-//!            - Accumulator is re-quantized to BOUT bits: a Q(BIN-1)*Q(BIN-1)
-//!              product has its binary point at bit (2*BIN-2); the top BOUT bits
-//!              from there are taken (dropping the duplicated sign bit).
-//!            - ROUND=1 adds a half-LSB before truncation (round half-up).
-//!            - SAT=1 clamps to +/- full-scale instead of wrapping.
+//! rounding and saturation.
 //!
-//!          Conjugation is static (CONJA/CONJB) or dynamic (i_conja/i_conjb)
-//!          when CONF_DYNAMIC=1.
+//! Computes  dout = op(dina) * op(dinb)  where op() optionally
+//! conjugates each operand:
+//! a = a_r + j*a_i    (a_i negated if conja)
+//! b = b_r + j*b_i    (b_i negated if conjb)
+//! dout_real = a_r*b_r - a_i*b_i     (ac - bd)
+//! dout_imag = a_r*b_i + a_i*b_r     (ad + bc)
 //!
-//!          Pipeline latency = 4 valid cycles. Feed-forward (no recursion) so it
-//!          tolerates bubbles on i_valid naturally.
+//! Packing convention (matches iir_iq / kidsim datapath):
+//! dina/dinb/dout = { Q[.-1:0], I[.-1:0] }  (I low half, Q high).
 //!
-//! @author  @lharnaldi
+//! Fixed-point handling (anti-overflow):
+//!
+//!
+//! - Each partial product a*b is signed (BIN x BIN) -> 2*BIN bits.
+//! - Sum/difference of two partial products is accumulated with ONE
+//! guard bit (ACCW = 2*BIN+1) so ac-bd / ad+bc never overflow.
+//!
+//!
+//! - Accumulator is re-quantized to BOUT bits: a Q(BIN-1)*Q(BIN-1)
+//! product has its binary point at bit (2*BIN-2); the top BOUT bits
+//! from there are taken (dropping the duplicated sign bit).
+//!
+//!
+//! - ROUND=1 adds a half-LSB before truncation (round half-up).
+//! - SAT=1 clamps to +/- full-scale instead of wrapping.
+//!
+//! Conjugation is static (CONJA/CONJB) or dynamic (i_conja/i_conjb)
+//! when CONF_DYNAMIC=1.
+//!
+//! Pipeline latency = 4 valid cycles. Feed-forward (no recursion) so it
+//! tolerates bubbles on i_valid naturally.
+//!
+//! @author  QICK Development Team
+//!
 //! @version 1.0
 module cmult #(
     parameter int BIN          = 16,    //! Per-component input width, Q(BIN-1).

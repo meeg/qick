@@ -65,7 +65,9 @@ def is_banner_rule(line: str) -> bool:
 
 def find_header_block(lines, unit_line_idx):
     i = unit_line_idx - 1
-    while i >= 0 and lines[i].strip() == "":
+    # skip blank lines AND compiler directives between header and 'module'
+    while i >= 0 and (lines[i].strip() == ""
+                      or lines[i].strip().startswith("`")):
         i -= 1
     if i < 0:
         return None
@@ -76,8 +78,6 @@ def find_header_block(lines, unit_line_idx):
     block_end = i + 1
     while i >= 0:
         s = lines[i].strip()
-        if s.startswith("`timescale"):
-            break
         if (s.startswith("//") or s.startswith("/*") or s.startswith("*")
                 or s.endswith("*/") or s == ""):
             i -= 1
@@ -87,18 +87,17 @@ def find_header_block(lines, unit_line_idx):
 
 
 def parse_header(block_lines):
-    """Return (banner, description_lines, params_dict, port_docs_dict)."""
+    """Return (banner, description_lines, params_dict, port_docs_dict, notes)."""
     banner, description_lines = [], []
     params, port_docs = {}, {}
-    mode = None  # None | description | parameters | ports | drop
-
+    notes = []              # NEW: @note lines (Source:/Origin: provenance)
+    mode = None
     for raw in block_lines:
         if is_banner_rule(raw) or MODELINE_RE.match(raw):
             continue
         content = strip_comment_marker(raw)
         low = content.strip().lower()
 
-        # --- Doxygen tags ---
         mtag = DOXY_TAG_RE.match(content.strip())
         if mtag:
             tag = mtag.group(1).lower()
@@ -120,16 +119,27 @@ def parse_header(block_lines):
                     port_docs[pm.group(1)] = pm.group(2).strip()
                 mode = None
                 continue
-            if tag in ("file", "author", "version", "note"):
+            if tag == "note":
+                if rest:
+                    notes.append(rest)
+                mode = "note"
+                continue
+            if tag in ("file", "author", "version"):
                 mode = None
                 continue
 
-        # --- non-doc sections: drop the rest of them ---
         if any(low.startswith(k) for k in DROP_SECTION_KEYS):
             mode = "drop"
             continue
 
-        # --- legacy sections ---
+        # provenance -> @note
+        if low.startswith(("source:", "origin:")):
+            rest = content.split(":", 1)[1].strip()
+            if rest:
+                notes.append(f"Ported from {rest}")
+            mode = "note"
+            continue
+
         if low.startswith("description:"):
             mode = "description"
             rest = content.split(":", 1)[1].strip()
@@ -142,20 +152,28 @@ def parse_header(block_lines):
         if low.startswith(("inputs:", "outputs:", "ports:")):
             mode = "ports"
             continue
+        # Interfaces: documented as part of details (structured prose)
+        if low.startswith("interfaces:"):
+            mode = "description"
+            description_lines.append("")
+            description_lines.append("Interfaces:")
+            continue
         if any(low.startswith(k) for k in BANNER_KEYS):
             mode = None
             if content.strip():
                 banner.append(content.strip())
             continue
 
-        # --- blank line ---
         if content.strip() == "":
             if mode == "description":
                 description_lines.append("")
             continue
 
-        # --- content within a mode ---
         if mode == "drop":
+            continue
+        if mode == "note":
+            if content.strip():
+                notes.append(content.strip())
             continue
         if mode == "description":
             description_lines.append(content.rstrip())
@@ -167,7 +185,6 @@ def parse_header(block_lines):
             pm = PORTDOC_RE.match(content)
             if pm:
                 port_docs[pm.group(1)] = pm.group(2).strip()
-            # continuation lines of a port description are appended
             elif port_docs:
                 last = list(port_docs)[-1]
                 port_docs[last] += " " + content.strip()
@@ -175,7 +192,6 @@ def parse_header(block_lines):
             if content.strip():
                 banner.append(content.strip())
 
-    # collapse/trim description
     desc, prev_blank = [], False
     for l in description_lines:
         blank = (l.strip() == "")
@@ -187,12 +203,11 @@ def parse_header(block_lines):
         desc.pop(0)
     while desc and desc[-1].strip() == "":
         desc.pop()
-    return banner, desc, params, port_docs
+    return banner, desc, params, port_docs, notes
 
-
-def build_new_header(unit_kw, unit_name, desc, params_unused, port_docs,
+def build_new_header(unit_kw, unit_name, desc, params_unused, port_docs, notes,
                      sym, author, project, file_name, emit_port_docs):
-    B = f"//{sym}"                      # blank doc line
+    B = f"//{sym}"
     out = [
         "///////////////////////////////////////////////////////////////////////////////",
         "// Fermi National Accelerator Laboratory",
@@ -213,7 +228,7 @@ def build_new_header(unit_kw, unit_name, desc, params_unused, port_docs,
                 s = l.strip()
                 is_list = s.startswith("-") or s.startswith("*")
                 if is_list and not prev_was_list:
-                    out.append(B)                 # blank line before a list
+                    out.append(B)
                 out.append(B if s == "" else f"{B} {s}")
                 prev_was_list = is_list
     else:
@@ -222,9 +237,12 @@ def build_new_header(unit_kw, unit_name, desc, params_unused, port_docs,
         out.append(B)
         for name, d in port_docs.items():
             out.append(f"{B} @port {name} {d}")
+    for n in notes:
+        out.append(B)
+        out.append(f"{B} @note    {n}")
     out.append(B)
     out.append(f"{B} @author  {author}")
-    out.append(B)                                 # <-- separates @author / @version
+    out.append(B)
     out.append(f"{B} @version 1.0")
     return [line + "\n" for line in out]
 
@@ -263,19 +281,19 @@ def process_file(path, sym, apply, author, project, stub_missing, emit_port_docs
 
     if block is None:
         if not stub_missing:
-            print(f"[skip] {path}: no header before '{unit_kw}' "
-                  f"(use --stub-missing)", file=sys.stderr)
+            print(f"[skip] {path}: no header before '{unit_kw}' (use --stub-missing)",
+                  file=sys.stderr)
             return
-        banner, desc, params, port_docs = [], [], {}, {}
+        banner, desc, params, port_docs, notes = [], [], {}, {}, []
         start = end = unit_line_idx
     else:
         start, end = block
-        banner, desc, params, port_docs = parse_header(lines[start:end])
-        if not desc and not params and not port_docs and not banner:
+        banner, desc, params, port_docs, notes = parse_header(lines[start:end])
+        if not desc and not params and not port_docs and not banner and not notes:
             print(f"[skip] {path}: empty/unrecognized header", file=sys.stderr)
             return
 
-    new_header = build_new_header(unit_kw, unit_name, desc, params, port_docs,
+    new_header = build_new_header(unit_kw, unit_name, desc, params, port_docs, notes,
                                   sym, author, project, path.name, emit_port_docs)
     new_lines = lines[:start] + new_header + lines[end:]
     new_unit_idx = start + len(new_header)
@@ -283,28 +301,25 @@ def process_file(path, sym, apply, author, project, stub_missing, emit_port_docs
 
     unused = set(params) - used
     if unused:
-        print(f"[warn] {path}: params in header not found in #( ... ): "
-              f"{sorted(unused)}", file=sys.stderr)
+        print(f"[warn] {path}: params in header not in #( ... ): {sorted(unused)}",
+              file=sys.stderr)
     if port_docs and not emit_port_docs:
-        print(f"[warn] {path}: {len(port_docs)} port doc(s) found; rerun with "
-              f"--port-docs to keep them (dropped for now)", file=sys.stderr)
+        print(f"[warn] {path}: {len(port_docs)} port doc(s); rerun with --port-docs",
+              file=sys.stderr)
 
     new_text = "".join(new_lines)
     if new_text == text:
         print(f"[nochange] {path}", file=sys.stderr)
         return
-
     if apply:
         backup = path.with_suffix(path.suffix + ".bak")
         backup.write_text(text)
         path.write_text(new_text)
         print(f"[applied] {path} (backup: {backup})")
     else:
-        diff = difflib.unified_diff(
-            text.splitlines(keepends=True), new_lines,
-            fromfile=str(path), tofile=str(path) + " (proposed)")
+        diff = difflib.unified_diff(text.splitlines(keepends=True), new_lines,
+                                    fromfile=str(path), tofile=str(path) + " (proposed)")
         sys.stdout.writelines(diff)
-
 
 def main():
     ap = argparse.ArgumentParser(

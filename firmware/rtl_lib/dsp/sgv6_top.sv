@@ -1,63 +1,54 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
 // Module : sgv6_top
-// Project: QICK arbitrary signal generator v6 (axis_signal_gen_v6)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module sgv6_top
- * @brief Top-level of the v6 arbitrary signal generator.
- *
- * @description
- *   Assembles the v6 signal generator from verified building blocks:
- *     - fifo_sync         : waveform-descriptor FIFO (160-bit, depth 16).
- *     - axis_to_bram_sg_nt: AXI4-Stream envelope writer, one-hot per bank.
- *     - bram_tdp (xN_DDS) : dual-port, dual-clock envelope memories (real, and
- *                           imag when ENVELOPE_TYPE = "COMPLEX").
- *     - sgv6              : datapath (envelope x DDS, gain, output).
- *
- *   Two clock domains:
- *     - s0_axis_aclk : envelope loading (BRAM port A write side).
- *     - aclk         : descriptor FIFO, sgv6, BRAM port B read side,
- *                      and the output stream.
- *   The dual-clock BRAM (bram_tdp) resolves the crossing.
- *
- *   Envelope memory layout: N_DDS parallel banks, each 16 bits wide and 2**N
- *   deep. The envelope writer produces a shared write port (bram.we/addr/din)
- *   plus a one-hot bank select (mem_en). The 32-bit stream word is split:
- *     din[15:0]  -> real bank,  din[31:16] -> imag bank (COMPLEX only).
- *   All banks share the read address mem_addrb from sgv6; their outputs
- *   are concatenated into mem_dob_real / mem_dob_imag.
- *
- * @param N             Envelope-memory address width per bank (depth 2**N).
- * @param N_DDS         Number of parallel banks / DDS lanes.
- * @param GEN_DDS       "TRUE" up-converts with the DDS; "FALSE" baseband only.
- * @param ENVELOPE_TYPE "COMPLEX" instantiates real+imag banks; "REAL" only real
- *                      (imag output forced to zero).
- *
- * @port aresetn         Active-low reset (aclk domain).
- * @port aclk            Main clock (FIFO, sgv6, read side, output).
- * @port s0_axis_aresetn Active-low reset (envelope-load domain).
- * @port s0_axis_aclk    Envelope-load clock (BRAM port A).
- * @port s0_axis_tdata_i 32-bit envelope word: [15:0]=real, [31:16]=imag.
- * @port s0_axis_tvalid_i Envelope stream valid.
- * @port s0_axis_tready_o Envelope stream ready.
- * @port s1_axis_tdata_i 160-bit waveform descriptor.
- * @port s1_axis_tvalid_i Descriptor valid.
- * @port s1_axis_tready_o Descriptor ready (FIFO not full).
- * @port m_axis_tready_i  Output ready.
- * @port m_axis_tvalid_o  Output valid.
- * @port m_axis_tdata_o   N_DDS x 16-bit output samples.
- * @port start_addr_reg   Envelope write start address.
- * @port we_reg           Envelope write enable (capture).
- * @port o_sat            Saturation flag (1 if any output sample saturated).
- */
+//! @file    sgv6_top.sv
+//!
+//! @brief   sgv6_top
+//!
+//! @details
+//!
+//!
+//! Top-level of the v6 arbitrary signal generator.
+//!
+//! Assembles the v6 signal generator from verified building blocks:
+//!
+//!
+//! - fifo_sync         : waveform-descriptor FIFO (160-bit, depth 16).
+//! - axis_to_bram_sg_nt: AXI4-Stream envelope writer, one-hot per bank.
+//! - bram_tdp (xN_DDS) : dual-port, dual-clock envelope memories (real, and
+//! imag when ENVELOPE_TYPE = "COMPLEX").
+//!
+//!
+//! - sgv6              : datapath (envelope x DDS, gain, output).
+//!
+//! Two clock domains:
+//!
+//!
+//! - s0_axis_aclk : envelope loading (BRAM port A write side).
+//! - aclk         : descriptor FIFO, sgv6, BRAM port B read side,
+//! and the output stream.
+//! The dual-clock BRAM (bram_tdp) resolves the crossing.
+//!
+//! Envelope memory layout: N_DDS parallel banks, each 16 bits wide and 2**N
+//! deep. The envelope writer produces a shared write port (bram.we/addr/din)
+//! plus a one-hot bank select (mem_en). The 32-bit stream word is split:
+//! din[15:0]  -> real bank,  din[31:16] -> imag bank (COMPLEX only).
+//! All banks share the read address mem_addrb from sgv6; their outputs
+//! are concatenated into mem_dob_real / mem_dob_imag.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module sgv6_top #(
+   //! Envelope-memory address width per bank (depth 2**N).
    parameter int    N             = 16,
+   //! Number of parallel banks / DDS lanes.
    parameter int    N_DDS         = 16,
+   //! "TRUE" up-converts with the DDS; "FALSE" baseband only.
    parameter string GEN_DDS       = "TRUE",
+   //! "COMPLEX" instantiates real+imag banks; "REAL" only real
    parameter string ENVELOPE_TYPE = "COMPLEX"
 )(
    // Reset and clock (main domain).

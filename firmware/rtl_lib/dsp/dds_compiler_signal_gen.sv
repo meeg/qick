@@ -1,24 +1,32 @@
-
 ///////////////////////////////////////////////////////////////////////////////
-// Module : dds_compiler_signal_gen (behavioural wrapper, simulation only)
+// Fermi National Accelerator Laboratory
+// Module : dds_compiler_signal_gen
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module dds_compiler_signal_gen
- * @brief Fixed-configuration wrapper around dds_compiler_model matching
- *        dds_compiler_signal_gen.xci (Component_Name-renamed Xilinx IP,
- *        grupo "signal_gen": axis_sg_int4_v2, axis_signal_gen_v5,
- *        axis_signal_gen_v6).
- *
- * @description
- *   Thin pass-through: fixes LATENCY/PHASE_WIDTH/DUAL_OUTPUT to this
- *   variant's values so parent RTL can instantiate this module by name
- *   with zero parameters, identically whether the sim model or the real
- *   .xci is elaborated (FuseSoC target picks the fileset; the module name
- *   stays consistent either way).
- *
- *   Values sourced from dds_compiler_signal_gen.xci: Latency=10,
- *   Phase_Width=32, Output_Selection=Sine_and_Cosine (dual output).
- */
+//! @file    dds_compiler_signal_gen.sv
+//!
+//! @brief   dds_compiler_signal_gen
+//!
+//! @details
+//!
+//!
+//! Fixed-configuration wrapper around dds_compiler_model matching
+//! dds_compiler_signal_gen.xci (Component_Name-renamed Xilinx IP,
+//! grupo "signal_gen": axis_sg_int4_v2, axis_signal_gen_v5,
+//! axis_signal_gen_v6).
+//!
+//! Thin pass-through: fixes LATENCY/PHASE_WIDTH/DUAL_OUTPUT to this
+//! variant's values so parent RTL can instantiate this module by name
+//! with zero parameters, identically whether the sim model or the real
+//! .xci is elaborated (FuseSoC target picks the fileset; the module name
+//! stays consistent either way).
+//!
+//! Values sourced from dds_compiler_signal_gen.xci: Latency=10,
+//! Phase_Width=32, Output_Selection=Sine_and_Cosine (dual output).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dds_compiler_signal_gen (
    input  logic        aclk,
    input  logic        s_axis_phase_tvalid,

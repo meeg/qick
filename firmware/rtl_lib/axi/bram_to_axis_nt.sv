@@ -1,50 +1,59 @@
-// ============================================================================
-// File: bram_to_axis_nt.sv
-// Source: mr_buffer/data_reader.vhd
-// Description: BRAM reader to AXI4-Stream for NT-channel memories.
-//   Reads ALL channels from ALL BRAM addresses (full depth) and outputs
-//   sequential data on AXI4-Stream. "NT" = No Top/No Length register
-//   (only start_reg, no addr_reg or len_reg).
-//
-//   The reader walks through:
-//     1. All addresses: 0 to 2**N-1
-//     2. All channels: 0 to NT-1 for each address
-//
-//   Total words output = 2**N * NT
-//   tlast is packed into the FIFO along with the data to guarantee
-//   perfect synchronization and immunity to FIFO propagation latencies.
-//
-// FSM States:
-//   INIT_ST        → Wait for start_reg
-//   READ_ST        → Read BRAM data at current address
-//   WRITE_ST       → Write current channel to FIFO, advance channel selector
-//   READ_LAST_ST   → Read last BRAM address
-//   WRITE_LAST_ST  → Write last channel to FIFO
-//   FIFO_ST        → Drain FIFO to AXI Stream
-//   END_ST         → Wait for start_reg to deassert
-//
-// Pipeline:
-//   - mem_dout_r registers BRAM output (one cycle latency)
-//   - Channel mux selects NT channel based on sel_cnt
-//   - FIFO decouples BRAM read from AXI output
-//
-// Interfaces:
-//   bram   : bram_if.master       — read port (addr only, we=0)
-//   axis   : axi4_stream_if.master — output data stream (width = B)
-//
-// Parameters:
-//   NT         : number of tables/channels (must be power of 2)
-//   N          : address width per table (depth = 2**N)
-//   B          : AXI data width in bits (output per channel)
-//   BRAM_WIDTH : total BRAM read width (= NT * B)
-//
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : bram_to_axis_nt
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    bram_to_axis_nt.sv
+//!
+//! @brief   BRAM reader to AXI4-Stream for NT-channel memories.
+//!
+//! @details
+//!
+//! Reads ALL channels from ALL BRAM addresses (full depth) and outputs
+//! sequential data on AXI4-Stream. "NT" = No Top/No Length register
+//! (only start_reg, no addr_reg or len_reg).
+//!
+//! The reader walks through:
+//! 1. All addresses: 0 to 2**N-1
+//! 2. All channels: 0 to NT-1 for each address
+//!
+//! Total words output = 2**N * NT
+//! tlast is packed into the FIFO along with the data to guarantee
+//! perfect synchronization and immunity to FIFO propagation latencies.
+//!
+//! FSM States:
+//! INIT_ST        → Wait for start_reg
+//! READ_ST        → Read BRAM data at current address
+//! WRITE_ST       → Write current channel to FIFO, advance channel selector
+//! READ_LAST_ST   → Read last BRAM address
+//! WRITE_LAST_ST  → Write last channel to FIFO
+//! FIFO_ST        → Drain FIFO to AXI Stream
+//! END_ST         → Wait for start_reg to deassert
+//!
+//! Pipeline:
+//!
+//! - mem_dout_r registers BRAM output (one cycle latency)
+//! - Channel mux selects NT channel based on sel_cnt
+//! - FIFO decouples BRAM read from AXI output
+//!
+//! Interfaces:
+//! bram   : bram_if.master       — read port (addr only, we=0)
+//! axis   : axi4_stream_if.master — output data stream (width = B)
+//!
+//! @note    Ported from mr_buffer/data_reader.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 `timescale 1ns/1ps
 
 module bram_to_axis_nt #(
+    //! number of tables/channels (must be power of 2)
     parameter int NT = 8,           // Number of tables/channels (must be power of 2)
+    //! address width per table (depth = 2**N)
     parameter int N  = 8,           // Address width per table (depth = 2**N)
+    //! AXI data width in bits (output per channel)
     parameter int B  = 16           // Data width per channel (AXI output width)
 ) (
     // Reset and clock

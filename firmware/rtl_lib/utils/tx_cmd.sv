@@ -1,58 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: tx_cmd.sv
+// Module : tx_cmd
 // Project: QICK
-// Description:
-// Transmitter interface wrapper for the XCOM block. Synchronizes the
-// xcom_link_tx block through the external i_sync signal.
-//
-//Inputs:
-// - i_clk      clock signal
-// - i_rstn     active low reset signal
-// - i_sync     synchronization signal. Lets the XCOM synchronize with an
-//              external signal. Actuates in coordination with the
-//              QRST_SYNC command.
-// - i_cfg_tick this input is connected to the AXI_CFG register and
-//              determines the duration of the xcom_clk output signal.
-//              xcom_clk will be either in state 1 or 0 for CFG_AXI clock
-//              cycles (i_clk). Possible values ranges from 0 to 7 with
-//              0 equal to two clock cycles and 7 equal to 15 clock
-//              cycles. As an example, if i_cfg_tick = 2 and
-//              i_clk = 500 MHz, then xcom_clk would be ~125 MHz.
-// - i_req      transmission requirement signal. Signal indicating a new
-//              data transmission starts.
-// - i header   this is the header to be sent to the slaves.
-//              bit 7      is sometimes used to indicate a
-//                         synchronization in other places in the
-//                         XCOM hierarchy
-//              bits [6:5] determines the data length to transmit:
-//                         00 no data
-//                         01 8-bit data
-//                         10 16-bit data
-//                         11 32-bit data
-//              bit 4      not used in this block
-//              bits [3:0] not used in this block. Sometimes used
-//                         as mem_id and sometimes used as board
-//                         ID in the XCOM hierarchy
-// - i_data     the data to be transmitted
-//Outputs:
-// - o_ready    signal indicating the ip is ready to receive new data to
-//              transmit
-// - o_data     serial data transmitted. This is the general output of the
-//              XCOM block
-// - o_clk      serial clock for transmission. This is the general output of
-//              the XCOM block
-// - o_dbg_state debug port for monitoring the state of the internal FSM
-//
-// Change history: 09/20/24 - v1 Started by @mdifederico
-//                 05/06/25 - Refactored by @lharnaldi
-//                          - the sync_n core was removed to sync all signals
-//                            in one place (external).
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    tx_cmd.sv
+//!
+//! @brief   Transmitter interface wrapper for the XCOM block. Synchronizes the
+//!
+//! @details
+//!
+//! xcom_link_tx block through the external i_sync signal.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module tx_cmd(
    input  logic          i_clk      ,

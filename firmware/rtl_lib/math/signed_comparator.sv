@@ -1,41 +1,43 @@
 `timescale 1ns/1ps
-
-/**
- * @module signed_comparator
- * @brief Conditional comparator with a one‑cycle latency.
- *
- * @description
- *   This module receives two signed operands (`din_a` and `din_b`) of configurable width
- *   `B`.  The 4‑bit control `op` selects which relational operation is evaluated.
- *   The result is presented on the output `flag`, which is asserted (`1`) when the
- *   selected condition is true, otherwise de‑asserted (`0`).  All inputs are
- *   registered on the rising edge of `clk`; the output is therefore available
- *   one clock cycle after the inputs become stable.
- *
- *   The supported operations are:
- *
- *   | op  | Meaning | Condition                                    |
- *   |-----|---------|----------------------------------------------|
- *   | 4'b0000 | `>`   | `din_a >  din_b`    |
- *   | 4'b0001 | `>=`  | `din_a >= din_b`    |
- *   | 4'b0010 | `<`   | `din_a <  din_b`    |
- *   | 4'b0011 | `<=`  | `din_a <= din_b`    |
- *   | 4'b0100 | `==`  | `din_a == din_b`    |
- *   | 4'b0101 | `!=`  | `din_a != din_b`    |
- *   | else    | —     | `flag = 0`          |
- *
- * @generic
- *   B : integer = 16
- *       Width of the input operands (must be > 0).
- *
- * @port
- *   input  logic                 clk   : Clock.
- *   input  logic                 rstn  : Active‑low synchronous reset.
- *   input  logic [B-1:0]         din_a : First operand (signed).
- *   input  logic [B-1:0]         din_b : Second operand (signed).
- *   input  logic [3:0]           op    : Operation selector.
- *   output logic                 flag  : Result flag (1 = condition true).
- */
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : signed_comparator
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    signed_comparator.sv
+//!
+//! @brief   signed_comparator
+//!
+//! @details
+//!
+//! Conditional comparator with a one‑cycle latency.
+//!
+//! This module receives two signed operands (`din_a` and `din_b`) of configurable width
+//! `B`.  The 4‑bit control `op` selects which relational operation is evaluated.
+//! The result is presented on the output `flag`, which is asserted (`1`) when the
+//! selected condition is true, otherwise de‑asserted (`0`).  All inputs are
+//! registered on the rising edge of `clk`; the output is therefore available
+//! one clock cycle after the inputs become stable.
+//!
+//! The supported operations are:
+//!
+//! | op  | Meaning | Condition                                    |
+//! |-----|---------|----------------------------------------------|
+//! | 4'b0000 | `>`   | `din_a >  din_b`    |
+//! | 4'b0001 | `>=`  | `din_a >= din_b`    |
+//! | 4'b0010 | `<`   | `din_a <  din_b`    |
+//! | 4'b0011 | `<=`  | `din_a <= din_b`    |
+//! | 4'b0100 | `==`  | `din_a == din_b`    |
+//! | 4'b0101 | `!=`  | `din_a != din_b`    |
+//! | else    | —     | `flag = 0`          |
+//!
+//! @generic
+//! B : integer = 16
+//! Width of the input operands (must be > 0).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module signed_comparator #(
     parameter int B = 16
 ) (

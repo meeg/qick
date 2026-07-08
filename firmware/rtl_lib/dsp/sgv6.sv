@@ -1,95 +1,76 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
 // Module : sgv6
-// Project: QICK arbitrary signal generator v6 (axis_signal_gen_v6)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module sgv6
- * @brief Arbitrary signal generator datapath: envelope x DDS, gain and output.
- *
- * @description
- *   Core datapath of the v6 signal generator. For each of N_DDS parallel lanes
- *   it reads an envelope sample from memory, optionally up-converts it by
- *   multiplying with a DDS carrier, applies an output gain, and drives the
- *   16-bit-per-lane AXI-Stream output. The ctrl_sgv6 control block sequences
- *   the operation from the waveform FIFO and produces gain/src/stdy/en plus the
- *   per-lane DDS phase control words.
- *
- *   Output source (src, from outsel in the descriptor):
- *     0 : product (envelope x DDS)   1 : DDS only   2 : envelope (memory) only
- *
- *   ----------------------------------------------------------------------------
- *   AMPLITUDE / SCALING NOTES (current behaviour, under review)
- *   ----------------------------------------------------------------------------
- *   The DDS (dds_compiler_0) runs in Full_Range, 16-bit, twos-complement mode,
- *   so its sine/cosine span approximately [-2^15, +2^15-1]. The amplitude chain
- *   has several fixed-point steps whose scaling is being characterised:
- *
- *   (1) Envelope x DDS product:
- *         prod_y_full_real = (a_real*b_real) - (a_imag*b_imag)   [signed 32]
- *         prod_y           = prod_y_full_real[31:16]
- *       Taking [31:16] of a signed 16x16 product keeps the high half. Because a
- *       signed 16x16 product effectively fits in 31 bits, this introduces a
- *       factor of ~0.5 relative to taking [30:15], and drops one LSB of
- *       precision.
- *
- *   (2) Product x gain:
- *         prodg_y_full_real = dout_mux_la * gain   [signed 32]
- *         round             = prodg_y_full_real_r2[30:15]
- *       Here bits [30:15] are taken (NOT [31:16] as in step 1). This is
- *       inconsistent with step 1 and ignores bit 31, so large gain*envelope
- *       products are not represented correctly.
- *
- *   (3) Envelope-only path (src=2) uses (mem >> 1) "to match product path
- *       scaling", i.e. it bakes in the 0.5 factor from step 1.
- *
- *   (4) There is NO saturation anywhere. When gain*envelope*DDS exceeds the
- *       16-bit output range the result WRAPS (jumps from large positive to
- *       large negative). With the DDS in Full_Range and envelope/gain near
- *       MAXV this is the suspected cause of the unexpected output levels.
- *
- *   ----------------------------------------------------------------------------
- *   AMPLITUDE / SCALING (FIXED)
- *   ----------------------------------------------------------------------------
- *   Envelope x DDS product quantization uses [30:15] (full Q15 scale). The
- *   previous [31:16] dropped a factor of 2 on the product path, so pulses with
- *   an envelope came out at half the amplitude of const pulses at the same
- *   gain. The baseband path no longer applies >>1 (both paths share the same
- *   scale). The gain stage output is saturated to +/- MAXV (32766) to avoid
- *   wrap-around at full scale.
- *   ----------------------------------------------------------------------------
- *
- *   These points are documented as-is; the testbench compares the RTL against
- *   both a faithful reference model (what the RTL does) and the intended
- *   behaviour (Q15 scaling with saturation to MAXV).
- *   ----------------------------------------------------------------------------
- *
- * @param N       Envelope-memory address width in bits (default 16).
- * @param N_DDS   Number of parallel DDS lanes (default 16).
- * @param GEN_DDS "TRUE" instantiates the DDS for up-conversion; "FALSE" uses the
- *                baseband envelope only (the DDS path is removed).
- *
- * @port i_rstn          Active-low synchronous reset.
- * @port i_clk           Clock.
- * @port o_fifo_rd_en    Read-enable to the waveform FIFO.
- * @port i_fifo_empty    FIFO empty flag.
- * @port i_fifo_dout     160-bit waveform descriptor.
- * @port o_mem_addr      Envelope-memory read address.
- * @port i_mem_dout_real N_DDS x 16-bit real (I) envelope samples.
- * @port i_mem_dout_imag N_DDS x 16-bit imag (Q) envelope samples.
- * @port i_axis_tready   Downstream ready (AXIS).
- * @port o_axis_tvalid   Output valid (AXIS).
- * @port o_axis_tdata    N_DDS x 16-bit output samples (AXIS).
- * @port o_sat           Saturation flag. High when any lane clamps to +/- MAXV in the
- *                       current output cycle (gated by output enable). Instantaneous
- *                       (not sticky).
- */
+//! @file    sgv6.sv
+//!
+//! @brief   sgv6
+//!
+//! @details
+//!
+//!
+//! Arbitrary signal generator datapath: envelope x DDS, gain and output.
+//!
+//! Core datapath of the v6 signal generator. For each of N_DDS parallel lanes
+//! it reads an envelope sample from memory, optionally up-converts it by
+//! multiplying with a DDS carrier, applies an output gain, and drives the
+//! 16-bit-per-lane AXI-Stream output. The ctrl_sgv6 control block sequences
+//! the operation from the waveform FIFO and produces gain/src/stdy/en plus the
+//! per-lane DDS phase control words.
+//!
+//! Output source (src, from outsel in the descriptor):
+//! 0 : product (envelope x DDS)   1 : DDS only   2 : envelope (memory) only
+//!
+//! AMPLITUDE / SCALING NOTES (current behaviour, under review)
+//! The DDS (dds_compiler_0) runs in Full_Range, 16-bit, twos-complement mode,
+//! so its sine/cosine span approximately [-2^15, +2^15-1]. The amplitude chain
+//! has several fixed-point steps whose scaling is being characterised:
+//!
+//! (1) Envelope x DDS product:
+//! prod_y_full_real = (a_real*b_real) - (a_imag*b_imag)   [signed 32]
+//! prod_y           = prod_y_full_real[31:16]
+//! Taking [31:16] of a signed 16x16 product keeps the high half. Because a
+//! signed 16x16 product effectively fits in 31 bits, this introduces a
+//! factor of ~0.5 relative to taking [30:15], and drops one LSB of
+//! precision.
+//!
+//! (2) Product x gain:
+//! prodg_y_full_real = dout_mux_la * gain   [signed 32]
+//! round             = prodg_y_full_real_r2[30:15]
+//! Here bits [30:15] are taken (NOT [31:16] as in step 1). This is
+//! inconsistent with step 1 and ignores bit 31, so large gain*envelope
+//! products are not represented correctly.
+//!
+//! (3) Envelope-only path (src=2) uses (mem >> 1) "to match product path
+//! scaling", i.e. it bakes in the 0.5 factor from step 1.
+//!
+//! (4) There is NO saturation anywhere. When gain*envelope*DDS exceeds the
+//! 16-bit output range the result WRAPS (jumps from large positive to
+//! large negative). With the DDS in Full_Range and envelope/gain near
+//! MAXV this is the suspected cause of the unexpected output levels.
+//!
+//! AMPLITUDE / SCALING (FIXED)
+//! Envelope x DDS product quantization uses [30:15] (full Q15 scale). The
+//! previous [31:16] dropped a factor of 2 on the product path, so pulses with
+//! an envelope came out at half the amplitude of const pulses at the same
+//! gain. The baseband path no longer applies >>1 (both paths share the same
+//! scale). The gain stage output is saturated to +/- MAXV (32766) to avoid
+//! wrap-around at full scale.
+//!
+//! These points are documented as-is; the testbench compares the RTL against
+//! both a faithful reference model (what the RTL does) and the intended
+//! behaviour (Q15 scaling with saturation to MAXV).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module sgv6 #(
+   //! Envelope-memory address width in bits (default 16).
    parameter int    N       = 16,
+   //! Number of parallel DDS lanes (default 16).
    parameter int    N_DDS   = 16,
+   //! "TRUE" instantiates the DDS for up-conversion; "FALSE" uses the
    parameter string GEN_DDS = "TRUE"
 )(
    // Reset and clock.

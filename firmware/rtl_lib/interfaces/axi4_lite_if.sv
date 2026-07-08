@@ -1,14 +1,28 @@
-/** @title AXI4-Lite Interface
-* @author lharnaldi
-* @brief SystemVerilog interface
-* encapsulating the AXI4-Lite protocol signals and verification tasks.
-*
-* @details This interface provides standard hardware modports for RTL
-* integration alongside specialized automated tasks for testbench environments
-* (e.g., SVUnit).  It uses synchronous non-blocking assignments to prevent race
-* conditions and simulator crashes.  Fully compatible with TerosHDL
-* documentation parsers.
-*/
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Interface : axi4_lite_if
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axi4_lite_if.sv
+//!
+//! @brief   AXI4-Lite Interface
+//!
+//! @details
+//!
+//!
+//! SystemVerilog interface
+//! encapsulating the AXI4-Lite protocol signals and verification tasks.
+//!
+//! This interface provides standard hardware modports for RTL
+//! integration alongside specialized automated tasks for testbench environments
+//! (e.g., SVUnit).  It uses synchronous non-blocking assignments to prevent race
+//! conditions and simulator crashes.  Fully compatible with TerosHDL
+//! documentation parsers.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
+
 interface axi4_lite_if#(
   parameter int DATA_WIDTH = 32, //! The AXI4-Lite data bus width (must be 32 or 64 bits).
   parameter int ADDR_WIDTH = 32  //! The AXI4-Lite address bus width in bits.

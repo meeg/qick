@@ -1,78 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: xcom_txrx.sv
+// Module : xcom_txrx
 // Project: QICK
-// Description:
-// Transmitter and Receiver interface wrapper for the XCOM block.
-//
-//Inputs:
-// - i_clk      clock signal
-// - i_rstn     active low reset signal
-// - i_sync     synchronization signal. Lets the XCOM synchronize with an
-//              external signal. Actuates in coordination with the
-//              XCOM_QRST_SYNC command.
-// - i_req_loc  local command requirement signal. Signal indicating a new
-//              data is available to write locally (in the local board).
-// - i_req_net  transmission requirement signal. Signal indicating a new
-//              data transmission starts.
-// - i header   this is the header to be sent to the slaves.
-//              It is used by the tx_cmd instance here. See the
-//              documentation in that core.
-// - i_data     the data to be transmitted. It is used by the tx_cmd
-//              instance here and for some LOC commands.
-// - i_cfg_tick this input is connected to the AXI_CFG register and
-//              determines the duration of the xcom_clk output signal.
-//              It is used by the tx_cmd instance here. See the
-//              documentation in that core.
-// - i xcom_data serial data received. This is the general data input of the
-//               XCOM block
-// - i_xcom_clk  serial clock for reception. This is the general clock input of
-//               the XCOM block
-//
-//Outputs:
-// - o_ack_loc  acknowledge signal to LOC commands.
-// - o_ack_net  acknowledge signal to NET commands.
-//
-//QICK interface:
-// - o_qp_ready signal indicating the ip is ready to receive new data to
-//              transmit
-// - o_qp_valid signal indicating the ip has valid data to write into the
-//              local board
-// - o_qp_flag  signal indicating to write flag into the core
-// - o_qp_data1 data1 to core
-// - o_qp_data2 data2 to core
-//
-//TPROC CONTROL INTERFACE
-// - o_proc_start       start signal to the tproc
-// - o_proc_stop        stop signal to the tproc
-// - o_time_rst         reset the time reference in processor
-// - o_time_update      update the time in processor
-// - o_time_update_data data to update the time in processor
-// - o_core_start       start signal to the core in tproc
-// - o_core_stop        stop signal to the core in tproc
-//
-// XCOM CONFIG
-// - o xcom_data serial data transmitted. This is the general data output of the
-//               XCOM block
-// - o_xcom_clk  serial clock for transmission. This is the general clock output of
-//               the XCOM block
-// - o_xcom_id  board ID. This is a signal to see the board ID into external
-//              LEDs.
-// - o_xcom_mem internal 16-word memory port
-// - o_dbg_rx_data debug port for monitoring the rx data
-// - o_dbg_tx_data debug port for monitoring the tx data
-// - o_dbg_state debug port for monitoring the state of the internal FSM
-// - o_dbg_data  debug port for monitoring the internal data state
-//
-// Change history: 09/20/24 - v1 Started by @mdifederico
-//                 05/13/25 - Refactored by @lharnaldi
-//                          - the sync_n core was removed to sync all signals
-//                            in one place (external).
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    xcom_txrx.sv
+//!
+//! @brief   Transmitter and Receiver interface wrapper for the XCOM block.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module xcom_txrx import qick_pkg::*;
 #(
    parameter int NCH  = 2 ,

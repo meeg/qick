@@ -1,36 +1,45 @@
 `timescale 1ns / 1ps
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
 // Module : sgv4_top
-// Project: QICK arbitrary signal generator v4 (axis_signal_gen_v4)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
 //! @file    sgv4_top.sv
+//!
 //! @brief   Top-level of the v4 arbitrary signal generator.
 //!
 //! @details
+//!
+//!
 //! Assembles the v4 signal generator from the same verified building blocks as
 //! sgv6_top, differing in:
-//!  - N_DDS default (8 lanes for v4, vs 16 for v6).
-//!  - Datapath: sgv4 drives dds_compiler_dyn_readout and computes the full
-//!    complex product internally, but OUTPUTS ONE 16-bit value per lane
-//!    (real or imag), selected by the static i_outsel_reg register -- NOT by a
-//!    per-descriptor bit. sgv4 has no GEN_DDS parameter; the DDS path is always
-//!    present.
-//!  - Envelope memory: real + imag banks are always instantiated (as in the
-//!    legacy v4 top), so ENVELOPE_TYPE is not exposed.
+//!
+//!
+//! - N_DDS default (8 lanes for v4, vs 16 for v6).
+//! - Datapath: sgv4 drives dds_compiler_dyn_readout and computes the full
+//! complex product internally, but OUTPUTS ONE 16-bit value per lane
+//! (real or imag), selected by the static i_outsel_reg register -- NOT by a
+//! per-descriptor bit. sgv4 has no GEN_DDS parameter; the DDS path is always
+//! present.
+//!
+//!
+//! - Envelope memory: real + imag banks are always instantiated (as in the
+//! legacy v4 top), so ENVELOPE_TYPE is not exposed.
 //!
 //! Building blocks:
-//!  - fifo_sync          : waveform-descriptor FIFO (160-bit, depth 16).
-//!  - axis_to_bram_sg_nt : AXI4-Stream envelope writer, one-hot per bank.
-//!  - bram_tdp (xN_DDS)  : dual-port, dual-clock envelope memories (real+imag).
-//!  - sgv4               : datapath (envelope x DDS, gain, saturation, static
-//!                         real/imag output select).
+//!
+//!
+//! - fifo_sync          : waveform-descriptor FIFO (160-bit, depth 16).
+//! - axis_to_bram_sg_nt : AXI4-Stream envelope writer, one-hot per bank.
+//! - bram_tdp (xN_DDS)  : dual-port, dual-clock envelope memories (real+imag).
+//! - sgv4               : datapath (envelope x DDS, gain, saturation, static
+//! real/imag output select).
 //!
 //! Two clock domains:
-//!  - s0_axis_aclk : envelope loading (BRAM port A write side).
-//!  - aclk         : descriptor FIFO, sgv4, BRAM port B read side, and output.
+//!
+//!
+//! - s0_axis_aclk : envelope loading (BRAM port A write side).
+//! - aclk         : descriptor FIFO, sgv4, BRAM port B read side, and output.
 //! The dual-clock BRAM (bram_tdp) resolves the crossing.
 //!
 //! Envelope memory layout: N_DDS parallel banks, each 16 bits wide and 2**N
@@ -39,16 +48,17 @@
 //! concatenated into mem_dob_real / mem_dob_imag.
 //!
 //! Registers (from the top-level AXI-Lite slave, mirroring legacy):
-//!  - start_addr_reg : envelope write start address.
-//!  - we_reg         : envelope write enable (capture).
-//!  - outsel_reg     : static real/imag output select (0=real, 1=imag).
-//!                     Legacy name: OUTSEL_REG.
+//!
+//!
+//! - start_addr_reg : envelope write start address.
+//! - we_reg         : envelope write enable (capture).
+//! - outsel_reg     : static real/imag output select (0=real, 1=imag).
+//! Legacy name: OUTSEL_REG.
 //! Legacy RNDQ_REG has been removed from the datapath (deprecated in the IP)
 //! and is intentionally not carried here.
 //!
-//! @note   Reset convention: SYNCHRONOUS active-low, per clock domain.
+//! @author  QICK Development Team
 //!
-//! @author FNAL / QICK
 //! @version 1.0
 module sgv4_top #(
    parameter int N     = 16,  //! Envelope-memory address width per bank (depth 2**N).

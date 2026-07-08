@@ -1,16 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: cdc_bit_sync.sv
+// Module : cdc_bit_sync
 // Project: QICK
-// Description: 2 FF, NB-bit data synchronizer.
-//              It serves as clock domain crossing (CDC) logic.
-//
-// Change history: 04/29/25 - Created by @lharnaldi
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    cdc_bit_sync.sv
+//!
+//! @brief   2 FF, NB-bit data synchronizer.
+//!
+//! @details
+//!
+//! It serves as clock domain crossing (CDC) logic.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module cdc_bit_sync #(
    //number of bits in data
    parameter int NB = 1

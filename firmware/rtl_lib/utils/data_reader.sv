@@ -1,7 +1,15 @@
-// ============================================================================
-// File: data_reader.sv
-// Description: Translates memory read sequences into AXI Stream via a FIFO.
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_reader
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_reader.sv
+//!
+//! @brief   Translates memory read sequences into AXI Stream via a FIFO.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module data_reader #(
     // Address map of memory

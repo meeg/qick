@@ -1,33 +1,33 @@
 `timescale 1ns / 1ps
 ///////////////////////////////////////////////////////////////////////////////
 // Fermi National Accelerator Laboratory
-//
 // Module : iir_1p1z
-// Project: axis_kidsim_v3
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @file    iir_1p1z.sv
- * @brief   First-order IIR (1-pole / 1-zero), single real channel, fixed-point.
- *
- * @details Direct-Form I first-order IIR filter.
- *              H(z) = G * (1 - C0*z^-1) / (1 - C1*z^-1)
- *          Coefficients C0, C1, G are signed Q(B-1) fixed-point in [-1, +1).
- *          Internal datapath widened to BA bits for headroom; products are
- *          BP = BA + B bits and re-quantized (drop duplicated sign bit).
- *
- *          Pipeline latency = 4 valid cycles (i_valid -> o_valid).
- *          Valid-gated: every datapath stage advances ONLY on its valid,
- *          so the filter tolerates bubbles (non-continuous i_valid).
- *
- *          NOTE: re-quantization uses TRUNCATION and NO SATURATION. Ensure the
- *          feedback loop cannot overflow BA bits for the intended C1 range,
- *          or add saturation (see project bitácora / open item).
- *
- * @author  AD Firmware / Fermilab
- * @version 1.0
- *
- * @note    Reset convention: SYNCHRONOUS active-low (sampled inside always_ff).
- */
+//! @file    iir_1p1z.sv
+//!
+//! @brief   First-order IIR (1-pole / 1-zero), single real channel, fixed-point.
+//!
+//! @details
+//!
+//!
+//! Direct-Form I first-order IIR filter.
+//! H(z) = G * (1 - C0*z^-1) / (1 - C1*z^-1)
+//! Coefficients C0, C1, G are signed Q(B-1) fixed-point in [-1, +1).
+//! Internal datapath widened to BA bits for headroom; products are
+//! BP = BA + B bits and re-quantized (drop duplicated sign bit).
+//!
+//! Pipeline latency = 4 valid cycles (i_valid -> o_valid).
+//! Valid-gated: every datapath stage advances ONLY on its valid,
+//! so the filter tolerates bubbles (non-continuous i_valid).
+//!
+//! NOTE: re-quantization uses TRUNCATION and NO SATURATION. Ensure the
+//! feedback loop cannot overflow BA bits for the intended C1 range,
+//! or add saturation (see project bitácora / open item).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module iir_1p1z #(
     /** @brief Sample and coefficient width in bits (Q(B-1) format). */
     parameter int B  = 16,

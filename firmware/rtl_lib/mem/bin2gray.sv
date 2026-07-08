@@ -1,4 +1,15 @@
-// bin2gray.sv - Always_comb version
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : bin2gray
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    bin2gray.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 `timescale 1ns / 1ps
 

@@ -1,16 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: in_buffer.sv
-// Project: UTILS
-// Description: Common buffer interface for AXI4 signals
-//
-// Change history: 01/22/26 - Created by @lharnaldi
-//
-//
+// Module : in_buffer
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    in_buffer.sv
+//!
+//! @brief   Common buffer interface for AXI4 signals
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module in_buffer#(
   parameter integer DWIDTH = 32
 )(

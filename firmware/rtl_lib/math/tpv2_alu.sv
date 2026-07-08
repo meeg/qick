@@ -1,30 +1,29 @@
 ///////////////////////////////////////////////////////////////////////////////
-//  Module : tpv2_alu  (formerly AB_alu)
-//  Project: QICK tProcessor v2
-//
-//  Description:
-//    Two-input (a, b) combinational ALU for the tProcessor v2 core. Produces a
-//    32-bit result plus Zero/Carry/Sign flags. No clock, no reset.
-//
-//  Operation encoding (alu_op_i, 4 bits) — see alu_pkg (TPV2_ALU_*):
-//    bit  0     : unit select  -> 0 = ARITH group, 1 = LOGIC group
-//    bits [3:1] : sub-operation
-//
-//  Flags:
-//    z_o : result[31:0] == 0  (32-bit zero; carry ignored)
-//    c_o : result[32]  carry-out (ADD) / borrow (SUB). Valid only for ADD/SUB;
-//          0 for all other operations (their results never set bit 32).
-//    s_o : result[31]  (sign / MSB)
-//
-//  History:
-//    - Fixed carry flag: add/sub are now computed in 33 bits so the carry-out
-//      reaches result[32]. Previously the 32-bit intermediate wires truncated
-//      the carry, leaving c_o permanently 0.
-//
-//  Quirks (verified, not bugs):
-//    - Shift amount = b[3:0] (0..15).
-//    - ABS uses b; MSH/LSH/SWAP use only a.
+// Fermi National Accelerator Laboratory
+// Module : tpv2_alu
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    tpv2_alu.sv
+//!
+//! @brief      Two-input (a, b) combinational ALU for the tProcessor v2 core. Produces a
+//!
+//! @details
+//!
+//! 32-bit result plus Zero/Carry/Sign flags. No clock, no reset.
+//!
+//! Operation encoding (alu_op_i, 4 bits) — see alu_pkg (TPV2_ALU_*):
+//! bit  0     : unit select  -> 0 = ARITH group, 1 = LOGIC group
+//! bits [3:1] : sub-operation
+//!
+//! Flags:
+//! z_o : result[31:0] == 0  (32-bit zero; carry ignored)
+//! c_o : result[32]  carry-out (ADD) / borrow (SUB). Valid only for ADD/SUB;
+//! 0 for all other operations (their results never set bit 32).
+//! s_o : result[31]  (sign / MSB)
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module tpv2_alu import alu_pkg::*; (
    input  wire signed [31:0]  a_i           ,
    input  wire signed [31:0]  b_i           ,

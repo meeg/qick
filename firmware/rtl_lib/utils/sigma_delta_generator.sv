@@ -1,11 +1,22 @@
-/***********************************************
- * 
- *  File: sigma_delta_generator.sv
- *  Description: generates a configurable enable pattern using
- *  sigma-delta modulo logic based on inputs i_delta and i_sigma
- * 
- * 
- * ********************************************/
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : sigma_delta_generator
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    sigma_delta_generator.sv
+//!
+//! @brief   generates a configurable enable pattern using
+//!
+//! @details
+//!
+//! sigma-delta modulo logic based on inputs i_delta and i_sigma
+//!
+//!
+//! *******************************************
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module sigma_delta_generator
 #(

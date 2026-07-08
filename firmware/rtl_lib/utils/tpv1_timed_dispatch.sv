@@ -1,43 +1,51 @@
-//------------------------------------------------------------------------------
-// Module  : tpv1_timed_dispatch
-// Origin  : Converted from VHDL timed_ictrl.vhd (tProcV1)
-//
-// Description:
-//   Timed-instruction dispatcher control for the QICK tProcV1 processor.
-//   Reads 216-bit instruction words from a FIFO, waits until the embedded
-//   48-bit timestamp (t_inst) is reached by the master clock counter (t_cnt),
-//   then dispatches the instruction via AXI-Stream or a wait handshake.
-//
-// Instruction word layout (216 bits):
-//   [31:0]    p0  - parameter 0
-//   [63:32]   p1  - parameter 1
-//   [95:64]   p2  - parameter 2
-//   [127:96]  p3  - parameter 3
-//   [159:128] p4  - parameter 4
-//   [207:160] t   - 48-bit dispatch timestamp
-//   [215:208] op  - 8-bit opcode
-//
-// Recognized opcodes:
-//   0x15 (waiti) / 0x54 (wait) -> WAIT_ACK_ST : assert waitt, wait for ack
-//   0x13 (seti)                 -> SETI_ST     : tvalid, tdata={128'b0,p0}
-//   0x1A (setbi)                -> SETBI_ST    : tvalid, tdata={128'b0,p0}, wait tready
-//   0x51 (set)                  -> SET_ST      : tvalid, tdata={p4,p3,p2,p1,p0}
-//   0x58 (setb)                 -> SETB_ST     : tvalid, tdata={p4,p3,p2,p1,p0}, wait tready
-//   other                       -> READ_ST     : silently consume, read next word
-//
-// FSM state transitions:
-//   READ_ST     --(~fifo_empty)--------------------------> WAIT_ST
-//   WAIT_ST     --(t_inst<=t_cnt, opcode dispatch)-------> WAIT_ACK_ST|SETI_ST|SETBI_ST|SET_ST|SETB_ST|READ_ST
-//   WAIT_ACK_ST --(waitt_ack)----------------------------> READ_ST
-//   SETI_ST                  --(single cycle)------------> READ_ST
-//   SET_ST                   --(single cycle)------------> READ_ST
-//   SETBI_ST    --(m_axis_tready)------------------------> READ_ST
-//   SETB_ST     --(m_axis_tready)------------------------> READ_ST
-//
-// Naming note:
-//   'timed_ictrl' is preserved for consistency with existing QICK repository
-//   references. An alternative descriptive name is 'tpv1_timed_dispatch'.
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : tpv1_timed_dispatch
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    tpv1_timed_dispatch.sv
+//!
+//! @brief     Timed-instruction dispatcher control for the QICK tProcV1 processor.
+//!
+//! @details
+//!
+//! Reads 216-bit instruction words from a FIFO, waits until the embedded
+//! 48-bit timestamp (t_inst) is reached by the master clock counter (t_cnt),
+//! then dispatches the instruction via AXI-Stream or a wait handshake.
+//!
+//! Instruction word layout (216 bits):
+//! [31:0]    p0  - parameter 0
+//! [63:32]   p1  - parameter 1
+//! [95:64]   p2  - parameter 2
+//! [127:96]  p3  - parameter 3
+//! [159:128] p4  - parameter 4
+//! [207:160] t   - 48-bit dispatch timestamp
+//! [215:208] op  - 8-bit opcode
+//!
+//! Recognized opcodes:
+//! 0x15 (waiti) / 0x54 (wait) -> WAIT_ACK_ST : assert waitt, wait for ack
+//! 0x13 (seti)                 -> SETI_ST     : tvalid, tdata={128'b0,p0}
+//! 0x1A (setbi)                -> SETBI_ST    : tvalid, tdata={128'b0,p0}, wait tready
+//! 0x51 (set)                  -> SET_ST      : tvalid, tdata={p4,p3,p2,p1,p0}
+//! 0x58 (setb)                 -> SETB_ST     : tvalid, tdata={p4,p3,p2,p1,p0}, wait tready
+//! other                       -> READ_ST     : silently consume, read next word
+//!
+//! FSM state transitions:
+//! READ_ST     --(~fifo_empty)--------------------------> WAIT_ST
+//! WAIT_ST     --(t_inst<=t_cnt, opcode dispatch)-------> WAIT_ACK_ST|SETI_ST|SETBI_ST|SET_ST|SETB_ST|READ_ST
+//! WAIT_ACK_ST --(waitt_ack)----------------------------> READ_ST
+//! SETI_ST                  --(single cycle)------------> READ_ST
+//! SET_ST                   --(single cycle)------------> READ_ST
+//! SETBI_ST    --(m_axis_tready)------------------------> READ_ST
+//! SETB_ST     --(m_axis_tready)------------------------> READ_ST
+//!
+//! Naming note:
+//! 'timed_ictrl' is preserved for consistency with existing QICK repository
+//! references. An alternative descriptive name is 'tpv1_timed_dispatch'.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module tpv1_timed_dispatch (
     // Clock and reset
     input  logic        clk,

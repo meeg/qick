@@ -1,46 +1,52 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Module : dds_compiler_0 (behavioural model, simulation only)
+// Fermi National Accelerator Laboratory
+// Module : dds_compiler_model
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module dds_compiler_model
- * @brief Behavioural model of Xilinx DDS Compiler v6.0 (for sim/lint only).
- *
- * @description
- *   Same interface as the real Xilinx IP. Phase accumulator + sin/cos.
- *   Generalized to cover all six QICK DDS Compiler configurations found
- *   across the codebase (dyn_readout, signal_gen, signal_gen_int,
- *   signal_gen_mixmux, signal_gen_mux, readout), which differ only in
- *   PHASE_WIDTH, LATENCY, and single- vs dual-output selection. Each
- *   instantiation site sets these three parameters to match its own
- *   dds_compiler_<variant>.xci (see the parameter table maintained in
- *   docs/dds_compiler_variants.md).
- *
- *   s_axis_phase_tdata layout (matches the real Xilinx IP width exactly,
- *   2*PHASE_WIDTH+8 bits -- e.g. 72 bits for PHASE_WIDTH=32, 40 bits for
- *   PHASE_WIDTH=16 -- so parent RTL that already packs/connects the full
- *   descriptor width does not need any adaptation):
- *     [2*PHASE_WIDTH-1 : PHASE_WIDTH] = phase (absolute, already accumulated
- *                                        upstream, e.g. by ctrl_sg_v6)
- *     [PHASE_WIDTH-1 : 0]             = pinc (unused here directly; phase
- *                                        advance is already folded into the
- *                                        per-cycle phase_in value upstream)
- *
- *   m_axis_data_tdata:
- *     DUAL_OUTPUT=1 (Output_Selection=Sine_and_Cosine): {sin[15:0],cos[15:0]}
- *     DUAL_OUTPUT=0 (Output_Selection=Sine only):        sin[15:0]
- *
- *   For a CONSTANT carrier (amplitude tests), drive the descriptor with a
- *   fixed phase; phase=0 => cos=0x7FFF, sin=0.
- *
- * @param LATENCY     Output pipeline latency (default 10).
- * @param PHASE_WIDTH Width of the phase/pinc fields packed into
- *                     s_axis_phase_tdata (16 or 32 across current variants).
- * @param DUAL_OUTPUT 1 = Sine_and_Cosine (32-bit packed output),
- *                     0 = Sine only (16-bit output).
- */
+//! @file    dds_compiler_model.sv
+//!
+//! @brief   dds_compiler_model
+//!
+//! @details
+//!
+//!
+//! Behavioural model of Xilinx DDS Compiler v6.0 (for sim/lint only).
+//!
+//! Same interface as the real Xilinx IP. Phase accumulator + sin/cos.
+//! Generalized to cover all six QICK DDS Compiler configurations found
+//! across the codebase (dyn_readout, signal_gen, signal_gen_int,
+//! signal_gen_mixmux, signal_gen_mux, readout), which differ only in
+//! PHASE_WIDTH, LATENCY, and single- vs dual-output selection. Each
+//! instantiation site sets these three parameters to match its own
+//! dds_compiler_<variant>.xci (see the parameter table maintained in
+//! docs/dds_compiler_variants.md).
+//!
+//! s_axis_phase_tdata layout (matches the real Xilinx IP width exactly,
+//! 2*PHASE_WIDTH+8 bits -- e.g. 72 bits for PHASE_WIDTH=32, 40 bits for
+//! PHASE_WIDTH=16 -- so parent RTL that already packs/connects the full
+//! descriptor width does not need any adaptation):
+//! [2*PHASE_WIDTH-1 : PHASE_WIDTH] = phase (absolute, already accumulated
+//! upstream, e.g. by ctrl_sg_v6)
+//! [PHASE_WIDTH-1 : 0]             = pinc (unused here directly; phase
+//! advance is already folded into the
+//! per-cycle phase_in value upstream)
+//!
+//! m_axis_data_tdata:
+//! DUAL_OUTPUT=1 (Output_Selection=Sine_and_Cosine): {sin[15:0],cos[15:0]}
+//! DUAL_OUTPUT=0 (Output_Selection=Sine only):        sin[15:0]
+//!
+//! For a CONSTANT carrier (amplitude tests), drive the descriptor with a
+//! fixed phase; phase=0 => cos=0x7FFF, sin=0.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dds_compiler_model #(
+   //! Output pipeline latency (default 10).
    parameter int LATENCY     = 10,
+   //! Width of the phase/pinc fields packed into
    parameter int PHASE_WIDTH = 32,
+   //! 1 = Sine_and_Cosine (32-bit packed output),
    parameter bit DUAL_OUTPUT = 1'b1
 )(
    input  logic                       aclk,

@@ -1,36 +1,34 @@
-/**
- * @module bram_tdp
- * @brief True‑dual‑port block RAM (independent clocks & resets).
- *
- * @description
- *   - Memory of **NB_DATA**‑bits by word and **2^NB_ADDR** words.
- *   - Every port (`port_a`, `port_b`) works independently:
- *       * Can read or write at any clock cycle.
- *       * Clocks and resets can be different (dual‑clock RAM).
- *   - If `MEM_BIN_FILE` is not empty, the memory is initialized at
- *     startup with the content of the binary file (raw format).
- *
- * @generic
- *   NB_DATA      : unsigned int – data width of each data word (default 32).
- *   NB_ADDR      : unsigned int – number of address bits (default 10 → 1024 words).
- *   MEM_BIN_FILE : string – path to the binary initialization file (optional).
- *
- * @port
- *   input  logic                clk_a   : Clock of port A.
- *   input  logic                rst_a   : Reset synchronous active-high of port A.
- *   input  logic                clk_b   : Clock of port B.
- *   input  logic                rst_b   : Reset synchronous active-high of port B.
- *   bram_if.slave               port_a  : Interface of port A (see definition below).
- *   bram_if.slave               port_b  : Interface of port B (see definition below).
- *
- * @interface bram_if
- *   // Typical signals of a single-port RAM:
- *   logic                     en;      // Enable (read or write when high)
- *   logic                     we;      // Write enable (1 = write, 0 = read)
- *   logic [NB_ADDR-1:0]       addr;    // Address
- *   logic [NB_DATA-1:0]       din;     // Write data
- *   logic [NB_DATA-1:0]       dout;    // Read data (output from the RAM)
- */
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : bram_tdp
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    bram_tdp.sv
+//!
+//! @brief   bram_tdp
+//!
+//! @details
+//!
+//!
+//! True‑dual‑port block RAM (independent clocks & resets).
+//!
+//!
+//! - Memory of **NB_DATA**‑bits by word and **2^NB_ADDR** words.
+//! - Every port (`port_a`, `port_b`) works independently:
+//! Can read or write at any clock cycle.
+//! Clocks and resets can be different (dual‑clock RAM).
+//!
+//! - If `MEM_BIN_FILE` is not empty, the memory is initialized at
+//! startup with the content of the binary file (raw format).
+//!
+//! @generic
+//! NB_DATA      : unsigned int – data width of each data word (default 32).
+//! NB_ADDR      : unsigned int – number of address bits (default 10 → 1024 words).
+//! MEM_BIN_FILE : string – path to the binary initialization file (optional).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module bram_tdp #(
     parameter int unsigned NB_DATA      = 32,
     parameter int unsigned NB_ADDR      = 10,

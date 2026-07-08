@@ -1,39 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: rx_cmd.sv
+// Module : rx_cmd
 // Project: QICK
-// Description:
-// Receiver interface wrapper for the XCOM block. Synchronizes the
-// xcom_link_rx block through the external i_sync signal.
-//
-//Parameters:
-// - NCH        number of RX channels
-//Inputs:
-// - i_clk       clock signal
-// - i_rstn      active low reset signal
-// - i_id        local ID (address) of the board. The range is from 1 to 16.
-// - i xcom_data serial data received. This is the general data input of the
-//               XCOM block. This port length depends on the number of
-//               channels
-// - i_xcom_clk  serial clock for reception. This is the general clock input of
-//               the XCOM block. This port length depends on the number of
-//               channels
-//Outputs:
-// - o_valid    signal indicating valid data is available
-// - o_op       opcode to be excecuted
-// - o_data     data receved.
-// - o_chid     id of the board sending data
-// - o_dbg_state debug port for monitoring the state of the internal FSM
-//
-// Change history: 09/20/24 - v1.0.0 Started by @mdifederico
-//                 05/09/25 - v1.1.0 Refactored by @lharnaldi
-//                                   - the sync_n core was removed to sync
-//                                   all signals in one place (external).
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    rx_cmd.sv
+//!
+//! @brief   Receiver interface wrapper for the XCOM block. Synchronizes the
+//!
+//! @details
+//!
+//! xcom_link_rx block through the external i_sync signal.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module rx_cmd#(
    parameter int NCH = 2
 )(

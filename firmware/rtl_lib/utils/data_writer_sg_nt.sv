@@ -1,29 +1,39 @@
-// ============================================================================
-// File: data_writer_sg_nt.sv
-// Source: axis_signal_gen_v6/src/data_writer.vhd
-// Description: AXI Stream to NT BRAM writer. Identical FSM and pipeline to
-//   data_writer_sg but drives NT memories by splitting the full address into:
-//
-//     mem_addr_full[NT_LOG2-1        : 0]       → mem_addr_low  → mem_en[NT]
-//     mem_addr_full[NT_LOG2+N-1      : NT_LOG2] → mem_addr_high → mem_addr
-//
-//   Only one of the NT mem_en lines is asserted per cycle; the low address
-//   bits act as a one-hot demux. All NT memories share mem_we, mem_addr,
-//   and mem_di.
-//
-// FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
-//   (identical to data_writer_sg)
-//
-// Parameters:
-//   NT : number of tables (must be a power of 2)
-//   N  : address width per table (depth = 2**N)
-//   B  : data width in bits
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_writer_sg_nt
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_writer_sg_nt.sv
+//!
+//! @brief   AXI Stream to NT BRAM writer. Identical FSM and pipeline to
+//!
+//! @details
+//!
+//! data_writer_sg but drives NT memories by splitting the full address into:
+//!
+//! mem_addr_full[NT_LOG2-1        : 0]       → mem_addr_low  → mem_en[NT]
+//! mem_addr_full[NT_LOG2+N-1      : NT_LOG2] → mem_addr_high → mem_addr
+//!
+//! Only one of the NT mem_en lines is asserted per cycle; the low address
+//! bits act as a one-hot demux. All NT memories share mem_we, mem_addr,
+//! and mem_di.
+//!
+//! FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
+//! (identical to data_writer_sg)
+//!
+//! @note    Ported from axis_signal_gen_v6/src/data_writer.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module data_writer_sg_nt #(
+  //! number of tables (must be a power of 2)
   parameter int NT = 16,
+  //! address width per table (depth = 2**N)
   parameter int N  = 16,
+  //! data width in bits
   parameter int B  = 16
 ) (
   input  logic              rstn,

@@ -1,49 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: xcom_link_tx.sv
+// Module : xcom_link_tx
 // Project: QICK
-// Description:
-// Transmitter interface for the XCOM block
-//
-//Inputs:
-// - i_clk      clock signal
-// - i_rstn     active low reset signal
-// - i_cfg_tick this input is connected to the AXI_CFG register and
-//              determines the duration of the xcom_clk output signal.
-//              xcom_clk will be CFG_AXI clock cycles in states 1 and 0.
-//              Possible values ranges from 0 to 7 with 0 equal to two
-//              clock cycles and 7 equal to 15 clock cycles
-// - i_valid    it is a one clock duration signal indicating a valid data has
-//              arrived and is ready to be send through the xcom ip
-// - i header   this is the header to be sent to the slave.
-//              bit 7 is sometimes used to indicate a synchronization in other
-//              places in the XCOM hierarchy
-//              bits [6:5] determines the data length to transmit:
-//               00 no data
-//               01 8-bit data
-//               10 16-bit data
-//               11 32-bit data
-//              bit 4 not used in this block
-//              bits [3:0] not used in this block. Sometimes used as mem_id
-//              and sometimes used as board ID in the XCOM hierarchy
-// - i_data     the data to be transmitted
-//Outputs:
-// - o_ready    signal indicating the ip is ready to receive new data to
-//              transmit
-// - o_data     serial data transmitted. This is the general output of the
-//              XCOM block
-// - o_clk      serial clock for transmission. This is the general output of
-//              the XCOM block
-//
-// Change history: 09/20/24 - v1 Started by @mdifederico
-//                 04/30/25 - Refactored by @lharnaldi
-//                          - the sync_n core was removed to sync all signals
-//                          in one place (external).
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    xcom_link_tx.sv
+//!
+//! @brief   Transmitter interface for the XCOM block
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module xcom_link_tx(
     input  logic          i_clk      ,

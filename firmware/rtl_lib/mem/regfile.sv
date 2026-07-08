@@ -1,25 +1,20 @@
-//------------------------------------------------------------------------------
-// Module      : regfile
-// Description : Register file with 7 read ports and 1 write port.
-//              - Synchronous read and write (single clock cycle latency).
-//              - Register address 0 always reads as 0 (hardwired zero).
-//              - Parameterizable data width (B) and number of registers (2^N).
-//
-// Parameters:
-//   B : data width in bits (default 16)
-//   N : address width, number of registers = 2^N (default 4 → 16 registers)
-//
-// Ports:
-//   clk   : clock
-//   addr0..addr6 : read addresses (N bits each)
-//   addr7 : write address (N bits)
-//   din7  : write data (B bits)
-//   wen7  : write enable
-//   dout0..dout6 : read data outputs (B bits each)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : regfile
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    regfile.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module regfile
 #(
+    //! data width in bits (default 16)
     parameter integer B = 16,
+    //! address width, number of registers = 2^N (default 4 → 16 registers)
     parameter integer N = 4
 )
 (

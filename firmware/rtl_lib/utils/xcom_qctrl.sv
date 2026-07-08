@@ -1,41 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: xcom_qctrl.sv
+// Module : xcom_qctrl
 // Project: QICK
-// Description:
-// Control block to instruct the tproc to start/stop internal processing.
-//
-//Inputs:
-// - i_clk       clock signal
-// - i_rstn      active low reset signal
-// - i_sync      synchronization signal. Lets the core synchronize with an
-//               external signal.
-// - i_ctrl_req  control requirement signal.
-// - i_ctrl_data control code to execute when there is a i_ctrl_req
-//               requirement.
-// - i sync_req  synchronization requirement signal.
-//Outputs:
-//The ouput signals in this core instruct the tproc to start/stop internal
-//processing
-// - o_proc_start processor start signal
-// - o_proc_stop  processor stop signal
-// - o_time_start time start signal
-// - o_time_stop  time stop signal
-// - o_core_start core start signal
-// - o_core_stop  core stop signal
-//
-// Change history: 09/20/24 - v1 Started by @mdifederico
-//                 05/13/25 - Refactored by @lharnaldi
-//                          - the sync_n core was removed to sync all signals
-//                            in one place (external).
-//                 07/01/25 - @lharnaldi include timeout for state WSYNC and
-//                            register the i_ctrl_data input to improve
-//                            reliability
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    xcom_qctrl.sv
+//!
+//! @brief   Control block to instruct the tproc to start/stop internal processing.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module xcom_qctrl(
    input  logic         i_clk        ,

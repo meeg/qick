@@ -1,20 +1,29 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Module : dds_compiler_dyn_readout (behavioural wrapper, simulation only)
+// Fermi National Accelerator Laboratory
+// Module : dds_compiler_dyn_readout
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @module dds_compiler_dyn_readout
- * @brief Fixed-configuration wrapper around dds_compiler_model matching
- *        dds_compiler_dyn_readout.xci (Component_Name-renamed Xilinx IP).
- *        Used by: axis_dyn_readout_v1, axis_readout_v2, axis_signal_gen_v4.
- *
- * @description
- *   Thin pass-through: fixes LATENCY/PHASE_WIDTH/DUAL_OUTPUT to this
- *   variant's values so parent RTL can instantiate this module by name
- *   with zero parameters.
- *
- *   Values sourced from dds_compiler_dyn_readout.xci: Latency=8,
- *   Phase_Width=32, Output_Selection=Sine_and_Cosine (32-bit packed output).
- */
+//! @file    dds_compiler_dyn_readout.sv
+//!
+//! @brief   dds_compiler_dyn_readout
+//!
+//! @details
+//!
+//!
+//! Fixed-configuration wrapper around dds_compiler_model matching
+//! dds_compiler_dyn_readout.xci (Component_Name-renamed Xilinx IP).
+//! Used by: axis_dyn_readout_v1, axis_readout_v2, axis_signal_gen_v4.
+//!
+//! Thin pass-through: fixes LATENCY/PHASE_WIDTH/DUAL_OUTPUT to this
+//! variant's values so parent RTL can instantiate this module by name
+//! with zero parameters.
+//!
+//! Values sourced from dds_compiler_dyn_readout.xci: Latency=8,
+//! Phase_Width=32, Output_Selection=Sine_and_Cosine (32-bit packed output).
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dds_compiler_dyn_readout (
    input  logic        aclk,
    input  logic        s_axis_phase_tvalid,

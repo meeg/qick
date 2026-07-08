@@ -1,59 +1,67 @@
-//------------------------------------------------------------------------------
-// Module  : tpv1_ctrl
-// Origin  : Refactored from ctrl.v (tProcV1 control state machine)
-//
-// Description:
-//   Multi-cycle control unit for the QICK tProcessor v1. Decodes the 8-bit opcode
-//   from the Instruction Register (IR) and generates all datapath control signals
-//   across multiple clock cycles. Does not perform any arithmetic itself — it is
-//   purely a Moore FSM with combinational output logic.
-//
-// Instruction set summary (opcode → FSM path):
-//
-//   I-Type (immediate operand):
-//     0x10 pushi   : PUSHI0
-//     0x11 popi    : POPI0 → POPI1 → POPI2
-//     0x12 mathi   : MATHI0 → MATHI1 → MATHI2 → MATHI3  (ALU 2-cycle latency)
-//     0x13 seti    : SETI0 → SETI1 (holds on fifo_full)
-//     0x14 synci   : SYNCI0 → SYNCI1
-//     0x15 waiti   : WAITI0 → WAITI1 (holds on fifo_full) → WAIT_ACK
-//     0x16 bitwi   : BITWI0 → BITWI1 → BITWI2 → BITWI3
-//     0x17 memri   : MEMRI0 → MEMRI1 → MEMRI2
-//     0x18 memwi   : MEMWI0
-//     0x19 regwi   : REGWI0
-//     0x1A setbi   : SETI0 → SETI1 (same path as seti)
-//
-//   J-Type (jump):
-//     0x30 loopnz  : LOOPNZ0 → LOOPNZ1 → LOOPNZ2 → LOOPNZ3 (or FETCH if zero)
-//     0x31 condj   : CONDJ0 → CONDJ1 → (CONDJ2 if taken, else FETCH)
-//     0x3F end     : END_ST
-//
-//   R-Type (register operands):
-//     0x50 math    : MATH0 → MATH1 → MATH2 → MATH3
-//     0x51 set     : SET0 → SET1 (holds on fifo_full)
-//     0x52 sync    : SYNC0 → SYNC1
-//     0x53 read    : READ0
-//     0x54 wait    : WAIT0 → WAIT1 (holds on fifo_full) → WAIT_ACK
-//     0x55 bitw    : BITW0 → BITW1 → BITW2 → BITW3
-//     0x56 memr    : MEMR0 → MEMR1 → MEMR2
-//     0x57 memw    : MEMW0
-//     0x58 setb    : SET0 → SET1 (same path as set)
-//
-//   Error/terminal:
-//     ERR_INSTR_ST → END_ST
-//     ERR_STACK_ST → END_ST
-//     END_ST       → INIT_ST (when start deasserted)
-//
-// Key output signal semantics:
-//   pc_src    : 0 = PC+1, 1 = jump address
-//   pc_en     : qualified by alu_zero (loopnz) and cond_flag (condj)
-//   alu_src_b : 00 = imm, 01 = D1, 10 = -1
-//   alut_src_b: 0 = D1 (register), 1 = imm
-//   reg_src   : 000 = imm, 001 = ALU out, 010 = stack, 011 = s_axis, 100 = memory
-//   t_en      : master clock enable (deasserted only in START_MC_ST)
-//
-// FSM encoding: one_hot (Xilinx attribute preserved)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : tpv1_ctrl
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    tpv1_ctrl.sv
+//!
+//! @brief     Multi-cycle control unit for the QICK tProcessor v1. Decodes the 8-bit opcode
+//!
+//! @details
+//!
+//! from the Instruction Register (IR) and generates all datapath control signals
+//! across multiple clock cycles. Does not perform any arithmetic itself — it is
+//! purely a Moore FSM with combinational output logic.
+//!
+//! Instruction set summary (opcode → FSM path):
+//!
+//! I-Type (immediate operand):
+//! 0x10 pushi   : PUSHI0
+//! 0x11 popi    : POPI0 → POPI1 → POPI2
+//! 0x12 mathi   : MATHI0 → MATHI1 → MATHI2 → MATHI3  (ALU 2-cycle latency)
+//! 0x13 seti    : SETI0 → SETI1 (holds on fifo_full)
+//! 0x14 synci   : SYNCI0 → SYNCI1
+//! 0x15 waiti   : WAITI0 → WAITI1 (holds on fifo_full) → WAIT_ACK
+//! 0x16 bitwi   : BITWI0 → BITWI1 → BITWI2 → BITWI3
+//! 0x17 memri   : MEMRI0 → MEMRI1 → MEMRI2
+//! 0x18 memwi   : MEMWI0
+//! 0x19 regwi   : REGWI0
+//! 0x1A setbi   : SETI0 → SETI1 (same path as seti)
+//!
+//! J-Type (jump):
+//! 0x30 loopnz  : LOOPNZ0 → LOOPNZ1 → LOOPNZ2 → LOOPNZ3 (or FETCH if zero)
+//! 0x31 condj   : CONDJ0 → CONDJ1 → (CONDJ2 if taken, else FETCH)
+//! 0x3F end     : END_ST
+//!
+//! R-Type (register operands):
+//! 0x50 math    : MATH0 → MATH1 → MATH2 → MATH3
+//! 0x51 set     : SET0 → SET1 (holds on fifo_full)
+//! 0x52 sync    : SYNC0 → SYNC1
+//! 0x53 read    : READ0
+//! 0x54 wait    : WAIT0 → WAIT1 (holds on fifo_full) → WAIT_ACK
+//! 0x55 bitw    : BITW0 → BITW1 → BITW2 → BITW3
+//! 0x56 memr    : MEMR0 → MEMR1 → MEMR2
+//! 0x57 memw    : MEMW0
+//! 0x58 setb    : SET0 → SET1 (same path as set)
+//!
+//! Error/terminal:
+//! ERR_INSTR_ST → END_ST
+//! ERR_STACK_ST → END_ST
+//! END_ST       → INIT_ST (when start deasserted)
+//!
+//! Key output signal semantics:
+//! pc_src    : 0 = PC+1, 1 = jump address
+//! pc_en     : qualified by alu_zero (loopnz) and cond_flag (condj)
+//! alu_src_b : 00 = imm, 01 = D1, 10 = -1
+//! alut_src_b: 0 = D1 (register), 1 = imm
+//! reg_src   : 000 = imm, 001 = ALU out, 010 = stack, 011 = s_axis, 100 = memory
+//! t_en      : master clock enable (deasserted only in START_MC_ST)
+//!
+//! FSM encoding: one_hot (Xilinx attribute preserved)
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 
 module tpv1_ctrl import tproc_pkg::*;
   (

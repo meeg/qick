@@ -1,16 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: rising_edge_det.sv
-// Project: UTILS
-// Description: Rising edge detection circuit.
-//              It serves as clock domain crossing (CDC) logic.
-//
-// Change history: 05/14/25 - Created by @lharnaldi
-//
+// Module : rising_edge_det
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    rising_edge_det.sv
+//!
+//! @brief   Rising edge detection circuit.
+//!
+//! @details
+//!
+//! It serves as clock domain crossing (CDC) logic.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module rising_edge_det(
     input logic  i_clk    ,
     input logic  i_rstn   ,

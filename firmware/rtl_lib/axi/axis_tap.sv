@@ -1,18 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-// axis_pid.sv
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: axis_tap.sv
+// Module : axis_tap
 // Project: QICK
-// Description: 
-// Tap AXI-Stream for monitoring interfaces
-//
-//
-// Change history: 01/26/26 - Created by @lharnaldi
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_tap.sv
+//!
+//! @brief   Tap AXI-Stream for monitoring interfaces
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module axis_tap#(
   parameter int NB = 16
 )(

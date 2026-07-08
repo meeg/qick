@@ -1,33 +1,44 @@
-// ============================================================================
-// File: data_writer_trig.sv
-// Source: mr_buffer_et/src/data_writer.vhd
-// Description: Triggered AXI Stream to BRAM capture block. Waits for an
-//   external hardware trigger, then captures exactly 2**N samples from the
-//   AXI Stream input into memory, starting at address 0. Uses an internal
-//   FIFO to decouple the stream from memory timing.
-//
-// FSM: INIT_ST → TRIGGER_ST → CAPTURE_ST → END_ST
-//
-//   INIT_ST    : wait for CAPTURE_REG=1
-//   TRIGGER_ST : wait for trigger pulse
-//   CAPTURE_ST : capture 2**N samples via FIFO into BRAM
-//   END_ST     : wait for CAPTURE_REG=0 and FIFO to drain before returning
-//
-// Key differences vs data_writer_sg / data_writer_sg_nt:
-//   - Hardware trigger input instead of WE_REG
-//   - Fixed capture length: always 2**N samples
-//   - Address always starts at 0 (no START_ADDR_REG)
-//   - Internal FIFO buffers incoming stream data
-//   - s_axis_tready gated by write_en and FIFO not full
-//
-// Parameters:
-//   N  : memory address width (capture depth = 2**N samples)
-//   B  : data width in bits
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_writer_trig
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_writer_trig.sv
+//!
+//! @brief   Triggered AXI Stream to BRAM capture block. Waits for an
+//!
+//! @details
+//!
+//! external hardware trigger, then captures exactly 2**N samples from the
+//! AXI Stream input into memory, starting at address 0. Uses an internal
+//! FIFO to decouple the stream from memory timing.
+//!
+//! FSM: INIT_ST → TRIGGER_ST → CAPTURE_ST → END_ST
+//!
+//! INIT_ST    : wait for CAPTURE_REG=1
+//! TRIGGER_ST : wait for trigger pulse
+//! CAPTURE_ST : capture 2**N samples via FIFO into BRAM
+//! END_ST     : wait for CAPTURE_REG=0 and FIFO to drain before returning
+//!
+//! Key differences vs data_writer_sg / data_writer_sg_nt:
+//!
+//! - Hardware trigger input instead of WE_REG
+//! - Fixed capture length: always 2**N samples
+//! - Address always starts at 0 (no START_ADDR_REG)
+//! - Internal FIFO buffers incoming stream data
+//! - s_axis_tready gated by write_en and FIFO not full
+//!
+//! @note    Ported from mr_buffer_et/src/data_writer.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module data_writer_trig #(
+  //! memory address width (capture depth = 2**N samples)
   parameter int N = 8,
+  //! data width in bits
   parameter int B = 16
 ) (
   input  logic         rstn,

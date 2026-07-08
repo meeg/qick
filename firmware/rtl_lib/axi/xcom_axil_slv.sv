@@ -1,17 +1,20 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
-// Module: xcom_axil_slv.sv
+// Module : xcom_axil_slv
 // Project: QICK
-// Description:
-// AXI4-Lite Slave interface for the XCOM core.
-// I/O ports corresponds to the AXI4 Interface definition.
-//
-// Change history: 05/14/25 - v0.1.0 Started by @lharnaldi
-//
 ///////////////////////////////////////////////////////////////////////////////
+//! @file    xcom_axil_slv.sv
+//!
+//! @brief   AXI4-Lite Slave interface for the XCOM core.
+//!
+//! @details
+//!
+//!
+//! I/O ports corresponds to the AXI4 Interface definition.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module xcom_axil_slv#(
   parameter integer C_S_AXI_ADDR_WIDTH = 6,                 // Address width.  Adjust as needed.
   parameter integer C_S_AXI_DATA_WIDTH = 32                 // Data width (32 or 64).

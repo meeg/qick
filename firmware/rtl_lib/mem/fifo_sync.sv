@@ -1,3 +1,15 @@
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : fifo_sync
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    fifo_sync.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module fifo_sync #(
     parameter int    B                = 16,     // Data width
     parameter int    N                = 16,     // FIFO depth (Must be power of 2, minimum 16)

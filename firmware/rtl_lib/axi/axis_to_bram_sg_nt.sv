@@ -1,36 +1,46 @@
-// ============================================================================
-// File: axis_to_bram_sg_nt.sv
-// Source: axis_signal_gen_v6/src/data_writer.vhd
-// Description: AXI4-Stream to NT BRAM writer. Identical FSM and pipeline to
-//   axis_to_bram_sg but drives NT memories by splitting the full address:
-//
-//     addr_full[NT_LOG2-1        : 0]       → mem_en[NT] (one-hot demux)
-//     addr_full[NT_LOG2+N-1      : NT_LOG2] → bram.addr  (row address)
-//
-//   All NT memories share bram.we, bram.addr and bram.din.
-//   mem_en selects which of the NT memories is written each cycle.
-//
-// FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
-//   (identical to axis_to_bram_sg)
-//
-// Pipeline: 3 register stages align tdata, address high and mem_en
-//   with the FSM state transitions (fixes spurious write bug).
-//
-// Interfaces:
-//   axis   : axi4_stream_if.slave — incoming data stream
-//   bram   : bram_if.master       — shared write port (addr/din/we)
-//   mem_en : logic [NT-1:0]       — per-table write enable (one-hot)
-//
-// Parameters:
-//   NT : number of tables (must be a power of 2)
-//   N  : address width per table (depth = 2**N per table)
-//   B  : data width in bits
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axis_to_bram_sg_nt
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_to_bram_sg_nt.sv
+//!
+//! @brief   AXI4-Stream to NT BRAM writer. Identical FSM and pipeline to
+//!
+//! @details
+//!
+//! axis_to_bram_sg but drives NT memories by splitting the full address:
+//!
+//! addr_full[NT_LOG2-1        : 0]       → mem_en[NT] (one-hot demux)
+//! addr_full[NT_LOG2+N-1      : NT_LOG2] → bram.addr  (row address)
+//!
+//! All NT memories share bram.we, bram.addr and bram.din.
+//! mem_en selects which of the NT memories is written each cycle.
+//!
+//! FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
+//! (identical to axis_to_bram_sg)
+//!
+//! Pipeline: 3 register stages align tdata, address high and mem_en
+//! with the FSM state transitions (fixes spurious write bug).
+//!
+//! Interfaces:
+//! axis   : axi4_stream_if.slave — incoming data stream
+//! bram   : bram_if.master       — shared write port (addr/din/we)
+//! mem_en : logic [NT-1:0]       — per-table write enable (one-hot)
+//!
+//! @note    Ported from axis_signal_gen_v6/src/data_writer.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module axis_to_bram_sg_nt #(
+    //! number of tables (must be a power of 2)
     parameter int NT = 16,
+    //! address width per table (depth = 2**N per table)
     parameter int N  = 16,
+    //! data width in bits
     parameter int B  = 16
 ) (
     input  logic             rstn,

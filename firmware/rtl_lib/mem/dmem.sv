@@ -1,49 +1,50 @@
-//------------------------------------------------------------------------------
-// Module  : dmem
-// Origin  : Converted from data_mem.v (tProcV1 data memory top-level)
-//
-// Description:
-//   Top-level data memory controller for the QICK tProcV1 processor.
-//   Assembles three submodules and arbitrates between three access modes:
-//
-//     Mode 0 (sel=0) — Single access
-//       Accessed by the processor via exec/exec_ack handshake.
-//       Available only when busy_o = 0 (no AXIS transaction in progress).
-//
-//     Mode 1 (sel=1) — AXIS Read
-//       Reads 'len_reg' words from memory starting at 'addr_reg' and
-//       streams them out via m_axis. Initiated by start_reg=1, mode_reg=0.
-//
-//     Mode 2 (sel=2) — AXIS Write
-//       Receives a burst on s_axis (terminated by tlast) and writes it to
-//       memory starting at 'addr_reg'. Initiated by start_reg=1, mode_reg=1.
-//
-//   After each AXIS transaction completes, the user must deassert start_reg
-//   and reassert it to initiate a new transaction.
-//
-// Submodules:
-//   dmem_ctrl        — FSM arbiter (sel, busy, exec handshakes)
-//   dmem_single_rw   — Single read/write with exec handshake
-//   dmem_axis_reader — BRAM → AXI4-Stream master
-//   dmem_axis_writer — AXI4-Stream slave → BRAM
-//
-// External memory interface:
-//   The BRAM itself is instantiated outside this module. dmem drives
-//   mem_we_o, mem_di_o, mem_addr_o and reads mem_do_i.
-//   The address/data mux (sel) selects which submodule drives the BRAM.
-//
-// Parameters:
-//   N : memory address width (depth = 2**N words)
-//   B : data width in bits
-//
-// Registers (AXI-Lite or processor-driven):
-//   mode_reg  : 0 = AXIS read, 1 = AXIS write
-//   start_reg : 1 = start AXIS transaction, 0 = idle
-//   addr_reg  : starting address for AXIS read or write
-//   len_reg   : number of words to read in AXIS read mode
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : dmem
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    dmem.sv
+//!
+//! @brief   Top-level data memory controller for the QICK tProcV1 processor.
+//!
+//! @details
+//!
+//!
+//! Assembles three submodules and arbitrates between three access modes:
+//!
+//! Mode 0 (sel=0) — Single access
+//! Accessed by the processor via exec/exec_ack handshake.
+//! Available only when busy_o = 0 (no AXIS transaction in progress).
+//!
+//! Mode 1 (sel=1) — AXIS Read
+//! Reads 'len_reg' words from memory starting at 'addr_reg' and
+//! streams them out via m_axis. Initiated by start_reg=1, mode_reg=0.
+//!
+//! Mode 2 (sel=2) — AXIS Write
+//! Receives a burst on s_axis (terminated by tlast) and writes it to
+//! memory starting at 'addr_reg'. Initiated by start_reg=1, mode_reg=1.
+//!
+//! After each AXIS transaction completes, the user must deassert start_reg
+//! and reassert it to initiate a new transaction.
+//!
+//! Submodules:
+//! dmem_ctrl        — FSM arbiter (sel, busy, exec handshakes)
+//! dmem_single_rw   — Single read/write with exec handshake
+//! dmem_axis_reader — BRAM → AXI4-Stream master
+//! dmem_axis_writer — AXI4-Stream slave → BRAM
+//!
+//! External memory interface:
+//! The BRAM itself is instantiated outside this module. dmem drives
+//! mem_we_o, mem_di_o, mem_addr_o and reads mem_do_i.
+//! The address/data mux (sel) selects which submodule drives the BRAM.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module dmem #(
+    //! memory address width (depth = 2**N words)
     parameter int N = 16,
+    //! data width in bits
     parameter int B = 32
 )(
     input  logic        clk,

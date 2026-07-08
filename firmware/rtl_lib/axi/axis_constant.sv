@@ -1,17 +1,27 @@
-// ============================================================================
-// File: axis_constant.sv
-// Source: ip/axis_constant/src/axis_constant.vhd
-// Description: AXI4-Stream constant.
-//
-// Interfaces:
-//   m_axis : axi4_stream_if.master  — outgoing data stream
-//
-// Parameters:
-//   DATA_WIDTH : data width in bits
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axis_constant
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_constant.sv
+//!
+//! @brief   AXI4-Stream constant.
+//!
+//! @details
+//!
+//!
+//! Interfaces:
+//! m_axis : axi4_stream_if.master  — outgoing data stream
+//!
+//! @note    Ported from ip/axis_constant/src/axis_constant.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module axis_constant #(
+    //! data width in bits
     parameter int DATA_WIDTH = 16
 )(
     input logic             m_axis_aclk,

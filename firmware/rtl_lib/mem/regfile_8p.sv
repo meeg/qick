@@ -1,28 +1,18 @@
-//------------------------------------------------------------------------------
-// Module      : regfile_8p
-// Description : 8-page register file. Each page contains 32 registers (2^5).
-//              - 7 read ports and 1 write port, all with one‑cycle latency.
-//              - Page selection (pnum) selects which page is read; writes
-//                go to the page indicated by pnum in the same cycle.
-//              - A pipeline register (pnum_r) delays page selection for reads
-//                to match the write latency (read data appears one cycle after
-//                address is presented).
-//              - Register address 0 always reads 0 in every page.
-//
-// Parameters:
-//   B : data width in bits (default 16)
-//
-// Ports:
-//   clk, rstn : clock and active-low reset
-//   addr0..addr6 : read addresses (5 bits each)
-//   addr7 : write address (5 bits)
-//   din7  : write data (B bits)
-//   wen7  : write enable
-//   pnum  : page number (3 bits) – selects page for both read and write
-//   dout0..dout6 : read data outputs (B bits each)
-//------------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : regfile_8p
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    regfile_8p.sv
+//!
+//! @brief   TODO: one-line description.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module regfile_8p
 #(
+    //! data width in bits (default 16)
     parameter integer B = 16
 )
 (

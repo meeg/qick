@@ -1,81 +1,71 @@
 ///////////////////////////////////////////////////////////////////////////////
-// vim:set shiftwidth=3 softtabstop=3 expandtab:
-//
 // Fermi National Accelerator Laboratory
-//
 // Module : sgv4
-// Project: QICK arbitrary signal generator v4 (axis_signal_gen_v4)
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
-* @module sgv4
-* @brief Arbitrary signal generator datapath for v4 (real-or-imag output
-*        selected by a static top-level register).
-*
-* @description
-*   Faithful migration of the real production signal_gen.v, with two
-*   deliberate fixes applied (matching the same fixes already made in
-*   sgv6):
-*
-*   (1) SCALING: the legacy computes the envelope x DDS product using
-*       [31:16] (step 1) then the gain stage using [30:15] (step 2) --
-*       an inconsistent factor-of-2 between the two stages. Here the
-*       product stage now uses [30:15] (full Q15 scale). The gain/round
-*       stage takes [31:15] (17 bits): the value is quantised at bit 15
-*       like the product, and the extra MSB (bit 31) feeds the overflow
-*       detection of the saturation logic in fix (2) below.
-*
-*   (2) SATURATION: the legacy has none -- the rounded output simply wraps
-*       on overflow. Saturation to +/- MAXV (32766) is now applied to both
-*       the real and imaginary rounded values, with o_sat asserted when
-*       either would have clipped.
-*
-*   A side effect of fix (2): the legacy's gain-stage pipeline register had
-*   `if (en_int_r17) prodg_y_full_real_r[i] <= ...` without begin/end, so
-*   only the real half was actually gated by en_int_r17 -- the imaginary
-*   half updated unconditionally every cycle (a real bug in production,
-*   whether intentional or not). Matching sgv6's already-fixed structure,
-*   this stage is now updated unconditionally (both real and imaginary,
-*   every cycle) with no en-gating at all -- eliminating the ambiguity
-*   entirely rather than "fixing" it by guessing which behavior (gated
-*   real / gated both / gated neither) was intended.
-*
-*   Differences from v6 (by design, matching the real v4 hardware):
-*     - Full complex product (I and Q) computed internally, but output
-*       narrows to ONE 16-bit value per lane, selected by a static
-*       top-level register (i_outsel_reg: 0=real, 1=imag) -- NOT a
-*       per-descriptor bit. This is a genuine architectural difference
-*       from v6 (which only ever computes/outputs the real component).
-*     - o_axis_tdata is N_DDS*16 (not N_DDS*32) -- an earlier migration
-*       pass incorrectly widened this to a 32-bit I/Q pair per lane; the
-*       real hardware/driver interface is 16 bits/lane.
-*
-*   Note on N_DDS: production hardware uses N_DDS = 16 (the shared Python
-*   driver's SAMPS_PER_CLK = 16). The module is parameterised, so it may be
-*   instantiated with other lane counts (e.g. the unit testbench exercises
-*   N_DDS = 8); all lanes are structurally identical.
-*
-* @param N       Envelope-memory address width in bits (default 16).
-* @param N_DDS   Number of parallel DDS lanes (default 16).
-*
-* @port i_rstn          Active-low synchronous reset.
-* @port i_clk           Clock.
-* @port o_fifo_rd_en    Read-enable to the waveform FIFO.
-* @port i_fifo_empty    FIFO empty flag.
-* @port i_fifo_dout     160-bit waveform descriptor.
-* @port o_mem_addr      Envelope-memory read address.
-* @port i_mem_dout_real N_DDS x 16-bit real (I) envelope samples.
-* @port i_mem_dout_imag N_DDS x 16-bit imag (Q) envelope samples.
-* @port i_outsel_reg    Static real/imag output select (0=real, 1=imag),
-*                       sourced from the top-level OUTSEL_REG AXI register
-*                       (NOT from the waveform descriptor).
-* @port i_axis_tready   Downstream ready (AXIS).
-* @port o_axis_tvalid   Output valid (AXIS).
-* @port o_axis_tdata    N_DDS x 16-bit output samples (AXIS).
-* @port o_sat           Saturation flag (added; not present in legacy).
-*                       High when any lane clamps to +/- MAXV this cycle.
-*/
+//! @file    sgv4.sv
+//!
+//! @brief   sgv4
+//!
+//! @details
+//!
+//!
+//! Arbitrary signal generator datapath for v4 (real-or-imag output
+//! selected by a static top-level register).
+//!
+//! Faithful migration of the real production signal_gen.v, with two
+//! deliberate fixes applied (matching the same fixes already made in
+//! sgv6):
+//!
+//! (1) SCALING: the legacy computes the envelope x DDS product using
+//! [31:16] (step 1) then the gain stage using [30:15] (step 2) --
+//! an inconsistent factor-of-2 between the two stages. Here the
+//! product stage now uses [30:15] (full Q15 scale). The gain/round
+//! stage takes [31:15] (17 bits): the value is quantised at bit 15
+//! like the product, and the extra MSB (bit 31) feeds the overflow
+//! detection of the saturation logic in fix (2) below.
+//!
+//! (2) SATURATION: the legacy has none -- the rounded output simply wraps
+//! on overflow. Saturation to +/- MAXV (32766) is now applied to both
+//! the real and imaginary rounded values, with o_sat asserted when
+//! either would have clipped.
+//!
+//! A side effect of fix (2): the legacy's gain-stage pipeline register had
+//! `if (en_int_r17) prodg_y_full_real_r[i] <= ...` without begin/end, so
+//! only the real half was actually gated by en_int_r17 -- the imaginary
+//! half updated unconditionally every cycle (a real bug in production,
+//! whether intentional or not). Matching sgv6's already-fixed structure,
+//! this stage is now updated unconditionally (both real and imaginary,
+//! every cycle) with no en-gating at all -- eliminating the ambiguity
+//! entirely rather than "fixing" it by guessing which behavior (gated
+//! real / gated both / gated neither) was intended.
+//!
+//! Differences from v6 (by design, matching the real v4 hardware):
+//!
+//!
+//! - Full complex product (I and Q) computed internally, but output
+//! narrows to ONE 16-bit value per lane, selected by a static
+//! top-level register (i_outsel_reg: 0=real, 1=imag) -- NOT a
+//! per-descriptor bit. This is a genuine architectural difference
+//! from v6 (which only ever computes/outputs the real component).
+//!
+//!
+//! - o_axis_tdata is N_DDS*16 (not N_DDS*32) -- an earlier migration
+//! pass incorrectly widened this to a 32-bit I/Q pair per lane; the
+//! real hardware/driver interface is 16 bits/lane.
+//!
+//! Note on N_DDS: production hardware uses N_DDS = 16 (the shared Python
+//! driver's SAMPS_PER_CLK = 16). The module is parameterised, so it may be
+//! instantiated with other lane counts (e.g. the unit testbench exercises
+//! N_DDS = 8); all lanes are structurally identical.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module sgv4 #(
+   //! Envelope-memory address width in bits (default 16).
    parameter int N     = 16,
+   //! Number of parallel DDS lanes (default 16).
    parameter int N_DDS = 16
 )(
    // Reset and clock.

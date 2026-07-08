@@ -1,34 +1,34 @@
 `timescale 1ns / 1ps
 ///////////////////////////////////////////////////////////////////////////////
 // Fermi National Accelerator Laboratory
-//
 // Module : iir_iq
-// Project: axis_kidsim_v3
+// Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * @file    iir_iq.sv
- * @brief   Complex (I/Q) first-order IIR: two independent iir_1p1z cores.
- *
- * @details Splits the packed complex input word into its real (I) and
- *          imaginary (Q) 16-bit components and filters each with an identical
- *          single-channel iir_1p1z core (1-pole/1-zero, fixed-point). The two
- *          channels are fully independent (no cross-coupling), sharing only the
- *          coefficient/gain registers.
- *
- *          Packing convention (matches kidsim / prod I/Q datapath):
- *              i_data = { Q[B-1:0], I[B-1:0] }  (I in low half, Q in high half)
- *              o_data = { Qout,     Iout      }
- *
- *          Pipeline latency = 4 valid cycles (same as iir_1p1z).
- *          Both channels have identical latency, so a single o_valid (taken
- *          from the real channel) represents both; an assertion checks the
- *          imaginary channel's valid tracks it.
- *
- * @author  AD Firmware / Fermilab
- * @version 1.0
- *
- * @note    Reset convention: SYNCHRONOUS active-low (propagated to both cores).
- */
+//! @file    iir_iq.sv
+//!
+//! @brief   Complex (I/Q) first-order IIR: two independent iir_1p1z cores.
+//!
+//! @details
+//!
+//!
+//! Splits the packed complex input word into its real (I) and
+//! imaginary (Q) 16-bit components and filters each with an identical
+//! single-channel iir_1p1z core (1-pole/1-zero, fixed-point). The two
+//! channels are fully independent (no cross-coupling), sharing only the
+//! coefficient/gain registers.
+//!
+//! Packing convention (matches kidsim / prod I/Q datapath):
+//! i_data = { Q[B-1:0], I[B-1:0] }  (I in low half, Q in high half)
+//! o_data = { Qout,     Iout      }
+//!
+//! Pipeline latency = 4 valid cycles (same as iir_1p1z).
+//! Both channels have identical latency, so a single o_valid (taken
+//! from the real channel) represents both; an assertion checks the
+//! imaginary channel's valid tracks it.
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 module iir_iq #(
     /** @brief Per-component (I or Q) sample/coefficient width, Q(B-1). */
     parameter int B  = 16,

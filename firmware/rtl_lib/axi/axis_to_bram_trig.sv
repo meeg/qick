@@ -1,30 +1,40 @@
-// ============================================================================
-// File: axis_to_bram_trig.sv
-// Source: mr_buffer_et/src/data_writer.vhd
-// Description: Triggered AXI4-Stream to BRAM capture block. Waits for an
-//   external hardware trigger, then captures exactly 2**N samples from the
-//   AXI4-Stream input into memory starting at address 0. Uses an internal
-//   FIFO to decouple the stream from memory timing.
-//
-// FSM: INIT_ST → TRIGGER_ST → CAPTURE_ST → END_ST
-//
-//   INIT_ST    : wait for capture_reg=1
-//   TRIGGER_ST : wait for trigger pulse
-//   CAPTURE_ST : capture 2**N samples via FIFO into BRAM
-//   END_ST     : wait for capture_reg=0 and FIFO to drain before returning
-//
-// Interfaces:
-//   axis  : axi4_stream_if.slave  — incoming data stream
-//   bram  : bram_if.master        — write-only BRAM port (en=1, we gated)
-//
-// Parameters:
-//   N : BRAM address width (capture depth = 2**N samples)
-//   B : data width in bits (must match bram_if.NB_DATA and axis N_BYTES*8)
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : axis_to_bram_trig
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    axis_to_bram_trig.sv
+//!
+//! @brief   Triggered AXI4-Stream to BRAM capture block. Waits for an
+//!
+//! @details
+//!
+//! external hardware trigger, then captures exactly 2**N samples from the
+//! AXI4-Stream input into memory starting at address 0. Uses an internal
+//! FIFO to decouple the stream from memory timing.
+//!
+//! FSM: INIT_ST → TRIGGER_ST → CAPTURE_ST → END_ST
+//!
+//! INIT_ST    : wait for capture_reg=1
+//! TRIGGER_ST : wait for trigger pulse
+//! CAPTURE_ST : capture 2**N samples via FIFO into BRAM
+//! END_ST     : wait for capture_reg=0 and FIFO to drain before returning
+//!
+//! Interfaces:
+//! axis  : axi4_stream_if.slave  — incoming data stream
+//! bram  : bram_if.master        — write-only BRAM port (en=1, we gated)
+//!
+//! @note    Ported from mr_buffer_et/src/data_writer.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module axis_to_bram_trig #(
+  //! BRAM address width (capture depth = 2**N samples)
   parameter int N = 8,
+  //! data width in bits (must match bram_if.NB_DATA and axis N_BYTES*8)
   parameter int B = 16
 ) (
   input  logic         rstn,

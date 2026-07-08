@@ -1,24 +1,34 @@
-// ============================================================================
-// File: data_writer_sg.sv
-// Source: axis_sg_int4_v2/src/data_writer.vhd
-// Description: AXI Stream to single BRAM writer with configurable start
-//   address. Receives a continuous stream and writes it to memory starting
-//   at START_ADDR_REG. WE_REG enables/disables writing and comes from a
-//   different clock domain — synchronised internally with sync_nxm.
-//
-// FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
-//
-// Pipeline: 3 register stages (tdata_r/rr/rrr, tvalid_r/rr/rrr) align
-//   data with the FSM state transitions before writing to memory.
-//
-// Parameters:
-//   N : memory address width (depth = 2**N)
-//   B : data width in bits
-// ============================================================================
+///////////////////////////////////////////////////////////////////////////////
+// Fermi National Accelerator Laboratory
+// Module : data_writer_sg
+// Project: QICK
+///////////////////////////////////////////////////////////////////////////////
+//! @file    data_writer_sg.sv
+//!
+//! @brief   AXI Stream to single BRAM writer with configurable start
+//!
+//! @details
+//!
+//! address. Receives a continuous stream and writes it to memory starting
+//! at START_ADDR_REG. WE_REG enables/disables writing and comes from a
+//! different clock domain — synchronised internally with sync_nxm.
+//!
+//! FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
+//!
+//! Pipeline: 3 register stages (tdata_r/rr/rrr, tvalid_r/rr/rrr) align
+//! data with the FSM state transitions before writing to memory.
+//!
+//! @note    Ported from axis_sg_int4_v2/src/data_writer.vhd
+//!
+//! @author  QICK Development Team
+//!
+//! @version 1.0
 `timescale 1ns/1ps
 
 module data_writer_sg #(
+  //! memory address width (depth = 2**N)
   parameter int N = 16,
+  //! data width in bits
   parameter int B = 16
 ) (
   input  logic             rstn,
