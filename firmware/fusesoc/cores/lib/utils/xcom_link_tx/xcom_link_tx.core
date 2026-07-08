@@ -17,6 +17,7 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
+      - qick:pkg:qick_pkg
 
   lint_files:
     depend:
