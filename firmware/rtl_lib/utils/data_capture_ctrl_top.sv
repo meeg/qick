@@ -60,7 +60,7 @@ module data_capture_ctrl_top #(
   //////////////////////////////////////////////////////////////////////////////
 
   // buf_start_reg_resync
-  sync_nxm #(
+  cdc_gray_sync #(
               .N (2),
               .M (1)
             ) buf_start_reg_resync_i (
@@ -71,7 +71,7 @@ module data_capture_ctrl_top #(
             );
 
   // dr_start_reg_resync
-  sync_nxm #(
+  cdc_gray_sync #(
               .N (2),
               .M (1)
             ) dr_start_reg_resync_i (

@@ -157,23 +157,23 @@ module tprocv1 import tproc_pkg::*;
   logic [NCH-1:0] m_axis_tready_i;
 
   //--------------------------------------------------------------------------
-  // Synchronizers for external inputs (use sync_nxm)
+  // Synchronizers for external inputs (use cdc_gray_sync)
   //--------------------------------------------------------------------------
-  sync_nxm #(.N(2), .M(1)) start_src_reg_resync_i (
+  cdc_gray_sync #(.N(2), .M(1)) start_src_reg_resync_i (
     .i_rstn    (rstn),
     .i_clk     (clk),
     .i_d (start_src_reg),
     .o_d(start_src_reg_resync)
   );
 
-  sync_nxm #(.N(2), .M(1)) start_reg_resync_i (
+  cdc_gray_sync #(.N(2), .M(1)) start_reg_resync_i (
     .i_rstn    (rstn),
     .i_clk     (clk),
     .i_d (start_reg),
     .o_d(start_reg_resync)
   );
 
-  sync_nxm #(.N(2), .M(1)) start_input_resync_i (
+  cdc_gray_sync #(.N(2), .M(1)) start_input_resync_i (
     .i_rstn    (rstn),
     .i_clk     (clk),
     .i_d (start),

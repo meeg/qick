@@ -146,7 +146,7 @@ module axis_signal_gen_v4 #(
 
    // Sticky flag in aclk domain, cleared by sat_clear (synced from s_axi).
    logic sat_clear_aclk;
-   sync_nxm #(.N(2), .M(1)) sat_clear_sync_i (
+   cdc_gray_sync #(.N(2), .M(1)) sat_clear_sync_i (
       .i_clk  (aclk),
       .i_rstn (aresetn),
       .i_d    (sat_clear),
@@ -162,7 +162,7 @@ module axis_signal_gen_v4 #(
 
    // CDC: sticky flag aclk -> s_axi_aclk for the STATUS register.
    logic sat_sticky_axi;
-   sync_nxm #(.N(2), .M(1)) sat_sticky_sync_i (
+   cdc_gray_sync #(.N(2), .M(1)) sat_sticky_sync_i (
       .i_clk  (s_axi_aclk),
       .i_rstn (s_axi_aresetn),
       .i_d    (sat_sticky),

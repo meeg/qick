@@ -87,7 +87,7 @@ module avg_top #(
   //////////////////////////////////////////////////////////////////////////////
 
   // avg_start_reg_resync
-  sync_nxm #(
+  cdc_gray_sync #(
              .N (2),
              .M (1)
            ) avg_start_reg_resync_i (
@@ -98,7 +98,7 @@ module avg_top #(
            );
 
   // dr_start_reg_resync
-  sync_nxm #(
+  cdc_gray_sync #(
              .N (2),
              .M (1)
            ) dr_start_reg_resync_i (

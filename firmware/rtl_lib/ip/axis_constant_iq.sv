@@ -100,7 +100,7 @@ module axis_constant_iq #(
     // ==========================================
     // Synchronizer Instance (for we_reg)
     // ==========================================
-    sync_nxm #(.N(2), .M(1)) we_reg_sync (
+    cdc_gray_sync #(.N(2), .M(1)) we_reg_sync (
         .i_clk(m_axis_aclk),
         .i_rstn(m_axis_aresetn),
         .i_d(we_reg),

@@ -11,7 +11,7 @@
 //!
 //! address. Receives a continuous stream and writes it to memory starting
 //! at start_addr_reg. capture_reg enables/disables writing and may come
-//! from a different clock domain — synchronised internally with sync_nxm.
+//! from a different clock domain — synchronised internally with cdc_gray_sync.
 //!
 //! FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
 //!
@@ -63,7 +63,7 @@ module axis_to_bram_sg #(
     // -------------------------------------------------------------------------
     logic capture_sync;
 
-    sync_nxm #(
+    cdc_gray_sync #(
         .N (2),
         .M (1)
     ) capture_sync_i (

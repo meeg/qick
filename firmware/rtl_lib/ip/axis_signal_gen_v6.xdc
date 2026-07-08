@@ -2,7 +2,7 @@
 # axis_signal_gen_v6 — clock domain crossing constraints (scoped to the IP)
 #
 # Three asynchronous clock domains: s_axi_aclk, s0_axis_aclk, aclk.
-# All CDC paths use ASYNC_REG synchronizers (sync_nxm) or the dual-clock BRAM
+# All CDC paths use ASYNC_REG synchronizers (cdc_gray_sync) or the dual-clock BRAM
 # (bram_tdp). Declaring the clock groups asynchronous covers every cross-domain
 # path; the synchronizers guarantee CDC safety.
 ###############################################################################

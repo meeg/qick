@@ -72,7 +72,7 @@ module axis_to_bram_sg_nt #(
     // -------------------------------------------------------------------------
     logic capture_sync;
 
-    sync_nxm #(
+    cdc_gray_sync #(
         .N (2),
         .M (1)
     ) capture_sync_i (

@@ -11,7 +11,7 @@
 //!
 //! address. Receives a continuous stream and writes it to memory starting
 //! at START_ADDR_REG. WE_REG enables/disables writing and comes from a
-//! different clock domain — synchronised internally with sync_nxm.
+//! different clock domain — synchronised internally with cdc_gray_sync.
 //!
 //! FSM: INIT_ST → READ_START_ADDR_ST → WAIT_TVALID_ST → RW_TDATA_ST
 //!
@@ -55,7 +55,7 @@ module data_writer_sg #(
   // -------------------------------------------------------------------------
   logic we_reg_resync;
 
-  sync_nxm #(
+  cdc_gray_sync #(
     .N (2),
     .M (1)
   ) we_reg_sync_i (

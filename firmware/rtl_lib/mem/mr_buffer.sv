@@ -15,7 +15,7 @@
 //! mr_buffer – SystemVerilog conversion
 //! Replaces VHDL data_writer   -> axis_to_bram_trig
 //! data_reader     -> bram_to_axis
-//! synchronizer    -> sync_nxm
+//! synchronizer    -> cdc_gray_sync
 //!
 //! Design overview:
 //! mr_buffer captures NM parallel channels of B bits each into NM independent
@@ -80,18 +80,18 @@ module mr_buffer #(
 );
 
   // -------------------------------------------------------------------------
-  // Synchronisers (sync_nxm with M=1 for single-bit signals)
+  // Synchronisers (cdc_gray_sync with M=1 for single-bit signals)
   // -------------------------------------------------------------------------
   logic dw_capture_reg_resync, dr_start_reg_resync, trigger_resync;
 
-  sync_nxm #(.N(2), .M(1)) sync_dw_capture (
+  cdc_gray_sync #(.N(2), .M(1)) sync_dw_capture (
     .i_clk  (s_axis_aclk),
     .i_rstn (s_axis_aresetn),
     .i_d    (dw_capture_reg),
     .o_d    (dw_capture_reg_resync)
   );
 
-  sync_nxm #(.N(2), .M(1)) sync_dr_start (
+  cdc_gray_sync #(.N(2), .M(1)) sync_dr_start (
     .i_clk  (m_axis_aclk),
     .i_rstn (m_axis_aresetn),
     .i_d    (dr_start_reg),
@@ -101,7 +101,7 @@ module mr_buffer #(
   logic trigger_or_dbg;
   assign trigger_or_dbg = trigger | debug_reg[0];
 
-  sync_nxm #(.N(2), .M(1)) sync_trigger (
+  cdc_gray_sync #(.N(2), .M(1)) sync_trigger (
     .i_clk  (s_axis_aclk),
     .i_rstn (s_axis_aresetn),
     .i_d    (trigger_or_dbg),

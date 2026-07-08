@@ -14,7 +14,7 @@
 //! Delays an M-bit data word by exactly N clock cycles. Used to align signals
 //! travelling through datapaths of different pipeline depths within the SAME
 //! clock domain (latency matching). This is NOT a CDC synchronizer — for clock
-//! domain crossing use sync_nxm (which adds the ASYNC_REG attribute).
+//! domain crossing use cdc_gray_sync (which adds the ASYNC_REG attribute).
 //!
 //! Latency: exactly N cycles. Synchronous active-low reset clears all stages.
 //!

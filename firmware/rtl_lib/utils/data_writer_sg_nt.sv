@@ -65,7 +65,7 @@ module data_writer_sg_nt #(
   // -------------------------------------------------------------------------
   logic we_reg_resync;
 
-  sync_nxm #(
+  cdc_gray_sync #(
     .N (2),
     .M (1)
   ) we_reg_sync_i (
