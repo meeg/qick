@@ -7,18 +7,20 @@ filesets:
     files:
       - hdl/axis_tap.sv
     file_type: systemVerilogSource
+    depend: 
+      - qick:interfaces:axi4_stream_if
 
   tb:
     files: &tb_files
       - tests/axis_tap_tc00.sv
-      - tests/tests.sv: {is_include_file: true}
+      - tests/axis_tap_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
-      - qick:global:sim_base
+      - qick:common:sim_base
 
   lint_files:
     depend:
-      - qick:global:lint
+      - qick:common:lint
 
 generate:
   testrunner_gen:
@@ -51,6 +53,6 @@ targets:
     toplevel: testrunner
     tools:
       xsim:
-        xelab_options: [-debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
 
