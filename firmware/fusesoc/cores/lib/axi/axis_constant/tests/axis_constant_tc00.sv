@@ -18,7 +18,6 @@ module axis_constant_unit_test;
     // =========================================================================
     localparam real CLOCK_FREQUENCY = 200e6;
     localparam int  B     = 16;
-    localparam int  BYTES = B / 8;
 
     // =========================================================================
     // Clock & Reset
@@ -29,19 +28,16 @@ module axis_constant_unit_test;
     // =========================================================================
     // Interfaces
     // =========================================================================
-    axi4_stream_if #(
-        .N_BYTES_TDATA (BYTES),
-        .N_BITS_TUSER  (1),
-        .N_BITS_TID    (1),
-        .N_BITS_TDEST  (1),
-        .HAS_TSTRB     (1'b0),
-        .HAS_TKEEP     (1'b0),
-        .HAS_TID       (1'b0),
-        .HAS_TDEST     (1'b0),
-        .HAS_TUSER     (1'b0)
+   axi4_stream_if #(
+        .TDATA_WIDTH (B),
+        .HAS_TSTRB   (1'b1),
+        .HAS_TKEEP   (1'b0),
+        .HAS_TID     (1'b0),
+        .HAS_TDEST   (1'b0),
+        .HAS_TUSER   (1'b0)
     ) axis_if (
-        .i_clk  (tb_clk),
-        .i_rstn (tb_rstn)
+        .aclk    (tb_clk),
+        .aresetn (tb_rstn)
     );
 
     // =========================================================================
