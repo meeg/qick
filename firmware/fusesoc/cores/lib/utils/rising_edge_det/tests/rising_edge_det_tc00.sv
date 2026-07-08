@@ -8,14 +8,12 @@ import svunit_pkg::svunit_testcase;
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
+  localparam NB              = 8;
 
-  localparam NB             = 8; //[Hz]
-
-  logic          tb_clk     = 1'b0;
-  logic          tb_rstn    = 1'b1;
-
-  logic [NB-1:0] tb_i_data  = 1'b0;
-  logic [NB-1:0] tb_o_data  = 1'b0;
+  logic          tb_clk    = 1'b0;
+  logic          tb_rstn   = 1'b1;
+  logic          tb_strobe = 1'b0;   // i_strobe stimulus (1-bit level input)
+  logic          tb_pulse  = 1'b0;   // o_pulse observed output
 
 initial begin
   $dumpfile("rising_edge_det.vcd");
@@ -32,31 +30,26 @@ u_clk_gen
   .o_clk      ( tb_clk            )
 );
 
-
 default clocking cb @(posedge tb_clk);
-output tb_rstn   ;
-output tb_i_data ;
-input  tb_o_data ;
+  output tb_rstn   ;
+  output tb_strobe ;
+  input  tb_pulse  ;
 endclocking
 
 //===================================
 // This is the UUT that we're
 // running the Unit Tests on
 //===================================
-
 rising_edge_det u_rising_edge_det (
-  .i_clk      ( tb_clk     ),
-  .i_rstn     ( tb_rstn    ),
-
-  .i_strobe   ( tb_i_data  ),
-                           
-  .o_pulse    ( tb_o_data  )
+  .i_clk    ( tb_clk    ),
+  .i_rstn   ( tb_rstn   ),
+  .i_strobe ( tb_strobe ),
+  .o_pulse  ( tb_pulse  )
 );
 
 //===================================
 // Build
 //===================================
-
 function void build();
   svunit_ut = new(name);
 endfunction
@@ -66,18 +59,17 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-  cb.tb_i_data  <= '0;
-  
-  @(cb);
-  cb.tb_rstn             <= 1'b0;
-  repeat(2) @(cb);
-  cb.tb_rstn             <= 1'b1;
-  repeat(5) @(cb);
+  cb.tb_strobe <= 1'b0;
 
+  @(cb);
+  cb.tb_rstn   <= 1'b0;
+  repeat(2) @(cb);
+  cb.tb_rstn   <= 1'b1;
+  repeat(5) @(cb);
 endtask
 
 //===================================
-// Here we deconstruct anything we 
+// Here we deconstruct anything we
 // need after running the Unit Tests
 //===================================
 task teardown();
@@ -91,16 +83,9 @@ endtask
 // Each individual test must be
 // defined between `SVTEST(_NAME_)
 // `SVTEST_END
-//
-// i.e.
-//   `SVTEST(mytest)
-//     <test code>
-//   `SVTEST_END
 //===================================
-
-
 `SVUNIT_TESTS_BEGIN
 `include "tests.sv"
-`SVUNIT_TESTS_END 
+`SVUNIT_TESTS_END
 
 endmodule
