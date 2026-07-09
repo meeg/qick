@@ -117,6 +117,53 @@ module iir_1p1z_unit_test;
         ref_xnm1 = '0;
     endtask
 
+    // Persistent state for the SATURATED reference model.
+    logic signed [BA-1:0] refs_y1;
+    logic signed [BA-1:0] refs_xnm1;
+
+    // Saturated reference: same as ref_step but y1 is clamped to BA bits.
+    function automatic logic signed [B-1:0] ref_step_sat(input logic signed [B-1:0] x);
+        logic signed [BA-1:0] xn;
+        logic signed [BP-1:0] p0, p1, yg;
+        logic signed [BA-1:0] p0_q, p1_q, y0, y1;
+        logic signed [BA:0]   y1_ext;
+        logic signed [B-1:0]  yg_q;
+        localparam logic signed [BA-1:0] SMAX = {1'b0, {(BA-1){1'b1}}};
+        localparam logic signed [BA-1:0] SMIN = {1'b1, {(BA-1){1'b0}}};
+        begin
+            xn   = BA'(x);
+            p0   = i_c0 * refs_xnm1;
+            p0_q = p0[BP-2 -: BA];
+            y0   = xn - p0_q;
+            p1   = i_c1 * refs_y1;
+            p1_q = p1[BP-2 -: BA];
+            // saturating feedback sum
+            y1_ext = $signed({y0[BA-1], y0}) + $signed({p1_q[BA-1], p1_q});
+            y1     = (y1_ext > $signed(SMAX)) ? SMAX :
+                     (y1_ext < $signed(SMIN)) ? SMIN :
+                     y1_ext[BA-1:0];
+            yg   = i_g * y1;
+            begin
+                logic signed [BP-B:0] yg_sr;
+                logic signed [B-1:0]  SMAXB, SMINB;
+                SMAXB = {1'b0, {(B-1){1'b1}}};
+                SMINB = {1'b1, {(B-1){1'b0}}};
+                yg_sr = yg >>> (B-1);
+                yg_q  = (yg_sr > $signed(SMAXB)) ? SMAXB :
+                        (yg_sr < $signed(SMINB)) ? SMINB :
+                        yg_sr[B-1:0];
+            end
+            refs_xnm1 = xn;
+            refs_y1   = y1;
+            return yg_q;
+        end
+    endfunction
+
+    task automatic ref_reset_sat();
+        refs_y1   = '0;
+        refs_xnm1 = '0;
+    endtask
+
     //-------------------------------------------------------------------------
     // Driver helpers
     //-------------------------------------------------------------------------

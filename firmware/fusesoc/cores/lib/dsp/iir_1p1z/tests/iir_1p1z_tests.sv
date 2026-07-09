@@ -213,3 +213,64 @@
         end
     join
 `SVTEST_END
+
+//-----------------------------------------------------------------------------
+// TEST 6: Feed-back saturation. With a pole close to +1 (C1 high) and a large
+//   sustained input, the loop state y1 would overflow BA bits. Without
+//   saturation it WRAPS (a big positive value flips negative -> glitch). With
+//   the fix it clamps monotonically. We check the DUT matches the SATURATED
+//   reference and that the output never wraps (no sign flip once it is high).
+//-----------------------------------------------------------------------------
+`SVTEST(test_feedback_saturation)
+    localparam int NS = 60;
+    logic signed [B-1:0] x;
+    logic signed [B-1:0] exp_q [$];
+    // aggressive pole + high gain + large input to force loop overflow
+    i_c0 = 16'sh0000;   // no zero, isolate the pole
+    i_c1 = 16'sh7999;   // ~0.95 (very close to +1)
+    i_g  = 16'sh7FFF;   // ~1.0
+    x    = 16'sh6000;   // large positive step
+
+    do_reset();
+    ref_reset_sat();
+
+    // Golden (saturated) expected values.
+    for (int k = 0; k < NS; k++) exp_q.push_back(ref_step_sat(x));
+
+    fork
+        // producer: sustained large step
+        begin
+            for (int k = 0; k < NS; k++) begin
+                @(posedge tb_clk);
+                i_data  <= x;
+                i_valid <= 1'b1;
+            end
+            @(posedge tb_clk);
+            i_valid <= 1'b0;
+        end
+        // consumer: match saturated model + no-wrap check
+        begin
+            int got = 0;
+            logic signed [B-1:0] prev;
+            prev = '0;
+            while (got < NS) begin
+                @(posedge tb_clk);
+                if (o_valid) begin
+                    // 1) matches the saturated reference exactly
+                    `FAIL_UNLESS_LOG(o_data === exp_q[got],
+                        $sformatf("sat sample %0d: got %0h exp %0h",
+                                  got, o_data, exp_q[got]))
+                    // 2) no catastrophic wrap: once the output is large positive
+                    //    it must not suddenly flip to large negative.
+                    if (got > 5 && prev > 16'sh4000) begin
+                        `FAIL_IF_LOG(o_data < -16'sh4000,
+                            $sformatf("WRAP detected @%0d: prev %0h now %0h",
+                                      got, prev, o_data))
+                    end
+                    prev = o_data;
+                    got++;
+                end
+            end
+        end
+    join
+`SVTEST_END
