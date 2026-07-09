@@ -47,7 +47,10 @@ module dds_compiler_model #(
    //! Width of the phase/pinc fields packed into
    parameter int PHASE_WIDTH = 32,
    //! 1 = Sine_and_Cosine (32-bit packed output),
-   parameter bit DUAL_OUTPUT = 1'b1
+   parameter bit DUAL_OUTPUT = 1'b1,
+   //! 1 = Streaming pinc (accumulate internally);
+   parameter bit STREAMING   = 1'b0   //! 1 = Streaming pinc (accumulate internally);
+                                      //! 0 = phase pre-accumulated upstream (signal_gen)
 )(
    input  logic                       aclk,
    input  logic                       s_axis_phase_tvalid,
@@ -62,8 +65,7 @@ module dds_compiler_model #(
    // absolute phase is already computed upstream (e.g. by ctrl_sg_v6's
    // phase_v1 pipeline), so we use it directly as the instantaneous phase.
    logic [PHASE_WIDTH-1:0] phase_in;
-   // Bits [2*PHASE_WIDTH+7 : 2*PHASE_WIDTH] are sync/padding, unused here.
-   assign phase_in = s_axis_phase_tdata[2*PHASE_WIDTH-1 -: PHASE_WIDTH];
+   logic [PHASE_WIDTH-1:0] phase_acc = '0;   // internal accumulator for streaming mode
 
    logic signed [15:0] cos_v, sin_v;
    real angle;
@@ -73,6 +75,23 @@ module dds_compiler_model #(
       cos_v = $rtoi($cos(angle) * 32767.0);
       sin_v = $rtoi($sin(angle) * 32767.0);
    end
+
+   generate
+      if (STREAMING) begin : gen_streaming
+         // Pinc is in the LOW bits; accumulate it each valid cycle (like the
+         // real IP in Phase_Increment=Streaming mode).
+         logic [PHASE_WIDTH-1:0] pinc;
+         assign pinc = s_axis_phase_tdata[PHASE_WIDTH-1:0];
+         always_ff @(posedge aclk) begin
+            if (s_axis_phase_tvalid) phase_acc <= phase_acc + pinc;
+         end
+         assign phase_in = phase_acc;
+      end
+      else begin : gen_preaccumulated
+         // Phase is absolute, in the HIGH bits (signal_gen / ctrl_sg_v6 path).
+         assign phase_in = s_axis_phase_tdata[2*PHASE_WIDTH-1 -: PHASE_WIDTH];
+      end
+   endgenerate
 
    logic [OUT_WIDTH-1:0] sample;
    generate
