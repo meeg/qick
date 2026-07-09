@@ -11,12 +11,21 @@
 //!
 //! Parameterizable M-bit, N-stage delay line for latency matching.
 //!
-//! Delays an M-bit data word by exactly N clock cycles. Used to align signals
-//! travelling through datapaths of different pipeline depths within the SAME
-//! clock domain (latency matching). This is NOT a CDC synchronizer — for clock
-//! domain crossing use cdc_gray_sync (which adds the ASYNC_REG attribute).
+//! Delays an M-bit data word by EXACTLY N clock cycles. Structure: stage 0 is
+//! the combinational input, followed by N registers in series; o_data is the
+//! N-th register. Therefore:
 //!
-//! Latency: exactly N cycles. Synchronous active-low reset clears all stages.
+//!   o_data(t) = i_data(t - N)      (latency = N, for N >= 1)
+//!
+//! LATENCY BUDGETING NOTE: when balancing paths, count this block as exactly N.
+//! A value applied at clock edge k appears at o_data at edge k+N. Verified by
+//! direct measurement in the testbench (tc_measure_latency).
+//!
+//! Used to align signals travelling through datapaths of different pipeline
+//! depths within the SAME clock domain. This is NOT a CDC synchronizer — for
+//! clock domain crossing use cdc_gray_sync / cdc_bit_sync (ASYNC_REG).
+//!
+//! Requires N >= 1. Synchronous active-low reset clears all stages.
 //!
 //! @author  QICK Development Team
 //!

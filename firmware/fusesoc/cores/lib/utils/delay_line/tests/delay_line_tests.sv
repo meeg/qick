@@ -89,3 +89,23 @@
     repeat(2) @(tb_cb);
     `FAIL_IF(tb_data_o !== '0);
 `SVTEST_END
+
+// ----------------------------------------------------------------------------
+// TEST 06: Explicit latency measurement — inject a unique marker and count the
+//   exact number of cycles until it appears on the output. Confirms latency == N
+//   with a direct measurement (documented for downstream latency budgeting).
+// ----------------------------------------------------------------------------
+`SVTEST(tc_measure_latency)
+    logic [M-1:0] marker = 16'hBEEF & ((1<<M)-1);
+    int lat;
+    lat = -1;
+    tb_cb.tb_data_i <= marker;      // apply marker
+    @(tb_cb);                        // it is captured at THIS edge -> counts as cycle 1
+    tb_cb.tb_data_i <= '0;
+    for (int c = 1; c < N + 8; c++) begin
+        if (lat == -1 && tb_data_o === marker) lat = c;
+        @(tb_cb);
+    end
+    $display("DELAY_LINE latency measured = %0d (parameter N = %0d)", lat, N);
+    `FAIL_IF(lat !== N);
+`SVTEST_END
