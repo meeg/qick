@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:dsp:ctrl_sgv4:1.0.0
+name: qick:ctrl:ctrl_sgv4:1.0.0
 description: ctrl_sgv4 (dsp library core).
 
 filesets:

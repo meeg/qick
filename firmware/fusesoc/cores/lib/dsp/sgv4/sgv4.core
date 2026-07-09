@@ -9,7 +9,7 @@ filesets:
     file_type: systemVerilogSource
     depend:
       - qick:utils:delay_line
-      - qick:dsp:ctrl_sgv4
+      - qick:ctrl:ctrl_sgv4
       - qick:dsp:dds_compiler_dyn_readout   # provides the DDS (model for sim, .xci for synth)
   tb:
     files:
