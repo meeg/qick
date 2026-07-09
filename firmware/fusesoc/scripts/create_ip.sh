@@ -26,7 +26,7 @@ RDL_FILE   = $(IP_NAME)_regmap.rdl
 GEN_SCRIPT = ../../../../generators/systemrdl/rdl_tools.py
 
 gen:
-	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --hdl --python
+	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --python
 
 docs:
 	python3 $(GEN_SCRIPT) $(RDL_FILE) --output . --html
