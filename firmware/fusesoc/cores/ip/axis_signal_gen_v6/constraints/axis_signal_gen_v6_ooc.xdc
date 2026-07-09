@@ -1,1 +1,1 @@
-../../../../../rtl_lib/ip/axis_signal_gen_v6_ooc.xdc
+../../../../../rtl_lib/constraints/axis_signal_gen_v6_ooc.xdc

@@ -14,10 +14,13 @@ IP_DIR="cores/ip/$IP_NAME"
 echo "Creating IP: $IP_NAME"
 
 # Create directories
-mkdir -p $IP_DIR/{hdl,rdl,driver,tests,data}
+mkdir -p $IP_DIR/{hdl,rdl,constraints,driver,tests,data}
 
 # Create symlink to HDL (assuming it is in rtl_lib/ip/)
 ln -s ../../../../../rtl_lib/ip/${IP_NAME}.sv $IP_DIR/hdl/${IP_NAME}.sv 2>/dev/null || echo "  rtl_lib/ip/${IP_NAME}.sv was not found!"
+# Create symlink to constraints (assuming it is in rtl_lib/constraints/)
+ln -s ../../../../../rtl_lib/constraints/${IP_NAME}.xdc $IP_DIR/constraints/${IP_NAME}.xdc 2>/dev/null || echo "  rtl_lib/constraints/${IP_NAME}.xdc was not found!"
+ln -s ../../../../../rtl_lib/constraints/${IP_NAME}_ooc.xdc $IP_DIR/constraints/${IP_NAME}_ooc.xdc 2>/dev/null || echo "  rtl_lib/constraints/${IP_NAME}_ooc.xdc was not found!"
 
 # Create updated Makefile for the RDL
 cat > $IP_DIR/rdl/Makefile << 'EOF'
