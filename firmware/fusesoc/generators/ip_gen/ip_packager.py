@@ -189,7 +189,7 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     
     # 4. Collect the IP's XDC constraints from rtl_lib/ip/.
     print(f"\n  Looking for IP constraints (.xdc)...")
-    for xdc in sorted((rtl_lib_root / 'ip').glob(f"{name}*.xdc")):
+    for xdc in sorted((rtl_lib_root / 'constraints').glob(f"{name}*.xdc")):
         if xdc.name not in all_sources.values():
             all_sources[str(xdc)] = xdc.name
             print(f"    Found: {xdc.name}")
