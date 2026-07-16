@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Sat Jun 13 19:08:17 2026
+[*] Thu Jul 16 22:06:13 2026
 [*]
 [dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_axi_axis_to_bram_trig_1.0.0/test-xsim/axis_to_bram_trig.vcd"
-[dumpfile_mtime] "Sat Jun 13 18:53:46 2026"
-[dumpfile_size] 113089
+[dumpfile_mtime] "Thu Jul 16 22:04:33 2026"
+[dumpfile_size] 113261
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/axi/axis_to_bram_trig/data/axis_to_bram_trig.gtkw"
-[timestart] 2715600
-[size] 1920 1140
+[timestart] 0
+[size] 1920 1045
 [pos] -1 -1
-*-15.798676 2930000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-18.798676 2930000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.axis_to_bram_trig_ut.
 [sst_width] 206
 [signals_width] 185
 [sst_expanded] 1
-[sst_vpaned_height] 767
+[sst_vpaned_height] 696
 @28
 [color] 2
 testrunner.__ts.axis_to_bram_trig_ut.u_dut.capture_reg
@@ -42,11 +42,12 @@ testrunner.__ts.axis_to_bram_trig_ut.u_dut.mem_di_r[15:0]
 @28
 testrunner.__ts.axis_to_bram_trig_ut.u_dut.mem_we_r
 testrunner.__ts.axis_to_bram_trig_ut.u_dut.rstn
-@29
 [color] 3
 testrunner.__ts.axis_to_bram_trig_ut.u_dut.trigger
-@28
 testrunner.__ts.axis_to_bram_trig_ut.u_dut.write_en
+@29
+[color] 6
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.o_capture_done
 @800200
 -axis_if
 @420

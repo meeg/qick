@@ -56,7 +56,9 @@ module axis_to_bram_trig #(
   output logic [B-1:0] mem_di,
 
   // Software control register
-  input  logic         capture_reg
+  input  logic         capture_reg,
+  //! High while in END_ST: 2**N samples captured to BRAM (level, not sticky)
+  output logic         o_capture_done
 );
 
   // -------------------------------------------------------------------------
@@ -70,6 +72,9 @@ module axis_to_bram_trig #(
   } state_t;
 
   state_t current_state, next_state;
+
+  // capture-complete flag (level): high while draining/holding in END_ST
+  assign o_capture_done = (current_state == END_ST);
 
   // -------------------------------------------------------------------------
   // FSM output

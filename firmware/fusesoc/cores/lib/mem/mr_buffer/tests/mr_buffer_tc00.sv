@@ -64,7 +64,8 @@ module mr_buffer_unit_test;
     logic        trigger        = 1'b0;
     logic        dw_capture_reg = 1'b0;
     logic        dr_start_reg   = 1'b0;
-    logic [31:0] debug_reg      = '0;
+    logic [31:0] debug_reg      = '0  ;
+    logic        o_capture_done       ;
 
     // Debug probes (wired but not checked in tests)
     logic [31:0] s_dbg_probe;
@@ -145,7 +146,8 @@ module mr_buffer_unit_test;
         .dr_start_reg   (dr_start_reg),
         .debug_reg      (debug_reg),
         .s_dbg_probe    (s_dbg_probe),
-        .m_dbg_probe    (m_dbg_probe)
+        .m_dbg_probe    (m_dbg_probe),
+        .o_capture_done (o_capture_done)
     );
 
     // =========================================================================

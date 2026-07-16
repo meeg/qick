@@ -74,6 +74,7 @@ module axis_to_bram_trig_unit_test;
     // =========================================================================
     logic tb_trigger     = 1'b0;
     logic tb_capture_reg = 1'b0;
+    logic tb_capture_done      ;
 
     // =========================================================================
     // Clocking block
@@ -111,7 +112,8 @@ module axis_to_bram_trig_unit_test;
         .mem_we        (bram_if_i.we),
         .mem_addr      (bram_if_i.addr),
         .mem_di        (bram_if_i.din),
-        .capture_reg   (tb_capture_reg)
+        .capture_reg   (tb_capture_reg),
+        .o_capture_done(tb_capture_done)
     );
 
     // =========================================================================

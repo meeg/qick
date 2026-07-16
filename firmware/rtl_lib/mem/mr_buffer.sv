@@ -76,7 +76,8 @@ module mr_buffer #(
 
   // Debug probes (optional, for ILA)
   output logic [31:0]         s_dbg_probe,
-  output logic [31:0]         m_dbg_probe
+  output logic [31:0]         m_dbg_probe,
+  output logic                o_capture_done
 );
 
   // -------------------------------------------------------------------------
@@ -142,6 +143,7 @@ module mr_buffer #(
   logic         m_axis_tvalid_int;
   logic [B-1:0] m_axis_tdata_int;
   logic         m_axis_tlast_int;
+  logic [NM-1:0]cap_done_ch;  // capture done from each channel
 
   // -------------------------------------------------------------------------
   // Generate NM channels: BRAM + axis_to_bram_trig
@@ -167,7 +169,8 @@ module mr_buffer #(
         .mem_we        ( wea[i]                ),
         .mem_addr      ( addra[i]              ),
         .mem_di        ( dia[i]                ),
-        .capture_reg   ( dw_capture_reg_resync )
+        .capture_reg   ( dw_capture_reg_resync ),
+        .o_capture_done ( cap_done_ch[i] )
       );
 
       // True dual‑port BRAM
@@ -192,6 +195,8 @@ module mr_buffer #(
       );
     end
   endgenerate
+
+  assign o_capture_done = &cap_done_ch;
 
   // Combine tready from all channels
   assign s_axis_tready = (&s_axis_tready_i) | s_axis_tready_force;

@@ -9,7 +9,18 @@ filesets:
     file_type: systemVerilogSource
     depend:
       - qick:axi:axil_slv
+      - qick:cdc:cdc_bit_sync
       - qick:mem:mr_buffer
+
+  constraints:
+    files:
+      - constraints/mr_buffer_et.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/mr_buffer_et_ooc.xdc: {file_type: xdc}
+    file_type: xdc
 
   tb:
     files:

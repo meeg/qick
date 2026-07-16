@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Sat Jun 13 20:08:20 2026
+[*] Thu Jul 16 22:15:37 2026
 [*]
 [dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_mr_buffer_1.0.0/test-xsim/mr_buffer.vcd"
-[dumpfile_mtime] "Sat Jun 13 20:07:42 2026"
-[dumpfile_size] 5755820
+[dumpfile_mtime] "Thu Jul 16 22:14:06 2026"
+[dumpfile_size] 5689517
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/mr_buffer/data/mr_buffer.gtkw"
-[timestart] 0
-[size] 1920 1140
+[timestart] 12097500
+[size] 1920 1045
 [pos] -1 -1
-*-22.986748 2501750 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-16.986748 12572076 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.mr_buffer_ut.
@@ -41,6 +41,10 @@ testrunner.__ts.mr_buffer_ut.dut.dob_c[127:0]
 testrunner.__ts.mr_buffer_ut.dut.dr_start_reg_resync
 testrunner.__ts.mr_buffer_ut.dut.dw_capture_reg_resync
 testrunner.__ts.mr_buffer_ut.dut.enb
+[color] 6
+testrunner.__ts.mr_buffer_ut.dut.o_capture_done
+@23
+testrunner.__ts.mr_buffer_ut.dut.cap_done_ch[7:0]
 @800200
 -s_axis
 @28
@@ -240,9 +244,9 @@ testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
 (79)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
 @1401200
 -group_end
-@c00023
+@c00022
 #{d2} (80)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (81)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (82)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (83)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (84)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (85)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (86)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (87)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (88)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (89)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (90)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (91)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (92)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (93)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (94)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (95)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
-@29
+@28
 [color] 3
 (80)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
 [color] 3
@@ -275,7 +279,7 @@ testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
 (94)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
 [color] 3
 (95)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
-@1401201
+@1401200
 -group_end
 @c00022
 #{d1} (96)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (97)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (98)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (99)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (100)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (101)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (102)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (103)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (104)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (105)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (106)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (107)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (108)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (109)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (110)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (111)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
