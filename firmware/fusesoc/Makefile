@@ -256,16 +256,17 @@ new-ip:
 	fi
 	./scripts/create_ip.sh $(IP)
 
-# Full driver flow: regmap gen -> symlink into qick_lib -> register tests.
+# Full driver flow: regmap gen -> create driver if missing -> symlink into qick_lib -> register tests.
 driver:
 	@if [ -z "$(IP)" ]; then echo "Usage: make driver IP=<ip_name>"; exit 1; fi
 	@echo "Generating driver for $(IP)..."
 	. venv/bin/activate; \
 	$(MAKE) -C cores/ip/$(IP)/rdl gen
+	@./scripts/gen_driver.sh $(IP)
 	@if [ -f cores/ip/$(IP)/driver/$(IP).py ]; then \
-	ln -sf ../../../firmware/fusesoc/cores/ip/$(IP)/driver/$(IP).py \
-	    ../../qick_lib/qick/drivers/$(IP).py; \
-	echo "  Symlink created"; \
+		ln -sf ../../../firmware/fusesoc/cores/ip/$(IP)/driver/$(IP).py \
+			     ../../qick_lib/qick/drivers/$(IP).py; \
+			echo "  Symlink created"; \
 	fi
 	@$(MAKE) --no-print-directory driver-test IP=$(IP)
 

@@ -106,7 +106,7 @@ filesets:
         - ${IP_NAME}_regmap_pkg.sv : {file_type: systemVerilogSource, is_include_file: true}
 EOF
 
-# Crear template del .core principal
+# Create template for the main .core 
 cat > $IP_DIR/${IP_NAME}.core << EOF
 CAPI=2:
 name: qick:ip:${IP_NAME}:1.0.0
@@ -152,15 +152,27 @@ targets:
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
 EOF
 
-# Create template for the driver
-cat > $IP_DIR/driver/${IP_NAME}.py << EOF
+# Create template for the driver (PYNQ DefaultIP + PeakRDL reg model)
+# CamelCase class name: axis_pid -> AxisPid
+CLASS_NAME=$(echo "$IP_NAME" | sed -r 's/(^|_)([a-z])/\U\2/g')
+DRIVER_FILE="$IP_DIR/driver/${IP_NAME}.py"
+if [ -f "$DRIVER_FILE" ]; then
+    echo "  driver ${IP_NAME}.py already exists — not overwriting"
+else
+cat > "$DRIVER_FILE" << EOF
 """
-Driver for ${IP_NAME} IP core.
-Uses PeakRDL-generated register model.
+PYNQ driver for ${IP_NAME} IP core.
+Wraps the PeakRDL-generated register model over PYNQ MMIO.
+
+AUTO-GENERATED placeholder. Access registers via \`.regs\`, e.g.:
+    ip = overlay.${IP_NAME}_0
+    ip.regs.CTRL_REG.ENABLE.write(1)
+Add high-level convenience methods below the marker; this file is only
+generated once and never overwritten by the generator.
 """
 import sys
 from pathlib import Path
-import numpy as np
+from pynq import DefaultIP
 
 _REGMAP_DIR = Path(__file__).parent.parent / "rdl"
 if str(_REGMAP_DIR) not in sys.path:
@@ -168,45 +180,43 @@ if str(_REGMAP_DIR) not in sys.path:
 
 from ${IP_NAME}_regmap_pkg.reg_model.${IP_NAME} import ${IP_NAME}_cls
 from ${IP_NAME}_regmap_pkg.lib import NormalCallbackSet
-from ${IP_NAME}_regmap_pkg.sim.${IP_NAME} import ${IP_NAME}_simulator_cls
+
 
 def to_unsigned(val, bits=16):
     return val & ((1 << bits) - 1)
+
 
 def to_signed(val, bits=16):
     half = 1 << (bits - 1)
     return val - (1 << bits) if val >= half else val
 
-class ${IP_NAME^}:
-    """Driver for ${IP_NAME} IP core."""
-    
-    def __init__(self):
-        self._reg_model = None
 
-    def configure(self, read_cb, write_cb):
-        self._callbacks = NormalCallbackSet(
-            read_callback=read_cb,
-            write_callback=write_cb
-        )
-        self._reg_model = ${IP_NAME}_cls(
-            callbacks=self._callbacks,
-            address=0
-        )
+class ${CLASS_NAME}(DefaultIP):
+    """PYNQ driver for ${IP_NAME}. Register access through \`.regs\`."""
 
-    @property
-    def regs(self):
-        return self._reg_model
+    bindto = ['qick:ip:${IP_NAME}:1.0']
 
-    def create_test_model(self):
-        sim = ${IP_NAME}_simulator_cls(address=0)
-        return ${IP_NAME}_cls(
+    def __init__(self, description):
+        super().__init__(description=description)
+        self.regs = ${IP_NAME}_cls(
             callbacks=NormalCallbackSet(
-                read_callback=sim.read,
-                write_callback=sim.write
+                read_callback=self._reg_read,
+                write_callback=self._reg_write,
             ),
-            address=0
+            address=0,
         )
+
+    # PeakRDL invokes these with keyword args (addr, width, accesswidth, data)
+    def _reg_read(self, addr, **kwargs):
+        return self.mmio.read(addr)
+
+    def _reg_write(self, addr, data, **kwargs):
+        self.mmio.write(addr, int(data) & 0xFFFFFFFF)
+
+    # ── hand-written high-level methods below ──────────────────────────
 EOF
+    echo "  driver ${IP_NAME}.py created (PYNQ DefaultIP)"
+fi
 
 # Create template for the testbench
 cat > $IP_DIR/tests/${IP_NAME}_tc00.sv << EOF
