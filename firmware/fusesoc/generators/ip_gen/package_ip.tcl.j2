@@ -52,16 +52,46 @@ ipx::add_file ${src_dir}/{{ f }} \
 # ── Auto-infer AXI and clock interfaces ─────────────────────
 ipx::infer_bus_interfaces [ipx::current_core]
 
-{% if clock_domains %}
-# ── Associate clocks to interfaces ──────────────────────────
-{% for iface, clk in clock_domains.items() %}
-catch {
-    set busif_param [ipx::add_bus_parameter ASSOCIATED_BUSIF \
-        [ipx::get_bus_interfaces {{ clk }} -of_objects [ipx::current_core]]]
-    set_property value {{ iface }} $busif_param
+# ── Associate clocks to interfaces (QICK convention) ────────
+# Convention:
+#   AXI-Lite  : interface s_axi  <- clock s_axi_aclk / reset s_axi_aresetn
+#   AXI-Stream: interfaces *axis <- clock aclk        / reset aresetn
+set core [ipx::current_core]
+
+# Collect all AXI-Stream interface names present in this core
+set stream_ifs {}
+foreach bif [ipx::get_bus_interfaces -of_objects $core] {
+    set vlnv [get_property BUS_TYPE_VLNV $bif]
+    if {[string match "*:axis:*" $vlnv] || [string match "*axis_rtl*" $vlnv]} {
+        lappend stream_ifs [get_property NAME $bif]
+    }
 }
-{% endfor %}
-{% endif %}
+
+proc _qick_set_assoc {core clk busif_list reset} {
+    set clkif [ipx::get_bus_interfaces $clk -of_objects $core -quiet]
+    if {$clkif eq ""} { return }
+    # ASSOCIATED_BUSIF
+    set p [ipx::get_bus_parameters ASSOCIATED_BUSIF -of_objects $clkif -quiet]
+    if {$p eq ""} { set p [ipx::add_bus_parameter ASSOCIATED_BUSIF $clkif] }
+    set_property value [join $busif_list ":"] $p
+    # ASSOCIATED_RESET
+    if {$reset ne ""} {
+        set r [ipx::get_bus_parameters ASSOCIATED_RESET -of_objects $clkif -quiet]
+        if {$r eq ""} { set r [ipx::add_bus_parameter ASSOCIATED_RESET $clkif] }
+        set_property value $reset $r
+    }
+}
+
+# s_axi_aclk  -> s_axi   (only if the core has an AXI-Lite)
+if {[ipx::get_bus_interfaces s_axi -of_objects $core -quiet] ne ""} {
+    _qick_set_assoc $core s_axi_aclk {s_axi} s_axi_aresetn
+}
+
+# aclk -> all AXI-Stream interfaces (explicitly, removing any s_axi the
+# inferencer may have attached here)
+if {[llength $stream_ifs] > 0} {
+    _qick_set_assoc $core aclk $stream_ifs aresetn
+}
 
 # ── Add XCI sub-IPs ──────────────────────────────────────────
 {% for xci in xci_files | default([]) %}
