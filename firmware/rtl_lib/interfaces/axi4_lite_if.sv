@@ -19,6 +19,10 @@
 //! conditions and simulator crashes.  Fully compatible with TerosHDL
 //! documentation parsers.
 //!
+//! @note  Clocking blocks (m_cb/s_cb) and all verification tasks are guarded
+//!        under `ifdef SYNTHESIS / `elsif VERILATOR — they are simulation-only.
+//!        Synthesis sees only the AXI signals + master/slave modports.
+//!
 //! @author  QICK Development Team
 //!
 //! @version 1.0
@@ -203,7 +207,6 @@ interface axi4_lite_if#(
       output rresp;
     endclocking
 
-  `endif //SYNTHESIS
   // ==========================================================================
   // BASIC TASKS (Clean Synchronous Implementations)
   // ==========================================================================
@@ -510,4 +513,5 @@ interface axi4_lite_if#(
     end
   endtask
 
+  `endif //SYNTHESIS
 endinterface
