@@ -26,29 +26,23 @@ module axis_pipe_unit_test;
     .o_clk      ( tb_clk            )
   );
 
-   axi4_stream_if #(
-        .TDATA_WIDTH (DWIDTH),
-        .HAS_TSTRB   (1'b1),
-        .HAS_TKEEP   (1'b0),
-        .HAS_TID     (1'b0),
-        .HAS_TDEST   (1'b0),
-        .HAS_TUSER   (1'b0)
-    ) s_axis_if (
-        .aclk    (tb_clk),
-        .aresetn (tb_rstn)
-    );
+axi4_stream_if #(
+    .TDATA_WIDTH (AXIS_DW),
+    .HAS_TSTRB   (1'b1),
+    .HAS_TKEEP   (1'b0),
+    .HAS_TID     (1'b0),
+    .HAS_TDEST   (1'b0),
+    .HAS_TUSER   (1'b0)
+) s_axis (.aclk(tb_clk), .aresetn(tb_rstn));
 
-   axi4_stream_if #(
-        .TDATA_WIDTH (DWIDTH),
-        .HAS_TSTRB   (1'b1),
-        .HAS_TKEEP   (1'b0),
-        .HAS_TID     (1'b0),
-        .HAS_TDEST   (1'b0),
-        .HAS_TUSER   (1'b0)
-    ) m_axis_if (
-        .aclk    (tb_clk),
-        .aresetn (tb_rstn)
-    );
+axi4_stream_if #(
+    .TDATA_WIDTH (AXIS_DW),
+    .HAS_TSTRB   (1'b1),
+    .HAS_TKEEP   (1'b0),
+    .HAS_TID     (1'b0),
+    .HAS_TDEST   (1'b0),
+    .HAS_TUSER   (1'b0)
+) m_axis (.aclk(tb_clk), .aresetn(tb_rstn));
 
   default clocking cb @(posedge tb_clk);
     default input #1step output #2;
