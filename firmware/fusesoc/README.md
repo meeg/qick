@@ -203,20 +203,91 @@ HOG project as usual.
 
 ## Port naming conventions for AXI auto-inference
 
-Vivado's `ipx::infer_bus_interfaces` recognizes:
+Vivado's `ipx::infer_bus_interfaces` recognizes ports by prefix:
 
-| Interface type    | Port prefix                 |
-|-------------------|-----------------------------|
-| AXI4-Lite slave   | `s_axi_*`                   |
-| AXI4-Stream slave | `s_axis_*` or `s0_axis_*`   |
-| AXI4-Stream master| `m_axis_*` or `m0_axis_*`   |
-| Clock             | `*_clk*` or `*_aclk*`       |
-| Reset             | `*_aresetn*` or `*_resetn*` |
+| Interface type     | Port prefix                 |
+|--------------------|-----------------------------|
+| AXI4-Lite slave    | `s_axi_*`                   |
+| AXI4-Stream slave  | `s_axis_*` or `s0_axis_*`   |
+| AXI4-Stream master | `m_axis_*` or `m0_axis_*`   |
+| Clock              | `*_clk*` or `*_aclk*`       |
+| Reset              | `*_aresetn*` or `*_resetn*` |
+
+### Clock / reset domains (MANDATORY for multi-clock cores)
+
+QICK cores typically use **two clock domains**: a slow AXI-Lite
+configuration domain and a fast AXI-Stream datapath domain. Use these
+**exact** port names on the top-level module:
+
+| Domain            | Clock port    | Reset port       | Associated interfaces        |
+|-------------------|---------------|------------------|------------------------------|
+| Config (AXI-Lite) | `s_axi_aclk`  | `s_axi_aresetn`  | `s_axi`                      |
+| Datapath (AXIS)   | `aclk`        | `aresetn`        | all `*_axis` (`s_axis`, `m_axis`, `m_axis_*`) |
+
+Rules:
+- The AXI-Lite interface **must** be named `s_axi` (clock `s_axi_aclk`,
+  reset `s_axi_aresetn`).
+- All AXI-Stream interfaces share the single datapath clock `aclk` /
+  reset `aresetn`.
+- Internal helper clocks/resets (e.g. `i_clk` / `i_rstn` inside
+  `cdc/` blocks or pipelines) are **internal signals**, wired to `aclk` /
+  `aresetn` inside the core. Do **not** expose them as top-level ports.
+
+> ⚠️ **Why this matters — auto-inference is not enough.**
+> `ipx::infer_bus_interfaces` guesses which clock drives which interface
+> by heuristics. For a core with **two** clock domains it frequently
+> attaches the AXI-Lite `s_axi` interface to `aclk` (the datapath clock)
+> instead of `s_axi_aclk`. In the block design this surfaces as:
+>
+> ```
+> CRITICAL WARNING [BD 41-1363] ... M0x_ACLK and <core>/aclk must be the same source
+> ERROR [BD 41-237] FREQ_HZ / CLK_DOMAIN does not match between <core>/s_axi and .../M0x_AXI
+> ```
+>
+> because Vivado now believes `s_axi` runs at the datapath frequency
+> (e.g. 307.2 MHz) while the AXI interconnect master runs at the PS clock
+> (e.g. 100 MHz).
+
+### How the packager enforces this
+
+`make package` (`scripts/ip_packager.py` + `package_ip.tcl.j2`) does **not**
+rely on auto-inference for clock association. After
+`ipx::infer_bus_interfaces` it explicitly re-associates, per the table above:
+
+- `s_axi_aclk` → `ASSOCIATED_BUSIF = s_axi`, `ASSOCIATED_RESET = s_axi_aresetn`
+- `aclk`       → `ASSOCIATED_BUSIF = <all AXI-Stream ifaces>`, `ASSOCIATED_RESET = aresetn`
+
+It scans `BUS_TYPE_VLNV` for `*:axis:*` to collect every stream interface
+automatically, and **overwrites** (not adds) `ACLK.ASSOCIATED_BUSIF` to
+strip any `s_axi` the inferencer may have attached. This is generic: any
+new core that follows the naming table above packages correctly with no
+per-core configuration.
+
+Verify a packaged core with:
+
+```bash
+grep -A1 "ACLK.ASSOCIATED_BUSIF\|S_AXI_ACLK.ASSOCIATED_BUSIF" ip/<name>/component.xml
+# expected:
+#   ACLK.ASSOCIATED_BUSIF        -> m_axis:s_axis   (NO s_axi)
+#   S_AXI_ACLK.ASSOCIATED_BUSIF  -> s_axi
+```
+
+### Single-clock cores
+
+If a core genuinely uses one clock for everything, name it aclk /
+aresetn and let all interfaces (including s_axi) associate to it. The
+packager handles this too (no s_axi_aclk present → only the aclk
+association runs).
 
 ---
 
 ## Conventions
 
+- **Clock/reset port names are fixed** for multi-clock cores: AXI-Lite uses
+  `s_axi_aclk`/`s_axi_aresetn` (interface `s_axi`); the AXI-Stream datapath uses
+  `aclk`/`aresetn` (all `*_axis`). Internal CDC/pipeline clocks are not exposed.
+  See "Port naming conventions for AXI auto-inference". This is what makes
+  `make package` produce correct `ASSOCIATED_BUSIF` for two clock domains.
 - **rtl_lib/ is the source of truth** for all RTL; cores symlink into it.
 - **Ports and signals are lowercase** (linter requirement), e.g. `a_i`, `z_o`.
 - **Module naming**: processor-specific blocks use a `tpv2_*` / `tpv1_*` prefix;
