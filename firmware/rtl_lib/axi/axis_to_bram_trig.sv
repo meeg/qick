@@ -103,7 +103,9 @@ module axis_to_bram_trig #(
   // -------------------------------------------------------------------------
   fifo_sync #(
     .B (B),
-    .N (16)
+    .N (16),
+    .USE_ADV_FEATURES ("1707"),
+    .ENABLE_COUNTERS (1)
   ) fifo_i (
     .rstn  (rstn),
     .clk   (clk),

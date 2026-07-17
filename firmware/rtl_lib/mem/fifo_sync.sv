@@ -13,7 +13,7 @@
 module fifo_sync #(
     parameter int    B                = 16,     // Data width
     parameter int    N                = 16,     // FIFO depth (Must be power of 2, minimum 16)
-    parameter string USE_ADV_FEATURES = "1707", // Hex string to enable advanced features
+    parameter        USE_ADV_FEATURES = "1707", // Hex string to enable advanced features (untyped param for XPM compat)
     parameter bit    ENABLE_COUNTERS  = 1       // 1: Enable data counts (requires CNT_WIDTH), 0: Disabled (width=1)
 )(
     input  logic         rstn,
