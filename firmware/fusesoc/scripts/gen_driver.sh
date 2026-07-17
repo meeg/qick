@@ -25,10 +25,13 @@ QICK driver for ${IP_NAME} IP core.
 Uses the PeakRDL-generated register model. Register access via \`.regs\`, e.g.:
     ip = soc.${IP_NAME}_0
     ip.regs.CTRL_REG.ENABLE.write(1)
+
+Works with both a raw PYNQ Overlay and QickSoc: the register model is built in
+_init_firmware() (always called from SocIP.__init__, needs only self.mmio).
+configure_connections() is reserved for soc-dependent wiring (revision/version, peers).
 """
 import sys
 from pathlib import Path
-
 # Find the generated PeakRDL package in dev (next to driver) or prod (installed).
 _RDL_PKG_PATHS = [
     Path(__file__).parent.parent / "rdl",        # dev: fusesoc/cores/ip/.../rdl
@@ -58,8 +61,10 @@ class ${CLASS_NAME}(SocIP):
     """QICK driver for ${IP_NAME}. Register access through \`.regs\`."""
     bindto = ['$(core_vlnv "$IP_NAME")']
 
-    def configure_connections(self, soc):
-        super().configure_connections(soc)
+    def _init_firmware(self):
+        # Called from SocIP.__init__ for BOTH raw Overlay and QickSoc.
+        # Only needs self.mmio (already set by DefaultIP.__init__).
+        super()._init_firmware()
         self._reg_model = RegModel(
             callbacks=NormalCallbackSet(
                 read_callback=self._hw_read,
@@ -84,6 +89,11 @@ class ${CLASS_NAME}(SocIP):
 
     @property
     def regs(self):
+        if self._reg_model is None:
+            raise RuntimeError(
+                "${CLASS_NAME}: register model not initialized "
+                "(expected _init_firmware to run in __init__)"
+            )
         return self._reg_model
 
     # -- hand-written high-level methods below --
