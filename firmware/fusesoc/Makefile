@@ -268,6 +268,12 @@ driver:
 			     ../../qick_lib/qick/drivers/$(IP).py; \
 			echo "  Symlink created"; \
 	fi
+	@if [ -d cores/ip/$(IP)/rdl/$(IP)_regmap_pkg ]; then \
+		mkdir -p ../../qick_lib/qick/rdl_pkgs; \
+		rm -rf ../../qick_lib/qick/rdl_pkgs/$(IP)_regmap_pkg; \
+		cp -r cores/ip/$(IP)/rdl/$(IP)_regmap_pkg ../../qick_lib/qick/rdl_pkgs/; \
+		echo "  regmap_pkg copied to rdl_pkgs/"; \
+	fi
 	@$(MAKE) --no-print-directory driver-test IP=$(IP)
 
 # Run the register-layer pytest only (no regeneration). Scaffolds tests if

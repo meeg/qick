@@ -21,55 +21,71 @@ fi
 
 cat > "$DRIVER_FILE" << EOF
 """
-PYNQ driver for ${IP_NAME} IP core.
-Wraps the PeakRDL-generated register model over PYNQ MMIO.
-
-Access registers via \`.regs\`, e.g.:
-    ip = overlay.${IP_NAME}_0
+QICK driver for ${IP_NAME} IP core.
+Uses the PeakRDL-generated register model. Register access via \`.regs\`, e.g.:
+    ip = soc.${IP_NAME}_0
     ip.regs.CTRL_REG.ENABLE.write(1)
 """
 import sys
 from pathlib import Path
-from pynq import DefaultIP
 
-_REGMAP_DIR = Path(__file__).parent.parent / "rdl"
-if str(_REGMAP_DIR) not in sys.path:
-    sys.path.insert(0, str(_REGMAP_DIR))
+# Find the generated PeakRDL package in dev (next to driver) or prod (installed).
+_RDL_PKG_PATHS = [
+    Path(__file__).parent.parent / "rdl",        # dev: fusesoc/cores/ip/.../rdl
+    Path(__file__).parent.parent / "rdl_pkgs",   # prod: qick_lib/qick/rdl_pkgs
+]
+for _path in _RDL_PKG_PATHS:
+    if (_path / "${IP_NAME}_regmap_pkg").exists():
+        if str(_path) not in sys.path:
+            sys.path.insert(0, str(_path))
+        break
 
-from ${IP_NAME}_regmap_pkg.reg_model.${IP_NAME} import ${IP_NAME}_cls
+from ${IP_NAME}_regmap_pkg.reg_model import RegModel
 from ${IP_NAME}_regmap_pkg.lib import NormalCallbackSet
+from qick.ip import SocIP
 
 
-def to_unsigned(val, bits=16):
+def _to_unsigned(val, bits=16):
     return val & ((1 << bits) - 1)
 
 
-def to_signed(val, bits=16):
+def _to_signed(val, bits=16):
     half = 1 << (bits - 1)
     return val - (1 << bits) if val >= half else val
 
 
-class ${CLASS_NAME}(DefaultIP):
-    """PYNQ driver for ${IP_NAME}. Register access through \`.regs\`."""
-
+class ${CLASS_NAME}(SocIP):
+    """QICK driver for ${IP_NAME}. Register access through \`.regs\`."""
     bindto = ['$(core_vlnv "$IP_NAME")']
 
-    def __init__(self, description):
-        super().__init__(description=description)
-        self.regs = ${IP_NAME}_cls(
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+        self._reg_model = RegModel(
             callbacks=NormalCallbackSet(
-                read_callback=self._reg_read,
-                write_callback=self._reg_write,
-            ),
-            address=0,
+                read_callback=self._hw_read,
+                write_callback=self._hw_write,
+                read_block_callback=self._hw_read_block,
+                write_block_callback=self._hw_write_block,
+            )
         )
 
-    def _reg_read(self, addr, **kwargs):
-        return self.mmio.read(addr)
+    def _hw_read(self, addr, width, accesswidth):
+        return self.mmio.read(addr // 4)
 
-    def _reg_write(self, addr, data, **kwargs):
-        self.mmio.write(addr, int(data) & 0xFFFFFFFF)
+    def _hw_write(self, addr, width, accesswidth, data):
+        self.mmio.write(addr // 4, int(data) & 0xFFFFFFFF)
+
+    def _hw_read_block(self, addr, width, accesswidth, length):
+        return [self.mmio.read((addr // 4) + i) for i in range(length)]
+
+    def _hw_write_block(self, addr, width, accesswidth, data):
+        for i, d in enumerate(data):
+            self.mmio.write((addr // 4) + i, int(d) & 0xFFFFFFFF)
+
+    @property
+    def regs(self):
+        return self._reg_model
 
     # -- hand-written high-level methods below --
 EOF
-echo "  driver ${IP_NAME}.py created (PYNQ DefaultIP)"
+echo "  driver ${IP_NAME}.py created (SocIP, Style B, dev+prod pkg paths)"
