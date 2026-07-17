@@ -37,6 +37,26 @@ def find_firmware_root(start: Path) -> Path:
         p = p.parent
     raise RuntimeError("Could not find firmware root (directory with ip/ and common_ip_files/)")
 
+def get_core_version(core_name, cores_root, default="1.0"):
+    """Read version (major.minor) from the IP's .core 'name:' field.
+    The .core name is like 'qick:ip:mr_buffer_et:1.2.0'; Vivado uses major.minor
+    (e.g. 1.2) for the packaged VLNV, so we truncate to two components."""
+    core_file = find_core_file(core_name, cores_root)
+    if core_file is None:
+        return default
+    try:
+        import yaml
+        with open(core_file) as f:
+            data = yaml.safe_load(f)
+        full = data.get('name', '')
+        parts = full.split(':')
+        if len(parts) >= 4 and parts[3]:
+            return '.'.join(parts[3].split('.')[:2])  # 1.2.0 -> 1.2
+    except Exception:
+        pass
+    return default
+
+
 def parse_core_name(core_name: str):
     """Parse core name like 'qick:ip:xcom' into (vendor, category, name)."""
     parts = core_name.split(':')
@@ -461,7 +481,7 @@ def run_standalone(args):
     # Prepare configuration for template
     cfg = {
         "module_name": args.module_name or ip_name,
-        "version": args.version,
+        "version": (args.version or get_core_version(f"{args.vendor}:{args.library}:{args.ip_name}", cores_root)),
         "vendor": args.vendor,
         "library": args.library,
         "display_name": args.display_name or ip_name,
@@ -490,8 +510,8 @@ def main():
                         help="IP directory name under ip/ (e.g., xcom)")
     parser.add_argument("--module-name", default=None,
                         help="Top-level module name if different from ip-name")
-    parser.add_argument("--version", default="1.0",
-                        help="IP version string (default: 1.0)")
+    parser.add_argument("--version", default=None,
+                        help="IP version override; if omitted, taken from the .core (major.minor)")
     parser.add_argument("--vendor", default="qick",
                         help="Vendor name (default: qick)")
     parser.add_argument("--library", default="ip",

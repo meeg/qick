@@ -135,7 +135,7 @@ package:
 	cd build/package_$(IP) && \
 	python3 ../../generators/ip_gen/ip_packager.py \
 	--ip-name    $(IP) \
-	--version    $(or $(VERSION),1.0) \
+	$(if $(VERSION),--version $(VERSION),) \
 	--part       $(or $(PART),xczu49dr-ffvf1760-2-e) \
 	--display-name "$(or $(DISPLAY_NAME),$(IP))" \
 	$(if $(DESCRIPTION),--description "$(DESCRIPTION)",)

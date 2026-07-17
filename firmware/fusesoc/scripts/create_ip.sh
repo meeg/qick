@@ -9,6 +9,8 @@ if [ -z "$IP_NAME" ]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib_vlnv.sh"
 IP_DIR="cores/ip/$IP_NAME"
 
 echo "Creating IP: $IP_NAME"
@@ -194,7 +196,7 @@ def to_signed(val, bits=16):
 class ${CLASS_NAME}(DefaultIP):
     """PYNQ driver for ${IP_NAME}. Register access through \`.regs\`."""
 
-    bindto = ['qick:ip:${IP_NAME}:1.0']
+    bindto = ['$(core_vlnv "$IP_NAME")']
 
     def __init__(self, description):
         super().__init__(description=description)
