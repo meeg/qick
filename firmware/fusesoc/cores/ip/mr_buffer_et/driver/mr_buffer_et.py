@@ -30,7 +30,7 @@ def to_signed(val, bits=16):
 class MrBufferEt(DefaultIP):
     """PYNQ driver for mr_buffer_et. Register access through `.regs`."""
 
-    bindto = ['qick:ip:mr_buffer_et:1.0']
+    bindto = ['qick:ip:mr_buffer_et:1.2']
 
     def __init__(self, description):
         super().__init__(description=description)

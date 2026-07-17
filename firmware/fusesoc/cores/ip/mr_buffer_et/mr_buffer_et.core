@@ -77,16 +77,17 @@ targets:
   synth:
     <<: *default
     description: Synthesize the design
+    filesets_append: [constraints_ooc]
     default_tool: vivado
     tools:
       vivado:
-        part: xc7z020clg400-1
+        part: xczu48dr-fsvg1517-2-e
     parameters:
       - N
       - B
 
   package:
     description: Package IP for Vivado IP Catalog
-    filesets: [hdl]
+    filesets: [hdl, constraints]
     toplevel: mr_buffer_et
     generate: [mr_buffer_et_packager_gen]
