@@ -48,17 +48,17 @@ class MrBufferEt(SocIP):
         )
 
     def _hw_read(self, addr, width, accesswidth):
-        return self.mmio.read(addr // 4)
+        return self.mmio.read(addr)
 
     def _hw_write(self, addr, width, accesswidth, data):
-        self.mmio.write(addr // 4, int(data) & 0xFFFFFFFF)
+        self.mmio.write(addr, int(data) & 0xFFFFFFFF)
 
     def _hw_read_block(self, addr, width, accesswidth, length):
-        return [self.mmio.read((addr // 4) + i) for i in range(length)]
+        return [self.mmio.read(addr + 4*i) for i in range(length)]
 
     def _hw_write_block(self, addr, width, accesswidth, data):
         for i, d in enumerate(data):
-            self.mmio.write((addr // 4) + i, int(d) & 0xFFFFFFFF)
+            self.mmio.write(addr + 4*i, int(d) & 0xFFFFFFFF)
 
     @property
     def regs(self):
