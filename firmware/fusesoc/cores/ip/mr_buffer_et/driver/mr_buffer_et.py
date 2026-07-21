@@ -3,10 +3,13 @@ QICK driver for mr_buffer_et IP core.
 Uses the PeakRDL-generated register model. Register access via `.regs`, e.g.:
     ip = soc.mr_buffer_et_0
     ip.regs.CTRL_REG.ENABLE.write(1)
+
+Works with both a raw PYNQ Overlay and QickSoc: the register model is built in
+_init_firmware() (always called from SocIP.__init__, needs only self.mmio).
+configure_connections() is reserved for soc-dependent wiring (revision/version, peers).
 """
 import sys
 from pathlib import Path
-
 # Find the generated PeakRDL package in dev (next to driver) or prod (installed).
 _RDL_PKG_PATHS = [
     Path(__file__).parent.parent / "rdl",        # dev: fusesoc/cores/ip/.../rdl
@@ -36,8 +39,10 @@ class MrBufferEt(SocIP):
     """QICK driver for mr_buffer_et. Register access through `.regs`."""
     bindto = ['qick:ip:mr_buffer_et:1.2']
 
-    def configure_connections(self, soc):
-        super().configure_connections(soc)
+    def _init_firmware(self):
+        # Called from SocIP.__init__ for BOTH raw Overlay and QickSoc.
+        # Only needs self.mmio (already set by DefaultIP.__init__).
+        super()._init_firmware()
         self._reg_model = RegModel(
             callbacks=NormalCallbackSet(
                 read_callback=self._hw_read,
@@ -62,6 +67,11 @@ class MrBufferEt(SocIP):
 
     @property
     def regs(self):
+        if self._reg_model is None:
+            raise RuntimeError(
+                "MrBufferEt: register model not initialized "
+                "(expected _init_firmware to run in __init__)"
+            )
         return self._reg_model
 
     # -- hand-written high-level methods below --
