@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Mon Jun  1 00:21:03 2026
+[*] Wed Jul 22 15:06:18 2026
 [*]
-[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_fifo_async_1.0.0/test-xsim/fifo_async_waveform.vcd"
-[dumpfile_mtime] "Mon Jun  1 00:01:27 2026"
-[dumpfile_size] 4504044
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_mem_fifo_async_1.0.0/test-xsim/fifo_async.vcd"
+[dumpfile_mtime] "Wed Jul 22 15:05:08 2026"
+[dumpfile_size] 8948875
 [savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/mem/fifo_async/data/fifo_async.gtkw"
-[timestart] 2221400
-[size] 1920 1140
-[pos] -1 -1
-*-14.789509 2367000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 0
+[size] 1920 1045
+[pos] -921 -1
+*-23.560705 2367000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.fifo_async_ut.
@@ -17,7 +17,7 @@
 [sst_width] 206
 [signals_width] 227
 [sst_expanded] 1
-[sst_vpaned_height] 410
+[sst_vpaned_height] 696
 @28
 [color] 3
 testrunner.__ts.fifo_async_ut.dut.wr_clk
@@ -71,7 +71,6 @@ testrunner.__ts.fifo_async_ut.dut.u_fifo_async.overflow
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.prog_empty
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.prog_full
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_clk
-testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_data_count[0]
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_en
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_rst_busy
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rst
@@ -80,7 +79,6 @@ testrunner.__ts.fifo_async_ut.dut.u_fifo_async.sleep
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.underflow
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_ack
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_clk
-testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_data_count[0]
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_en
 testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_rst_busy
 @1401200

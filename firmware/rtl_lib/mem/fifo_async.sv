@@ -15,8 +15,11 @@ module fifo_async #(
     // -----------------------------------------------------------------
     //  Parameters – keep the same names that the test‑bench uses
     // -----------------------------------------------------------------
-    parameter int B = 32,          // Data width  (WRITE/READ_DATA_WIDTH)
-    parameter int N = 2048         // FIFO depth (FIFO_WRITE_DEPTH)
+    parameter int B = 32,                       // Data width  (WRITE/READ_DATA_WIDTH)
+    parameter int N = 2048,                     // FIFO depth (FIFO_WRITE_DEPTH)
+    parameter     READ_MODE        = "std",     // "std" | "fwft"
+    parameter     FIFO_MEMORY_TYPE = "block",   // "auto" | "block" | "distributed"
+    parameter int CDC_SYNC_STAGES  = 2          // Number of synchronization stages for CDC
 ) (
     // -----------------------------------------------------------------
     //  Write domain (active‑low reset, as used by the test‑bench)
@@ -39,6 +42,9 @@ module fifo_async #(
     output logic               data_valid // same meaning as XPM's "valid"
 );
 
+    // fwft OBLIGATES latency 0 (rule XPM)
+    localparam int RD_LATENCY = (READ_MODE == "fwft") ? 0 : 1;
+
     // Calculate the exact required width for data counters dynamically
     localparam int CNT_WIDTH = $clog2(N) + 1;
 
@@ -54,24 +60,32 @@ module fifo_async #(
     // -----------------------------------------------------------------
     logic sleep_i = 1'b0;
     logic wr_rst_busy, rd_rst_busy;
+    logic full_i, empty_i;              // raw XPM flags
+
+    //! Hold backpressure while the FIFO is still coming out of reset: XPM keeps
+    //! wr_rst_busy high for several cycles AFTER rst deasserts and silently drops
+    //! writes during that window. Without this, an upstream master sees full=0,
+    //! transfers, and the data disappears.
+    assign full  = full_i  | wr_rst_busy;
+    assign empty = empty_i | rd_rst_busy;
 
     // -----------------------------------------------------------------
     //  XPM_FIFO_ASYNC instance – exactly the parameter set you posted
     // -----------------------------------------------------------------
     xpm_fifo_async #(
         .CASCADE_HEIGHT      (0),
-        .CDC_SYNC_STAGES     (2),
+        .CDC_SYNC_STAGES     (CDC_SYNC_STAGES),
         .DOUT_RESET_VALUE    ("0"),
         .ECC_MODE            ("no_ecc"),
-        .FIFO_MEMORY_TYPE    ("block"),
-        .FIFO_READ_LATENCY   (1),          // one‑cycle read latency (STD mode)
+        .FIFO_MEMORY_TYPE    (FIFO_MEMORY_TYPE),
+        .FIFO_READ_LATENCY   (RD_LATENCY),          // one‑cycle read latency (STD mode)
         .FIFO_WRITE_DEPTH    (N),
         .FULL_RESET_VALUE    (0),
         .PROG_EMPTY_THRESH   (5),
         .PROG_FULL_THRESH    (N-5),
         .RD_DATA_COUNT_WIDTH (CNT_WIDTH),
         .READ_DATA_WIDTH     (B),
-        .READ_MODE           ("std"),      // matches the test‑bench expectations
+        .READ_MODE           (READ_MODE),      // matches the test‑bench expectations
         .RELATED_CLOCKS      (0),
         .SIM_ASSERT_CHK      (0),
         .USE_ADV_FEATURES    ("1707"),
@@ -91,7 +105,7 @@ module fifo_async #(
         .wr_clk       (wr_clk),
         .wr_en        (wr_en & ~wr_rst_busy), // gated like in the original IP
         .din          (din),
-        .full         (full),
+        .full         (full_i),
         .overflow     (wr_err),
         .wr_ack       ( ),
         .wr_data_count( ),
@@ -104,7 +118,7 @@ module fifo_async #(
         .rd_clk       (rd_clk),
         .rd_en        (rd_en & ~rd_rst_busy), // gated
         .dout         (dout),
-        .empty        (empty),
+        .empty        (empty_i),
         .data_valid   (data_valid),   // XPM's "valid" → test‑bench name
         .underflow    ( ),
         .rd_data_count( ),

@@ -56,6 +56,38 @@ FUSESOC_CORES := --cores-root cores \
 # Default tool for simulation and linting.
 TOOL ?= verilator
 
+# ----------------------------------------------------------------------------
+# Optional testbench knobs. Only appended when set, so 'make sim IP=<any>'
+# keeps working for cores that do not declare these parameters.
+#   make sim IP=fifo_async MODE=fwft
+#   make sim IP=fifo_async MODE=fwft DEPTH=16 WIDTH=24 SWAP_CLK=1
+# ----------------------------------------------------------------------------
+MODE     ?=
+DEPTH    ?=
+WIDTH    ?=
+SWAP_CLK ?=
+
+SIM_ARGS :=
+
+ifeq ($(MODE),fwft)
+  SIM_ARGS += --FWFT=1
+else ifeq ($(MODE),std)
+  SIM_ARGS += --FWFT=0
+else ifneq ($(MODE),)
+  $(error MODE must be 'std' or 'fwft' (got '$(MODE)'))
+endif
+
+ifneq ($(DEPTH),)
+  SIM_ARGS += --TB_N=$(DEPTH)
+endif
+ifneq ($(WIDTH),)
+  SIM_ARGS += --TB_B=$(WIDTH)
+endif
+ifneq ($(SWAP_CLK),)
+  SIM_ARGS += --SWAP_CLK=$(SWAP_CLK)
+endif
+
+
 # RTL library documentation input/output (overridable).
 RTL_DOCS_IN  ?= ../rtl_lib
 RTL_DOCS_OUT ?= docs/rtl-md
@@ -102,10 +134,39 @@ sim_svunit: clean
 
 # Run the FuseSoC 'test' target (SVUnit via xsim) for a single core. Fast path.
 #   make sim IP=lfsr
+#   make sim IP=fifo_async MODE=fwft DEPTH=16 WIDTH=24
 sim:
 	. venv/bin/activate; \
-	fusesoc $(FUSESOC_CORES) run --target test $(IP)
-	#fusesoc $(FUSESOC_CORES) run --target test --tool $(TOOL) $(IP)
+	fusesoc $(FUSESOC_CORES) run --target test $(IP) $(SIM_ARGS)
+
+# Sweep every fifo_async configuration that matters for the streamer swap:
+#   read mode x {big/generic, streamer-sized} x clock ratio = 8 runs.
+# Keeps going on failure and reports the list of failed configs at the end.
+sim-fifo-matrix:
+	@fail=0; failed=""; \
+	for mode in std fwft; do \
+	  for cfg in "2048 32" "16 24"; do \
+	    set -- $$cfg; \
+	    for swap in 0 1; do \
+	      cfgname="MODE=$$mode DEPTH=$$1 WIDTH=$$2 SWAP_CLK=$$swap"; \
+	      echo ""; \
+	      echo "=============================================================="; \
+	      echo "=== fifo_async  $$cfgname"; \
+	      echo "=============================================================="; \
+	      if ! $(MAKE) --no-print-directory sim IP=fifo_async \
+	           MODE=$$mode DEPTH=$$1 WIDTH=$$2 SWAP_CLK=$$swap; then \
+	        fail=1; failed="$$failed\n  $$cfgname"; \
+	      fi; \
+	    done; \
+	  done; \
+	done; \
+	echo ""; \
+	if [ $$fail -eq 0 ]; then \
+	  echo "*** fifo_async matrix: all 8 configurations passed"; \
+	else \
+	  printf "*** fifo_async matrix FAILED for:%b\n" "$$failed"; \
+	fi; \
+	exit $$fail
 
 # Run the FuseSoC 'lint' target (veriblelint / verilator lint-only).
 # NOTE: IPs instantiating Xilinx primitives (DSP/XPM/DDS) can't be linted by
