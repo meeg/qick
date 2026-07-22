@@ -5,45 +5,46 @@
 ///////////////////////////////////////////////////////////////////////////////
 //! @file    cdc_bit_sync.sv
 //!
-//! @brief   2 FF, NB-bit data synchronizer.
+//! @brief   Single-bit CDC synchronizer with configurable number of stages.
 //!
 //! @details
-//!
-//! It serves as clock domain crossing (CDC) logic.
+//!   Synchronizes a single asynchronous bit into the destination clock domain
+//!   using a configurable pipeline of flip-flops.
 //!
 //! @author  QICK Development Team
 //!
-//! @version 1.0
+//! @version 2.0
 module cdc_bit_sync #(
-   //number of bits in data
-   parameter int NB = 1
+
+    parameter int NSTAGES = 2  //! Number of synchronization stages (minimum recommended: 2)
 )(
-    input logic           i_clk ,
-    input logic           i_rstn,
-    input logic  [NB-1:0] i_async,
-    output logic [NB-1:0] o_sync
+    input  logic i_clk,
+    input  logic i_rstn,
+    input  logic i_async,
+    output logic o_sync
 );
 
-    (* ASYNC_REG = "TRUE" *) logic [NB-1:0] meta_r, sync_r;
-    logic [NB-1:0] meta_n, cdc_bit_sync;
-
-    //two D FFs
-    always_ff @ (posedge i_clk) begin
-     if(!i_rstn) begin
-       meta_r <= '0;
-       sync_r <= '0;
-     end else begin
-       meta_r <= meta_n;
-       sync_r <= cdc_bit_sync;
-     end
+    initial begin
+        if (NSTAGES < 2)
+            $error("cdc_bit_sync: NSTAGES must be >= 2.");
     end
 
-    //next-state logic
-    assign meta_n = i_async;
-    assign cdc_bit_sync = meta_r;
 
-    //output logic
-    assign o_sync = sync_r;
+    (* ASYNC_REG = "TRUE" *) logic [NSTAGES-1:0] sync_r;
+
+    always_ff @(posedge i_clk) begin
+        if (!i_rstn) begin
+            sync_r <= '0;
+        end
+        else begin
+            sync_r[0] <= i_async;
+
+            for (int i = 1; i < NSTAGES; i++) begin
+                sync_r[i] <= sync_r[i-1];
+            end
+        end
+    end
+
+    assign o_sync = sync_r[NSTAGES-1];
 
 endmodule
-

@@ -1,45 +1,55 @@
+//-------------------------------------------------------------------------------------------------//
 `SVTEST(test00_reset)
 
-     `ASSERT_IMMEDIATE(tb_i_data  == '0);     
-     @(cb);
-     for (integer k = 0; k < 10; k = k + 1) begin
-     cb.tb_rstn <= 1'b0;
+    cb.tb_i_data <= 1'b0;
 
-     @(cb);
+    for (integer k = 0; k < 10; k++) begin
+        cb.tb_rstn <= 1'b0;
+        @(cb);
 
-     cb.tb_rstn <= 1'b1;
+        cb.tb_rstn <= 1'b1;
 
-     @(cb);
-
-     `ASSERT_IMMEDIATE(cb.tb_o_data  == '0);     
-     @(negedge tb_clk);
+        // La salida debe permanecer a 0 mientras se llena el pipeline
+        repeat (NSTAGES) begin
+            @(cb);
+            `ASSERT_IMMEDIATE(tb_o_data == 1'b0);
+        end
     end
-     
+
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test01_1bit_data)
+`SVTEST(test01_bit_sync)
 
-    cb.tb_i_data  <= 1'b0;     
-    @(cb);
-    for (integer k = 0; k < 10; k = k + 1) begin
-        cb.tb_i_data <= k;
-        repeat(2)@(cb);
-        `ASSERT_IMMEDIATE(tb_o_data  == k);     
+    cb.tb_i_data <= 1'b0;
+    repeat (NSTAGES) @(cb);
+
+    for (integer k = 0; k < 10; k++) begin
+        cb.tb_i_data <= k[0];
+
+        repeat (NSTAGES) @(cb);
+
+        `ASSERT_IMMEDIATE(tb_o_data == k[0]);
     end
-    repeat(5) @(cb);
-     
+
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test02_8bit_data)
+    `SVTEST(test02_toggle)
 
-    cb.tb_i_data  <= 8'hAB;     
-    @(cb);
-        for (integer k = 0; k < 10; k = k + 1) begin
-          cb.tb_i_data <= k;
-          repeat(2)@(cb);
-          `ASSERT_IMMEDIATE(tb_o_data  == k);     
+    logic expected;
+
+    expected = 1'b0;
+    cb.tb_i_data <= expected;
+    repeat (NSTAGES) @(cb);
+
+    repeat (20) begin
+        expected = ~expected;
+        cb.tb_i_data <= expected;
+
+        repeat (NSTAGES) @(cb);
+
+        `ASSERT_IMMEDIATE(tb_o_data == expected);
     end
-    repeat(10) @(cb);
-     
+
 `SVTEST_END
+
 //-------------------------------------------------------------------------------------------------//

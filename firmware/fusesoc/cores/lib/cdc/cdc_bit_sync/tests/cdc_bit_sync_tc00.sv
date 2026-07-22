@@ -9,13 +9,13 @@ import svunit_pkg::svunit_testcase;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam NB             = 8; //[Hz]
+  localparam NSTAGES             = 4; //[Hz]
 
-  logic          tb_clk     = 1'b0;
-  logic          tb_rstn    = 1'b1;
+  logic  tb_clk     = 1'b0;
+  logic  tb_rstn    = 1'b1;
 
-  logic [NB-1:0] tb_i_data  = 1'b0;
-  logic [NB-1:0] tb_o_data  = 1'b0;
+  logic  tb_i_data  = 1'b0;
+  logic  tb_o_data  = 1'b0;
 
 initial begin
   $dumpfile("cdc_bit_sync.vcd");
@@ -46,7 +46,7 @@ endclocking
 
 cdc_bit_sync
 #(
-    .NB(NB)
+    .NSTAGES(NSTAGES)
     ) u_cdc_bit_sync (
   .i_clk      ( tb_clk     ),
   .i_rstn     ( tb_rstn    ),
@@ -69,7 +69,7 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-  cb.tb_i_data  <= '0;
+  cb.tb_i_data  <= 1'b0;
   
   @(cb);
   cb.tb_rstn             <= 1'b0;
