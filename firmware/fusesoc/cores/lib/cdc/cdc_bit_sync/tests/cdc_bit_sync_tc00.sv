@@ -73,7 +73,7 @@ task setup();
   
   @(cb);
   cb.tb_rstn             <= 1'b0;
-  repeat(2) @(cb);
+  repeat(NSTAGES) @(cb);
   cb.tb_rstn             <= 1'b1;
   repeat(5) @(cb);
 
