@@ -24,7 +24,7 @@ module wide_en_signal(
  logic en_strobe;
 
     cdc_bit_sync#(
-       .NB(1)
+       .NSTAGES(2)
        ) u_sync(
           .i_clk      ( i_clk        ),
           .i_rstn     ( i_rstn       ),

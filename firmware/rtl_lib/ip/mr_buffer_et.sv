@@ -196,7 +196,7 @@ module mr_buffer_et #(
         .o_capture_done ( capture_done_s )
     );
 
-    cdc_bit_sync #(.NB(1)) u_sync_cap_done (
+    cdc_bit_sync #(.NSTAGES(2)) u_sync_cap_done (
         .i_clk   (s_axi_aclk),
         .i_rstn  (s_axi_aresetn),
         .i_async (capture_done_s),

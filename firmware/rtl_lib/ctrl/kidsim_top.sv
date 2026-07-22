@@ -125,7 +125,7 @@ module kidsim_top #(
     // WE resync (different clock domain -> i_clk).
     // ------------------------------------------------------------------------
     cdc_bit_sync #(
-        .NB (1)
+        .NSTAGES(2)
     ) we_resync_i (
         .i_clk   (i_clk),
         .i_rstn  (i_rstn),

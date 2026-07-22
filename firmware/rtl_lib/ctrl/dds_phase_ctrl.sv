@@ -68,7 +68,7 @@ module dds_phase_ctrl (
     // Trigger CDC: bring the async trigger into i_clk domain (2 FF).
     // ------------------------------------------------------------------------
     cdc_bit_sync #(
-        .NB (1)
+        .NSTAGES(2)
     ) trigger_sync_i (
         .i_clk   (i_clk),
         .i_rstn  (i_rstn),
