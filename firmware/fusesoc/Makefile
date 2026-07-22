@@ -66,8 +66,13 @@ MODE     ?=
 DEPTH    ?=
 WIDTH    ?=
 SWAP_CLK ?=
+ASYNC    ?=
 
 SIM_ARGS :=
+
+ifneq ($(ASYNC),)
+  SIM_ARGS += --ASYNC_CLK=$(ASYNC)
+endif
 
 ifeq ($(MODE),fwft)
   SIM_ARGS += --FWFT=1
