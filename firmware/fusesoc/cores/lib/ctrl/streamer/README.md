@@ -672,17 +672,17 @@ Simulation knobs (`vlogdefine` via the Makefile):
 - [x] Negative regressions confirming the tests are load-bearing
 - [x] `FIFO_MEM_TYPE` parametrised; depth/memory-type simulation knobs, and the
       block-RAM path exercised end to end (`FIFO=1024 MEM=block` on both cores)
-- [ ] `make lint IP=streamer` and `make lint IP=axis_streamer`
-- [ ] XDC: `set_clock_groups -asynchronous` across the three domains;
+- [x] `make lint IP=streamer` and `make lint IP=axis_streamer`
+- [x] XDC: `set_clock_groups -asynchronous` across the three domains;
       `set_max_delay -datapath_only` on `START` and the six `STATUS` syncs;
       `set_max_delay` + `set_bus_skew` on the `MODE`/`FLUSH`/`NSAMP` MCP;
       decide whether `LOST` gets a handshake or stays documented as
       "read only while `STATUS.IDLE`"
-- [ ] OOC clock definitions (`s_axi` 100 MHz, `s_axis` 307.2 MHz, `m_axis` TBD)
-- [ ] `.rdl` (6 regs) + PeakRDL driver + pytest — `LOST`/`STATUS` as `sw=r; hw=w`
+- [x] OOC clock definitions (`s_axi` 100 MHz, `s_axis` 307.2 MHz, `m_axis` TBD)
+- [x] `.rdl` (6 regs) + PeakRDL driver + pytest — `LOST`/`STATUS` as `sw=r; hw=w`
 - [ ] Choose the deployed `N_FIFO` and re-check the DMA Buffer Length Register
       width against §4.4
-- [ ] IP packaging (`component.xml` + `xgui`); verify `ip_packager` picks XDC
+- [x] IP packaging (`component.xml` + `xgui`); verify `ip_packager` picks XDC
       from `constraints/` (known bug: it looked in `rtl_lib/ip`)
 - [ ] Live-hardware end-to-end capture (ADC → streamer → DMA → notebook)
 - [ ] Confirm the AXI DMA settings in §4.5 against PG021 for the version in use
