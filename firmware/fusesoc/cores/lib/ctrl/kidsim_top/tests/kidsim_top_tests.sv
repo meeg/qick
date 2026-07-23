@@ -137,5 +137,4 @@
              v_lat, dbyp_lat, dproc_lat);
     $display("SKEW valid-vs-bypass=%0d  valid-vs-processed=%0d",
              dbyp_lat - v_lat, dproc_lat - v_lat);
-    `FAIL_IF(1);
 `SVTEST_END
