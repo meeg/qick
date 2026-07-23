@@ -13,7 +13,8 @@
 //! Register map (driven by the AXI-Lite wrapper):
 //!   start_reg  RW  LEVEL enable. 0 = idle, 1 = capture and stream. It is not
 //!                  a pulse: dropping it while running ends the run.
-//!   flush_reg  RW  behaviour when leaving RUN with a partial packet held:
+//!   flush_reg  RW  resynchronised internally. Behaviour when leaving RUN with
+//!                  a partial packet held:
 //!                  1 = drain what is left, final beat carries tlast;
 //!                  0 = discard it, nothing more is emitted.
 //!   mode_reg   RW  0 = one-shot (one packet, then wait for start_reg to be
@@ -86,8 +87,27 @@ module streamer #(
     parameter int B_TDATA = 16,   //! input data payload width
     parameter int B_TUSER = 8,    //! input user side-channel width
     parameter int B_AXIS  = 32,   //! output data bus width
-    parameter int N_FIFO  = 16,    //! internal FIFO depth (power of two, >= 16)
-    parameter     FIFO_MEM_TYPE  = "distributed"    //! FIFO memory type
+    parameter int N_FIFO  = 16,   //! internal FIFO depth (power of two, >= 16)
+    //! FIFO storage primitive, forwarded to XPM's FIFO_MEMORY_TYPE.
+    //! "auto" lets Vivado pick, which gives LUTRAM for a shallow buffer and
+    //! block RAM for a deep one — the behaviour you want either way. Override
+    //! with "distributed" or "block" to pin it down. (Check whether your XPM
+    //! version accepts "ultra"; the doc header in the older fifo_dc_axi lists
+    //! only auto/block/distributed.)
+    //!
+    //! ! DELIBERATELY UNTYPED, and the default is deliberately a PLAIN STRING
+    //! LITERAL. Two separate reasons:
+    //!   - Untyped, because XPM does not merely compare these parameters, it
+    //!     BIT-SLICES them as packed vectors. A SystemVerilog `string` is a
+    //!     dynamic type whose indexing means something else, so the slices
+    //!     inside XPM stop decoding. Same reason fifo_sync's USE_ADV_FEATURES
+    //!     was reverted to untyped (commit "fix a parameter passing to xpm
+    //!     instantiation").
+    //!   - A plain literal, because Verible's explicit-parameter-storage-type
+    //!     rule exempts untyped parameters whose default is a string literal,
+    //!     but not one whose default is an expression such as a ternary. Keep
+    //!     it a literal and no lint waiver is needed.
+    parameter FIFO_MEM_TYPE = "auto"
 ) (
     // AXI4-Stream slave (input), "s" clock domain
     input  logic                s_axis_aresetn,   //! active-low reset, s domain
@@ -157,6 +177,7 @@ module streamer #(
     logic [31:0]        cnt_full;           //! running count of dropped beats
 
     logic               start_reg_resync;   //! start_reg in the m domain
+    logic               flush_reg_sync;     //! flush_reg in the m domain
     logic               run_state_sclk;     //! run_state in the s domain
     logic               run_state_sclk_d;   //! delayed, for edge detection
     logic               run_state_ack;      //! run_state_sclk back in the m domain
@@ -194,6 +215,18 @@ module streamer #(
         .i_rstn  (m_axis_aresetn  ),
         .i_async (start_reg       ),
         .o_sync  (start_reg_resync)
+    );
+
+    //! flush_reg is quasi-static (written before start_reg, only consulted in
+    //! WAIT_END), but it feeds COMBINATIONAL logic in this domain. Without a
+    //! synchroniser a metastable value could momentarily steer the block down
+    //! the wrong branch: drain a packet that should have been discarded, or the
+    //! reverse. One flop pair removes the question.
+    cdc_bit_sync #(.NSTAGES(2)) u_sync_flush (
+        .i_clk   (m_axis_aclk   ),
+        .i_rstn  (m_axis_aresetn),
+        .i_async (flush_reg     ),
+        .o_sync  (flush_reg_sync)
     );
 
     cdc_bit_sync #(.NSTAGES(2)) u_sync_run_state (
@@ -250,7 +283,7 @@ module streamer #(
     //! going to be discarded anyway. Gating the pop with this instead of with
     //! m_axis_tready is what stops an already-presented beat from being
     //! overwritten.
-    assign discard_now = wait_end_state & ~flush_reg & ~last_rdy;
+    assign discard_now = wait_end_state & ~flush_reg_sync & ~last_rdy;
     assign beat_free   = ~last_dv | out_hs | discard_now;
 
     //! Popping is allowed in every state except END_ST. beat_free already
@@ -381,7 +414,7 @@ module streamer #(
                 last_cnt  <= 1'b0;
                 last_rdy  <= 1'b0;
             end
-            else if (wait_end_state && flush_reg && last_dv && !last_rdy) begin
+            else if (wait_end_state && flush_reg_sync && last_dv && !last_rdy) begin
                 if (!fifo_empty) begin
                     //! Another word is queued behind it: not the last beat.
                     last_rdy <= 1'b1;
@@ -492,7 +525,7 @@ module streamer #(
     //! [7:0]   flags, note bit 3 now exposes run_state_sclk so a testbench can
     //!         tell when the WRITE side has actually started capturing.
     assign dbg_probe[ 7: 0] = {fifo_full, fifo_empty, fifo_rd_en, fifo_wr_en,
-                               run_state_sclk, mode_reg_r, flush_reg, start_reg_resync};
+                               run_state_sclk, mode_reg_r, flush_reg_sync, start_reg_resync};
     assign dbg_probe[15: 8] = {6'b0, state};
     assign dbg_probe[23:16] = {lost_reg_r[3:0], nsamp_reg_r[3:0]};
     assign dbg_probe[31:24] = {cnt_full[3:0], cnt[3:0]};

@@ -76,7 +76,7 @@ module streamer_unit_test;
   localparam      MEM_TYPE = (`TB_MEM == 1) ? "distributed" :
                              (`TB_MEM == 2) ? "block"       :
                              (`TB_MEM == 3) ? "ultra"       :
-                             ((N_FIFO <= 64) ? "distributed" : "block");
+                             "auto";   //! matches the RTL default
 
   //! Overrun stimulus, sized off the buffer so tc05 stays meaningful at any
   //! depth: enough words to fill it with margin, then enough idle cycles for
