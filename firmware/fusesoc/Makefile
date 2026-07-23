@@ -67,8 +67,23 @@ DEPTH    ?=
 WIDTH    ?=
 SWAP_CLK ?=
 ASYNC    ?=
+FIFO     ?=
+MEM      ?=
+
 
 SIM_ARGS :=
+
+ifeq ($(MEM),auto)
+  SIM_ARGS += --TB_MEM=0
+else ifeq ($(MEM),distributed)
+  SIM_ARGS += --TB_MEM=1
+else ifeq ($(MEM),block)
+  SIM_ARGS += --TB_MEM=2
+else ifeq ($(MEM),ultra)
+  SIM_ARGS += --TB_MEM=3
+else ifneq ($(MEM),)
+  $(error MEM must be auto, distributed, block or ultra (got '$(MEM)'))
+endif
 
 ifneq ($(ASYNC),)
   SIM_ARGS += --ASYNC_CLK=$(ASYNC)
@@ -103,7 +118,7 @@ RTL_DOCS_OUT ?= docs/rtl-md
 	clean \
 	list-cores core-info deps verify-core \
 	gen new-ip driver driver-test driver-all driver-scaffold \
-	rdl-docs rtl-docs rtl-docs-clean
+	rdl-docs rtl-docs rtl-docs-clean sim-streamer-matrix
 
 # Default target: show the quick reference.
 help:
@@ -170,6 +185,26 @@ sim-fifo-matrix:
 	  echo "*** fifo_async matrix: all 8 configurations passed"; \
 	else \
 	  printf "*** fifo_async matrix FAILED for:%b\n" "$$failed"; \
+	fi; \
+	exit $$fail
+
+sim-streamer-matrix:
+	@fail=0; failed=""; \
+	for ip in streamer axis_streamer; do \
+	  for cfg in "16 auto" "1024 block"; do \
+	    set -- $$cfg; \
+	    echo ""; \
+	    echo "=== $$ip  FIFO=$$1 MEM=$$2"; \
+	    if ! $(MAKE) --no-print-directory sim IP=$$ip FIFO=$$1 MEM=$$2; then \
+	      fail=1; failed="$$failed\n  $$ip FIFO=$$1 MEM=$$2"; \
+	    fi; \
+	  done; \
+	done; \
+	echo ""; \
+	if [ $$fail -eq 0 ]; then \
+	  echo "*** streamer matrix: all configurations passed"; \
+	else \
+	  printf "*** streamer matrix FAILED for:%b\n" "$$failed"; \
 	fi; \
 	exit $$fail
 
