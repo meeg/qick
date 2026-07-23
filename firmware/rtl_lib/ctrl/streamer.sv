@@ -19,8 +19,8 @@
 //!   mode_reg   RW  0 = one-shot (one packet, then wait for start_reg to be
 //!                  toggled), 1 = continuous (back-to-back packets).
 //!   nsamp_reg  RW  beats per packet. 0 keeps the block in IDLE.
-//!   lost_reg   RO  input beats dropped because the FIFO was full, latched when
-//!                  the block leaves RUN.
+//!   lost_reg   RO  see WHAT LOST ACTUALLY COUNTS below. Latched when the
+//!                  block leaves RUN.
 //!
 //! OUTPUT BEAT REGISTER - read this before touching anything below
 //!   One beat is held in {last_dout, last_dv, last_cnt}. tlast travels WITH the
@@ -43,6 +43,29 @@
 //!   writes 0 the block keeps streaming normally for a few m_axis_aclk cycles.
 //!   A driver must not assume the output stops on the next beat.
 //!
+//! WHAT LOST ACTUALLY COUNTS
+//!   It counts CYCLES in which the source offered data while the FIFO was full,
+//!   not distinct beats. The two only coincide for a source that produces one
+//!   new sample per clock and cannot be stalled, which is the intended use:
+//!   an ADC feeding this block, and a DMA draining it. There,
+//!
+//!       samples offered == samples stored + LOST
+//!
+//!   holds exactly, and LOST is the number of samples that fell on the floor.
+//!
+//!   Put a well-behaved AXI4-Stream master in front instead and the meaning
+//!   changes: that master holds one beat across every stalled cycle, so the
+//!   same beat is counted many times and nothing is actually lost. In that
+//!   configuration LOST measures backpressure, not loss. Note also that a
+//!   free-running converter is NOT an AXI4-Stream master, since it keeps
+//!   changing tdata while tready is low.
+//!
+//! CAPTURE DEPTH
+//!   The block holds N_FIFO+1 words in the FIFO plus one in the output beat
+//!   register, so with N_FIFO = 16 it absorbs 18 samples of DMA hiccup. A
+//!   gapless record longer than that needs the sink to keep up on average;
+//!   size N_FIFO for the worst expected DMA stall, not for the packet length.
+//!
 //! BACKPRESSURE
 //!   s_axis_tready is ~fifo_full and is deliberately NOT gated by the run state:
 //!   this block is a passive tap and must never stall its producer. Beats
@@ -63,7 +86,8 @@ module streamer #(
     parameter int B_TDATA = 16,   //! input data payload width
     parameter int B_TUSER = 8,    //! input user side-channel width
     parameter int B_AXIS  = 32,   //! output data bus width
-    parameter int N_FIFO  = 16    //! internal FIFO depth (power of two, >= 16)
+    parameter int N_FIFO  = 16,    //! internal FIFO depth (power of two, >= 16)
+    parameter     FIFO_MEM_TYPE  = "distributed"    //! FIFO memory type
 ) (
     // AXI4-Stream slave (input), "s" clock domain
     input  logic                s_axis_aresetn,   //! active-low reset, s domain
@@ -87,6 +111,16 @@ module streamer #(
     input  logic                mode_reg,         //! 0 = one-shot, 1 = continuous
     input  logic [31:0]         nsamp_reg,        //! beats per packet
     output logic [31:0]         lost_reg,         //! dropped input beats
+
+    //! Status flags for the register wrapper. MIND THE CLOCK DOMAINS: these are
+    //! meant to be synchronised INDIVIDUALLY, they are not coherent as a group.
+    //!   [0] running    m domain, FSM in RUN
+    //!   [1] done       m domain, FSM in END (one-shot packet finished)
+    //!   [2] idle       m domain, FSM in IDLE (safe to reconfigure)
+    //!   [3] overflow   s domain, sticky, samples lost in this or the last run
+    //!   [4] fifo_full  s domain
+    //!   [5] fifo_empty m domain
+    output logic [5:0]          o_status,
 
     output logic [31:0]         dbg_probe         //! debug probe, see bottom
 );
@@ -116,6 +150,8 @@ module streamer #(
     logic               idle_state;
     logic               run_state;
     logic               wait_end_state;
+    logic               end_state;
+    logic               ovf_sticky;         //! sticky overflow, s domain
 
     logic [31:0]        cnt;                //! beats popped in the current packet
     logic [31:0]        cnt_full;           //! running count of dropped beats
@@ -183,7 +219,7 @@ module streamer #(
         .B                (W_FIFO       ),
         .N                (N_FIFO       ),
         .READ_MODE        ("fwft"       ),
-        .FIFO_MEMORY_TYPE ("distributed"),
+        .FIFO_MEMORY_TYPE (FIFO_MEM_TYPE),
         .CDC_SYNC_STAGES  (2            )
     ) u_fifo_async (
         .wr_rstn    (s_axis_aresetn),
@@ -219,7 +255,9 @@ module streamer #(
 
     //! Popping is allowed in every state except END_ST. beat_free already
     //! enforces backpressure while flushing (it needs the handshake), and makes
-    assign fifo_rd_en = ~fifo_empty & beat_free & (state != END_ST);
+    //! the discard path free-running, so no extra qualifier is needed here.
+    assign fifo_rd_en = ~fifo_empty & beat_free &
+                        (run_state | wait_end_state | idle_state);
 
     // -----------------------------------------------------------------------
     // 5) Lost-sample counter, s domain
@@ -229,6 +267,7 @@ module streamer #(
             cnt_full         <= 32'd0;
             lost_reg_r       <= 32'd0;
             run_state_sclk_d <= 1'b0;
+            ovf_sticky       <= 1'b0;
         end
         else begin
             run_state_sclk_d <= run_state_sclk;
@@ -239,7 +278,14 @@ module streamer #(
                 cnt_full   <= 32'd0;
             end
             else if (run_state_sclk && s_axis_tvalid && fifo_full) begin
-                cnt_full <= cnt_full + 1;
+                cnt_full   <= cnt_full + 1;
+                ovf_sticky <= 1'b1;
+            end
+
+            //! Sticky overflow is cleared when a NEW run starts, so software
+            //! reads a flag that belongs to the run it just observed.
+            if (run_state_sclk && !run_state_sclk_d) begin
+                ovf_sticky <= 1'b0;
             end
         end
     end
@@ -275,7 +321,35 @@ module streamer #(
     end
 
     // -----------------------------------------------------------------------
-    // 7) Output beat register (holds data + tlast together)
+    // 7) Drain settling
+    // -----------------------------------------------------------------------
+    //! In an asynchronous FIFO, empty is computed against the SYNCHRONISED
+    //! write pointer, so empty == 1 does not prove that no word is in flight.
+    //! run_state_ack (the run state round-tripped through the write domain)
+    //! proves the write side has stopped, but it is only as deep as the FIFO's
+    //! own pointer synchroniser, so on its own it can fall on the very edge the
+    //! last pointer update arrives. Requiring the FIFO to read empty
+    //! CONTINUOUSLY for DRAIN_SETTLE cycles afterwards covers both.
+    //!
+    //! This replaces the old 3-stage synchroniser on fifo_wr_en: that signal is
+    //! a pulse train, and a one-cycle pulse in a fast write domain can be
+    //! missed entirely by a slower read clock.
+    always_ff @(posedge m_axis_aclk) begin
+        if (!m_axis_aresetn) begin
+            drain_cnt <= '0;
+        end
+        else if (!wait_end_state || run_state_ack || !fifo_empty) begin
+            drain_cnt <= '0;
+        end
+        else if (drain_cnt != DRAIN_W'(DRAIN_SETTLE)) begin
+            drain_cnt <= drain_cnt + 1;
+        end
+    end
+
+    assign drain_ready = (drain_cnt == DRAIN_W'(DRAIN_SETTLE));
+
+    // -----------------------------------------------------------------------
+    // 8) Output beat register (holds data + tlast together)
     // -----------------------------------------------------------------------
     //! last_rdy is the key to an AXI-legal tvalid. It says "the tlast of the
     //! beat I am holding is resolved, so it may be presented". It is only ever
@@ -309,12 +383,12 @@ module streamer #(
             end
             else if (wait_end_state && flush_reg && last_dv && !last_rdy) begin
                 if (!fifo_empty) begin
-                    //! another word is queued behind it: not the last beat.
+                    //! Another word is queued behind it: not the last beat.
                     last_rdy <= 1'b1;
                 end
-                else if (!run_state_ack) begin
-                    //! The FIFO drained and no write is in flight: this beat
-                    //! closes the truncated packet.
+                else if (drain_ready) begin
+                    //! The FIFO has settled empty with the write side stopped:
+                    //! this beat closes the truncated packet.
                     last_cnt <= 1'b1;
                     last_rdy <= 1'b1;
                 end
@@ -334,7 +408,7 @@ module streamer #(
     end
 
     // -----------------------------------------------------------------------
-    // 8) FSM, m domain
+    // 9) FSM, m domain
     // -----------------------------------------------------------------------
     always_ff @(posedge m_axis_aclk) begin
         if (!m_axis_aresetn) begin
@@ -384,17 +458,18 @@ module streamer #(
         idle_state     = 1'b0;
         run_state      = 1'b0;
         wait_end_state = 1'b0;
+        end_state      = 1'b0;
 
         case (state)
             IDLE_ST:     idle_state     = 1'b1;
             RUN_ST:      run_state      = 1'b1;
             WAIT_END_ST: wait_end_state = 1'b1;
-            default:     ;                        // END_ST drives nothing
+            default:     end_state      = 1'b1;   // END_ST
         endcase
     end
 
     // -----------------------------------------------------------------------
-    // 9) Stream outputs
+    // 10) Stream outputs
     // -----------------------------------------------------------------------
     assign out_hs = m_axis_tvalid & m_axis_tready;
 
@@ -408,8 +483,11 @@ module streamer #(
     assign s_axis_tready = ~fifo_full;
     assign lost_reg      = lost_reg_r;
 
+    assign o_status = {fifo_empty, fifo_full, ovf_sticky,
+                       idle_state, end_state, run_state};
+
     // -----------------------------------------------------------------------
-    // 10) Debug probe
+    // 11) Debug probe
     // -----------------------------------------------------------------------
     //! [7:0]   flags, note bit 3 now exposes run_state_sclk so a testbench can
     //!         tell when the WRITE side has actually started capturing.
@@ -420,3 +498,4 @@ module streamer #(
     assign dbg_probe[31:24] = {cnt_full[3:0], cnt[3:0]};
 
 endmodule
+

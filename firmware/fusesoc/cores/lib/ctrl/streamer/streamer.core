@@ -52,7 +52,7 @@ targets:
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner
-    parameters: [ASYNC_CLK]
+    parameters: [ASYNC_CLK, TB_N_FIFO, TB_MEM]
     tools:
       xsim:
         # NOTE: precision must be finer than 1ns. With 1ns/1ns a 307.2 MHz
@@ -75,6 +75,16 @@ parameters:
     description: "0 = single clock, 1 = s_clk 307.2 MHz / m_clk 100 MHz"
     paramtype  : vlogdefine
     default    : 0
+  TB_N_FIFO:
+    datatype    : int
+    description : Internal FIFO depth used by the testbench
+    paramtype   : vlogdefine
+    default     : 16
+  TB_MEM:
+    datatype    : int
+    description : "FIFO storage: 0=auto, 1=distributed, 2=block, 3=ultra"
+    paramtype   : vlogdefine
+    default     : 0
   B_TDATA:
     datatype: int
     description: Width of TDATA in bits
@@ -91,3 +101,13 @@ parameters:
     datatype: int
     description: FIFO depth (power of 2)
     paramtype: vlogparam
+      
+# ----- Usage ----------------------------------------------------------------
+#   make sim IP=streamer                              # 16 deep, distributed
+#   make sim IP=streamer FIFO=1024 MEM=block          # BRAM path
+#   make sim IP=streamer ASYNC=1 FIFO=1024 MEM=block  # BRAM across the CDC
+#   make sim IP=axis_streamer FIFO=1024 MEM=block
+#
+# Check the [CFG] line and the test-case name: both carry the depth and the
+# storage type, so a define that never reached xvlog is visible immediately.
+

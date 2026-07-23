@@ -192,9 +192,11 @@
     logic [W_IN-1:0] tx[];
     bit              ok;
 
-    set_params(64, 1'b0);
+    //! Continuous mode and a packet longer than the buffer, so the run cannot
+    //! finish on its own before the overrun happens.
+    set_params(OVF_WORDS, 1'b1);
     set_tready(1'b0);              // sink blocked, the FIFO will fill up
-    make_packet(64, 8'h33, tx);
+    make_packet(OVF_WORDS, 8'h33, tx);
 
     start_block();
     fork
@@ -202,7 +204,7 @@
     join_none
 
     // Let the FIFO overflow.
-    repeat (200) @(posedge s_clk);
+    repeat (OVF_WAIT) @(posedge s_clk);
 
     stop_block();
     set_tready(1'b1);
@@ -231,7 +233,7 @@
     bit                ok;
     int                n_rx;
 
-    set_params(8, 1'b0, 1'b1);     // packet of 8 configured, flush enabled
+    set_params(8, 1'b0, 1'b1);     // packet of 8 configured, only 5 sent
     set_tready(1'b0);              // nothing may leave while we fill
     make_packet(5, 8'hCC, tx);
 

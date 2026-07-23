@@ -5,8 +5,20 @@
 //
 //   ASYNC_CLK  0 = single clock, s and m share 307.2 MHz (default, functional)
 //              1 = s at 307.2 MHz, m at 100 MHz (CDC smoke test)
+//   TB_N_FIFO  internal FIFO depth, default 16
+//   TB_MEM     0 = let the RTL derive the storage type from the depth,
+//              1 = distributed, 2 = block, 3 = ultra
+//
 //     make sim IP=streamer
 //     make sim IP=streamer ASYNC=1
+//     make sim IP=streamer FIFO=1024 MEM=block
+//
+//   KEEP THE DEPTH SMALL FOR THE FUNCTIONAL SUITE. tc05 deliberately overruns
+//   the buffer, so a deep FIFO only makes the run longer without covering more
+//   control logic; depth itself is already covered by the fifo_async suite.
+//   What IS worth running once is a block-RAM build, because first-word
+//   fall-through over BRAM adds internal output registers that LUTRAM does not
+//   have. The tests that fill the FIFO scale themselves off N_FIFO.
 //
 //   WHY start_reg IS NOT PULSED
 //     start_reg is a LEVEL enable. The FSM leaves RUN as soon as it reads back
@@ -37,6 +49,12 @@
 `ifndef ASYNC_CLK
   `define ASYNC_CLK 0
 `endif
+`ifndef TB_N_FIFO
+  `define TB_N_FIFO 16
+`endif
+`ifndef TB_MEM
+  `define TB_MEM 0
+`endif
 
 module streamer_unit_test;
 
@@ -51,8 +69,20 @@ module streamer_unit_test;
   localparam int  B_TDATA = 16;
   localparam int  B_TUSER = 8;
   localparam int  B_AXIS  = 32;
-  localparam int  N_FIFO  = 16;
+  localparam int  N_FIFO  = `TB_N_FIFO;
   localparam int  W_IN    = B_TDATA + B_TUSER;   // packed {tuser, tdata}
+
+  //! 0 selects the same expression the RTL uses by default.
+  localparam      MEM_TYPE = (`TB_MEM == 1) ? "distributed" :
+                             (`TB_MEM == 2) ? "block"       :
+                             (`TB_MEM == 3) ? "ultra"       :
+                             ((N_FIFO <= 64) ? "distributed" : "block");
+
+  //! Overrun stimulus, sized off the buffer so tc05 stays meaningful at any
+  //! depth: enough words to fill it with margin, then enough idle cycles for
+  //! the drop counter to accumulate.
+  localparam int  OVF_WORDS = N_FIFO + 32;
+  localparam int  OVF_WAIT  = 200;
 
   localparam real S_FREQ  = 307.20e6;
   localparam real M_FREQ  = (`ASYNC_CLK != 0) ? 100.00e6 : 307.20e6;
@@ -159,10 +189,11 @@ module streamer_unit_test;
   // DUT
   //---------------------------------------------------------------------------
   streamer #(
-    .B_TDATA (B_TDATA),
-    .B_TUSER (B_TUSER),
-    .B_AXIS  (B_AXIS ),
-    .N_FIFO  (N_FIFO )
+    .B_TDATA       (B_TDATA ),
+    .B_TUSER       (B_TUSER ),
+    .B_AXIS        (B_AXIS  ),
+    .N_FIFO        (N_FIFO  ),
+    .FIFO_MEM_TYPE (MEM_TYPE)
   ) dut (
     .s_axis_aresetn (tb_rstn                        ),
     .s_axis_aclk    (s_clk                          ),
@@ -433,13 +464,14 @@ module streamer_unit_test;
   // SVUnit boilerplate
   //---------------------------------------------------------------------------
   function void build();
-    name = (`ASYNC_CLK != 0) ? "streamer_ut_async" : "streamer_ut_sync";
+    name = $sformatf("streamer_ut_%0s_N%0d_%0s",
+                     (`ASYNC_CLK != 0) ? "async" : "sync", N_FIFO, MEM_TYPE);
     svunit_ut = new(name);
   endfunction
 
   initial begin
-    $display("[CFG] streamer TB: s_clk=%.2f MHz  m_clk=%.2f MHz  N_FIFO=%0d",
-             S_FREQ/1.0e6, M_FREQ/1.0e6, N_FIFO);
+    $display("[CFG] streamer TB: s_clk=%.2f MHz  m_clk=%.2f MHz  N_FIFO=%0d  MEM=%0s",
+             S_FREQ/1.0e6, M_FREQ/1.0e6, N_FIFO, MEM_TYPE);
   end
 
   task setup();
@@ -467,3 +499,4 @@ module streamer_unit_test;
   `SVUNIT_TESTS_END
 
 endmodule
+
