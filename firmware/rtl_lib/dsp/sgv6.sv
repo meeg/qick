@@ -336,7 +336,7 @@ module sgv6 #(
          assign round[i]  = (round_ext >  $signed(17'sd32766)) ? 16'sd32766  :  // +MAXV
                             (round_ext < -$signed(17'sd32766)) ? -16'sd32766 :  // -MAXV
                             round_ext[15:0];
-         
+
          // Saturation flag for this lane (only meaningful while output enabled).
          assign sat_lane[i] = en_la_r &
                               ((round_ext >  17'sd32766) ||
