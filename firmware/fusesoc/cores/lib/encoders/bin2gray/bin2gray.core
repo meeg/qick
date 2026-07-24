@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:fifo:bin2gray:1.0.0
+name: qick:encoders:bin2gray:1.0.0
 description: Binary to Gray code converter.
 
 filesets:
