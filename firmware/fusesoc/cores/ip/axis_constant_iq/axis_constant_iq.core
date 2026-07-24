@@ -56,7 +56,7 @@ targets:
     toplevel: testrunner
     tools:
       xsim:
-        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
       icarus:
         iverilog_options:
