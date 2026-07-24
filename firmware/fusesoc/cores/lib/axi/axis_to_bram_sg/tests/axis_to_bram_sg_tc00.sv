@@ -57,9 +57,10 @@ module axis_to_bram_sg_unit_test;
     logic [B-1:0] mem [0:DEPTH-1];
 
     always_ff @(posedge tb_clk) begin
-        if (bram_if_i.en && bram_if_i.we)
+        if (bram_if_i.en && bram_if_i.we) begin
             $display("[BRAM] write addr=%0h data=%0h", bram_if_i.addr, bram_if_i.din);
             mem[bram_if_i.addr] <= bram_if_i.din;
+        end
     end
 
     // =========================================================================
@@ -141,10 +142,13 @@ module axis_to_bram_sg_unit_test;
         input int           count,
         input logic [B-1:0] start_val
     );
+        //lineup wait
+        @(axis_if.m_cb);
         for (int i = 0; i < count; i++) begin
             axis_if.m_cb.tdata  <= start_val + B'(i);
             axis_if.m_cb.tlast  <= (i == count-1) ? 1'b1 : 1'b0;
             axis_if.m_cb.tvalid <= 1'b1;
+
             do @(axis_if.m_cb); while (!axis_if.m_cb.tready);
         end
         axis_if.m_cb.tvalid <= 1'b0;
