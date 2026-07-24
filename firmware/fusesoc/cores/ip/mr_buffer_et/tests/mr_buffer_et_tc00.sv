@@ -2,13 +2,17 @@
 // File: mr_buffer_et_tc00.sv
 // Description: SVUnit testbench top-level for mr_buffer_et.
 //
-// mr_buffer_et wraps mr_buffer with an AXI4-Lite slave (axil_slv) to expose
-// control registers:
+// Rewritten to drive both AXI4-Stream interfaces exclusively through the
+// axi4_stream_if verification API (m_reset / tx / burst_rx) and the AXI4-Lite
+// interface through axi_write / axi_read.  No raw-signal sampling anywhere in
+// the checkers: every sampled value comes from a clocking block, which is what
+// makes the results independent of simulator delta ordering.
 //
 //   Register map (AXI_DW=32, AXI_AW=6, byte-addressed, ADDR_LSB=2):
-//     0x00  reg 0  dw_capture_reg : bit 0 = capture enable
-//     0x04  reg 1  dr_start_reg   : bit 0 = read start
-//     0x3C  reg 15 debug_reg      : bit 0 = force trigger, bit 1 = tready force
+//     0x00  reg 0   dw_capture_reg : bit 0 = capture enable
+//     0x04  reg 1   dr_start_reg   : bit 0 = read start
+//     0x08  reg 2   status         : bit 0 = capture_done (RO)
+//     0x3C  reg 15  debug_reg      : bit 0 = force trigger, bit 1 = tready force
 //
 // Three independent clock domains:
 //   s_axi_aclk   (AXI_FREQ)    : AXI4-Lite register access
@@ -19,10 +23,14 @@
 //   One dr_start_reg write triggers a burst of TOTAL_WORDS = NM * 2**N beats.
 //   Word order: ch0@addr0, ch1@addr0, ..., ch(NM-1)@addr0,
 //               ch0@addr1, ..., ch(NM-1)@addr(2**N-1)  <- tlast
-//   Always drain all TOTAL_WORDS beats before writing dr_start_reg again.
+//   The whole burst MUST be consumed before dr_start_reg is written again,
+//   otherwise leftover beats in the reader FIFO poison the next burst.
+//   burst_rx() consumes up to tlast, so it enforces this by construction as
+//   long as the returned beat count is checked.
 //
-// NOTE: mr_buffer_et declares m_axis_tdata as [NM*B-1:0] but mr_buffer drives
-// only the low B bits.  Tests read m_axis_if.tdata[B-1:0] for channel-0.
+// NOTE: s_reset() is deliberately NOT used on m_axis_if.  It leaves tready
+// asserted, which would let a burst drain into nowhere while the test is busy
+// elsewhere.  The sink is held idle explicitly instead.
 // ============================================================================
 
 `include "svunit_defines.svh"
@@ -42,23 +50,38 @@ module mr_buffer_et_unit_test;
     localparam real S_AXIS_FREQ = 150e6;
     localparam real M_AXIS_FREQ = 200e6;
 
-    localparam int NM         = 8;
-    localparam int N          = 8;
+    `ifndef MRBUF_NM
+      `define MRBUF_NM 8
+    `endif
+    
+    `ifndef MRBUF_N
+      `define MRBUF_N  8
+    `endif
+
+    localparam int NM         = `MRBUF_NM;
+    localparam int N          = `MRBUF_N;
     localparam int B          = 16;
     localparam int C_S_AXI_DW = 32;
     localparam int C_S_AXI_AW = 6;
 
     localparam int S_DATA_W    = NM * B;
-    localparam int S_STRB_W    = (NM * B) / 8;
     localparam int M_DATA_W    = B;   // mr_buffer_et output bus width
-    localparam int M_STRB_W    = B / 8;
     localparam int DEPTH       = 2**N;
     localparam int TOTAL_WORDS = DEPTH * NM;
+
+    // Per-channel offset used by send_beat: ch[i] = ch0 + i*CH_OFFSET
+    localparam logic [B-1:0] CH_OFFSET = 16'h1000;
 
     // AXI4-Lite register byte addresses
     localparam logic [C_S_AXI_AW-1:0] REG_DW_CAPTURE = 6'h00;
     localparam logic [C_S_AXI_AW-1:0] REG_DR_START   = 6'h04;
+    localparam logic [C_S_AXI_AW-1:0] REG_STATUS     = 6'h08;
     localparam logic [C_S_AXI_AW-1:0] REG_DEBUG      = 6'h3C;
+
+    // axis_to_bram_trig FSM encoding (white-box handshake with the DUT)
+    localparam int unsigned WR_INIT_ST    = 0;
+    localparam int unsigned WR_TRIGGER_ST = 1;
+    localparam int unsigned WR_CAPTURE_ST = 2;
 
     // =========================================================================
     // Clocks & Resets
@@ -175,88 +198,71 @@ module mr_buffer_et_unit_test;
 
     // =========================================================================
     // AXI4-Lite register access helpers
-    //
-    // axi4_lite_if tasks (axi_write, axi_read) operate on posedge aclk using
-    // non-blocking assignments.  No separate clocking block is needed — the
-    // interface handles timing internally.
     // =========================================================================
-
     task automatic set_capture(input logic val);
         s_axi.axi_write(REG_DW_CAPTURE, C_S_AXI_DW'({31'b0, val}));
     endtask
 
     task automatic set_start(input logic val);
-        s_axi.write(REG_DR_START, C_S_AXI_DW'({31'b0, val}));
+        s_axi.axi_write(REG_DR_START, C_S_AXI_DW'({31'b0, val}));
     endtask
 
     task automatic set_debug(input logic [C_S_AXI_DW-1:0] val);
-        s_axi.write(REG_DEBUG, val);
+        s_axi.axi_write(REG_DEBUG, val);
     endtask
 
     task automatic read_reg(
         input  logic [C_S_AXI_AW-1:0]  addr,
         output logic [C_S_AXI_DW-1:0]  data
     );
-        s_axi.read(addr, data);
+        s_axi.axi_read(addr, data);
     endtask
 
     // =========================================================================
-    // Capture sequencing helpers
+    // Write-side FSM handshake helpers (white-box)
     // =========================================================================
 
-    // arm_and_trigger: write capture=1 via AXI, wait for CDC, pulse trigger,
-    // wait for trigger CDC + FSM to reach CAPTURE_ST.
+    // wait_wr_state: block until channel 0's capture FSM reaches `st`, with a
+    // hard timeout so a stuck FSM fails the test instead of hanging the run.
+    task automatic wait_wr_state(input int unsigned st, input int timeout = 2000);
+        int cnt = 0;
+        while (dut.mr_buffer_i.gen_channel[0].u_axis_to_bram_trig.current_state !== st) begin
+            @(posedge s_axis_aclk);
+            if (++cnt > timeout)
+                $fatal(1, "[TB_FATAL] capture FSM did not reach state %0d (stuck in %0d)",
+                       st, dut.mr_buffer_i.gen_channel[0].u_axis_to_bram_trig.current_state);
+        end
+    endtask
+
+    // arm_and_trigger: arm the writer over AXI, wait for TRIGGER_ST, then pulse
+    // the hardware trigger and wait for CAPTURE_ST.
     task automatic arm_and_trigger();
-    set_capture(1'b1);
-    // Wait for FSM to reach TRIGGER_ST — more reliable than counting cycles
-    @(s_axis_if.m_cb);
-    while (dut.mr_buffer_i.gen_channel[0].u_axis_to_bram_trig.current_state !== 1)
-        @(s_axis_if.m_cb);
-    repeat(2) @(s_axis_if.m_cb);  // margin
+        set_capture(1'b1);
+        wait_wr_state(WR_TRIGGER_ST);
+        repeat (2) @(posedge s_axis_aclk);
 
-    @(s_axis_if.m_cb);
-    trigger <= 1'b1;
-    @(s_axis_if.m_cb);
-    trigger <= 1'b0;
-    // Wait for FSM to reach CAPTURE_ST
-    @(s_axis_if.m_cb);
-    while (dut.mr_buffer_i.gen_channel[0].u_axis_to_bram_trig.current_state !== 2)
-        @(s_axis_if.m_cb);
-    repeat(2) @(s_axis_if.m_cb);
+        trigger <= 1'b1;
+        @(posedge s_axis_aclk);
+        trigger <= 1'b0;
 
+        wait_wr_state(WR_CAPTURE_ST);
+        repeat (2) @(posedge s_axis_aclk);
     endtask
 
-    // disarm: write capture=0 via AXI, wait for FSM to return to INIT_ST.
-    // With the abort condition in axis_to_bram_trig (!capture_reg -> END_ST),
-    // the FSM drains the FIFO and returns to INIT_ST automatically.
+    // disarm: drop capture over AXI; the abort path in axis_to_bram_trig drains
+    // the FIFO and returns the FSM to INIT_ST on its own.
     task automatic disarm();
         set_capture(1'b0);
-        @(s_axis_if.m_cb);
-        while (dut.mr_buffer_i.gen_channel[0].u_axis_to_bram_trig.current_state !== 0)
-            @(s_axis_if.m_cb);
-        repeat(5) @(s_axis_if.m_cb);
+        wait_wr_state(WR_INIT_ST);
+        repeat (5) @(posedge s_axis_aclk);
     endtask
 
-    // start_reader: write start=1 via AXI, wait for CDC into m_axis domain.
-    // Starts a burst of TOTAL_WORDS beats on m_axis.
-    task automatic start_reader();
-    set_start(1'b1);
-    // Wait for bram_to_axis_nt FSM to leave INIT_ST
-    @(m_axis_if.s_cb);
-    while (dut.mr_buffer_i.u_bram_to_axis_nt.current_state === 0)
-        @(m_axis_if.s_cb);
-    repeat(3) @(m_axis_if.s_cb);
-
-    endtask 
-    // stop_reader: write start=0 via AXI.
-    // Only call AFTER consuming all TOTAL_WORDS beats including tlast.
-    task automatic stop_reader();
-        set_start(1'b0);
-        repeat(5) @(m_axis_if.s_cb);
-    endtask
+    // =========================================================================
+    // Stimulus helpers
+    // =========================================================================
 
     // build_word: pack NM channel values (B bits each) into S_DATA_W bits.
-    // ch[0] -> bits [B-1:0] (lowest, first word on read side).
+    // ch[0] -> bits [B-1:0] (lowest, first word on the read side).
     function automatic logic [S_DATA_W-1:0] build_word(logic [B-1:0] ch [NM]);
         logic [S_DATA_W-1:0] w = '0;
         for (int i = 0; i < NM; i++)
@@ -264,83 +270,50 @@ module mr_buffer_et_unit_test;
         return w;
     endfunction
 
-    // send_beat: transmit one S_DATA_W-bit beat on s_axis.
-    // ch0_val goes to channel 0; other channels receive a distinct pattern.
+    // exp_ch: expected value for channel `ch` given the channel-0 value.
+    function automatic logic [B-1:0] exp_ch(input logic [B-1:0] ch0_val, input int ch);
+        return ch0_val + B'(ch) * CH_OFFSET;
+    endfunction
+
+    // send_beat: one S_DATA_W-bit beat on s_axis.  tx() drives tdata, tlast,
+    // tvalid and tstrb and blocks until the handshake completes.
     task automatic send_beat(input logic [B-1:0] ch0_val, input logic last);
-    logic [B-1:0] ch [NM];
-    ch[0] = ch0_val;
-    for (int i = 1; i < NM; i++)
-        ch[i] = ch0_val + B'(i * 16'h1000);
-    // Set tstrb via clocking block before tx()
-    s_axis_if.m_cb.tstrb <= '1;
-    @(s_axis_if.m_cb);
-    // tx() handles the full handshake correctly
-    s_axis_if.tx(build_word(ch), last);
+        logic [B-1:0] ch [NM];
+        for (int i = 0; i < NM; i++)
+            ch[i] = exp_ch(ch0_val, i);
+        s_axis_if.tx(build_word(ch), last);
     endtask
 
-    // do_capture: arm, trigger, send one beat, disarm, CDC margin.
+    // do_capture: arm, trigger, send one beat, let the write pipeline settle,
+    // disarm, then allow CDC margin into the read domain.
     task automatic do_capture(input logic [B-1:0] ch0_val);
         arm_and_trigger();
-        
-        // Enviamos el dato asegurando el handshake de hardware
         send_beat(ch0_val, 1'b1);
-        
-        // Le damos 20 ciclos en el dominio s_axis para que la lógica termine 
-        // de procesar el pipeline de escritura antes de apagar el bloque.
-        repeat(20) @(s_axis_if.m_cb);
-        
+        repeat (20) @(posedge s_axis_aclk);   // FIFO + BRAM write latency
         disarm();
-        
-        // CDC margin para que el estado de disarm impacte en el lado de lectura
-        repeat(50) @(m_axis_if.s_cb);
+        repeat (50) @(posedge m_axis_aclk);   // CDC margin
     endtask
 
-    // drain_burst: consume all TOTAL_WORDS beats, capture ch0 of the first word,
-    // verify tlast on the last beat and abort safely if tlast arrives early.
-    // m_axis_tdata is M_DATA_W=NM*B wide; ch0 is in bits [B-1:0].
-    task automatic drain_burst(output logic [B-1:0] first_word);
-    logic [B-1:0] word;
-    logic         last;
-    int           pos_aaaa = -1;
-    int           timeout_cnt;
+    // =========================================================================
+    // Read-side helpers
+    // =========================================================================
 
-    m_axis_if.s_cb.tready <= 1'b1;
+    task automatic start_reader();
+        set_start(1'b1);
+        repeat (5) @(posedge m_axis_aclk);    // CDC into the read domain
+    endtask
 
-    for (int i = 0; i < TOTAL_WORDS; i++) begin
-        timeout_cnt = 0;
-        // Wait for valid beat with timeout
-        while (!m_axis_if.tvalid) begin
-            @(m_axis_if.s_cb);
-            if (++timeout_cnt > 500) begin
-                $display("[ERROR] drain_burst: tvalid timeout at beat %0d", i);
-                m_axis_if.s_cb.tready <= 1'b0;
-                return;
-            end
-        end
+    task automatic stop_reader();
+        set_start(1'b0);
+        repeat (5) @(posedge m_axis_aclk);
+    endtask
 
-        word = m_axis_if.tdata;
-        last = m_axis_if.tlast;
-
-        if (i == 0) first_word = word;
-        if (word == 16'hAAAA && pos_aaaa == -1)
-            pos_aaaa = i;
-
-        if (last && i < TOTAL_WORDS - 1) begin
-            $display("[WARN] drain_burst: tlast at beat %0d, expected %0d", i, TOTAL_WORDS-1);
-            @(m_axis_if.s_cb);
-            break;
-        end
-
-        @(m_axis_if.s_cb);
-    end
-
-    m_axis_if.s_cb.tready <= 1'b0;
-    @(m_axis_if.s_cb);
-
-    //if (pos_aaaa != -1)
-    //    $display("[DEBUG] 0xAAAA found at beat %0d", pos_aaaa);
-    //else
-    //    $display("[DEBUG] 0xAAAA NOT found — write may not have reached BRAM before reader started");
+    // drain_burst: consume one full burst with burst_rx(), which holds tready
+    // high and stops on tlast.  The returned queue length IS the tlast position
+    // check: a short queue means tlast came early, and the $fatal inside
+    // burst_rx covers the case where it never came at all.
+    task automatic drain_burst(output logic [M_DATA_W-1:0] beats [$]);
+        m_axis_if.burst_rx(beats);
     endtask
 
     // =========================================================================
@@ -352,28 +325,46 @@ module mr_buffer_et_unit_test;
 
     task setup();
         svunit_ut.setup();
-        s_axis_if.m_cb.tstrb <= '1;  // all bytes valid
-        s_axis_if.m_cb.tkeep <= '1;
 
-        trigger <= 1'b0;
+        // Park every TB-driven bus in a legal idle state BEFORE reset is
+        // asserted.  Blocking assignments on the raw signals are used here on
+        // purpose: m_reset() blocks until aresetn is high, so it cannot be the
+        // thing that clears tvalid for the reset window itself.
+        s_axis_if.tvalid = 1'b0;
+        s_axis_if.tlast  = 1'b0;
+        s_axis_if.tdata  = '0;
+        s_axis_if.tstrb  = '1;
+        s_axis_if.tkeep  = '0;
+        s_axis_if.tuser  = '0;
+        s_axis_if.tid    = '0;
+        s_axis_if.tdest  = '0;
+        m_axis_if.tready = 1'b0;
+        trigger          = 1'b0;
 
         // Reset all three domains simultaneously
         s_axi_aresetn    = 1'b0;
         s_axis_aresetn   = 1'b0;
         m_axis_aresetn   = 1'b0;
-        repeat(50) @(posedge s_axi_aclk);
+        repeat (50) @(posedge s_axi_aclk);
         s_axi_aresetn    = 1'b1;
         s_axis_aresetn   = 1'b1;
         m_axis_aresetn   = 1'b1;
 
-        // Initialize AXI3-Lite master to idle
+        // Hand the buses over to the clocking-block drivers.
+        // NOTE: m_axis_if.s_reset() is intentionally not called — it leaves
+        // tready asserted, which would silently drain a burst.
+        s_axis_if.m_reset();
         s_axi.reset();
-        // Allow XPM FIFOs, sync chains, and axil_slv to settle
-        repeat(50) @(posedge s_axi_aclk);
+
+        // Allow XPM FIFOs, sync chains and axil_slv to settle
+        repeat (50) @(posedge s_axi_aclk);
     endtask
 
     task teardown();
         svunit_ut.teardown();
+        // Leave the master idle so the next setup()'s reset window is clean
+        s_axis_if.idle();
+        m_axis_if.s_cb.tready <= 1'b0;
     endtask
 
     // Global timeout

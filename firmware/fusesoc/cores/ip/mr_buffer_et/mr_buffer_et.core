@@ -57,22 +57,28 @@ targets:
         mode: lint-only
         verilator_options: [-Wall]
 
-  test:
-    <<: *default
+  test: &test
     description: Simulate the design
-    filesets_append: [tb]
+    filesets: [hdl,tb]
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner
+    parameters: [MRBUF_NM, MRBUF_N]
     tools:
       xsim:
-        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
       modelsim:
         vlog_options: [-timescale=1ns/1ns -L xpm]              # XPM library
       icarus:
         iverilog_options:
           - -g2012 # Use SystemVerilog-2012
+
+  test_deployed:
+    <<: *test
+    parameters:
+      - MRBUF_NM=2
+      - MRBUF_N=16
 
   synth:
     <<: *default
@@ -91,3 +97,19 @@ targets:
     filesets: [hdl, constraints]
     toplevel: mr_buffer_et
     generate: [mr_buffer_et_packager_gen]
+
+parameters:
+  MRBUF_NM:
+    datatype: int
+    paramtype: vlogdefine
+    default: 8
+  MRBUF_N:
+    datatype: int
+    paramtype: vlogdefine
+    default: 8
+
+# Usage
+# fusesoc run --target=sim_deployed qick:ip:mr_buffer_et
+# with combinations --MRBUF_NM=4 --MRBUF_N=12
+#
+# fusesoc run --target=test_deployed qick:ip:mr_buffer_et --MRBUF_NM=4 --MRBUF_N=12
