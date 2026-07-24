@@ -208,120 +208,6 @@ interface axi4_lite_if#(
     endclocking
 
   // ==========================================================================
-  // BASIC TASKS (Clean Synchronous Implementations)
-  // ==========================================================================
-
-  /**
-   * @task read
-   * @brief Performs a basic synchronous AXI4-Lite read transaction.
-   * @param addr The address to read from.
-   * @param data The variable to store the retrieved data.
-   */
-  task automatic read (
-    input  logic [ADDR_WIDTH-1:0] addr,
-    output logic [DATA_WIDTH-1:0] data
-  );
-    begin
-      @(m_cb);
-      m_cb.araddr  <= addr;
-      m_cb.arvalid <= 1'b1;
-      m_cb.rready  <= 1'b1;
-
-      do begin
-        @(m_cb);
-      end while (!m_cb.arready);
-
-      m_cb.arvalid <= 1'b0;
-
-      while (!m_cb.rvalid) begin
-        @(m_cb);
-      end
-
-      data = m_cb.rdata;
-      m_cb.rready  <= 1'b0;
-      @(m_cb);
-    end
-  endtask
-
-  /**
-   * @task write
-   * @brief Performs a basic synchronous AXI4-Lite write transaction.
-   * @param addr The address to write to.
-   * @param data The data value to be written.
-   */
-  task automatic write (
-    input logic [ADDR_WIDTH-1:0] addr,
-    input logic [DATA_WIDTH-1:0] data
-  );
-    begin
-      @(m_cb);
-      m_cb.awaddr  <= addr;
-      m_cb.awvalid <= 1'b1;
-      m_cb.wdata   <= data;
-      m_cb.wvalid  <= 1'b1;
-      m_cb.wstrb   <= '1;
-      m_cb.bready  <= 1'b1;
-
-      do begin
-        @(m_cb);
-      end while (!(m_cb.awready && m_cb.wready));
-
-      m_cb.awvalid <= 1'b0;
-      m_cb.wvalid  <= 1'b0;
-
-      while (!m_cb.bvalid) begin
-        @(m_cb);
-      end
-
-      m_cb.bready  <= 1'b0;
-      @(m_cb);
-    end
-  endtask
-
-  /**
-   * @task write_field
-   * @brief Performs a read-modify-write operation on a specific register field.
-   * @param addr The address of the register.
-   * @param data The new data value to be inserted into the field (un-shifted).
-   * @param mask The bitmask defining the field (shifted to its target position).
-   * @param offset The bit offset position where the data should be shifted.
-   */
-  task automatic write_field (
-    input logic [ADDR_WIDTH        -1:0] addr,
-    input logic [DATA_WIDTH        -1:0] data,
-    input logic [DATA_WIDTH        -1:0] mask,
-    input logic [$clog2(ADDR_WIDTH)  :0] offset
-  );
-    begin
-      logic [DATA_WIDTH-1:0] rd_data, wr_data;
-      read(addr, rd_data);
-      wr_data = (rd_data & ~mask) | ((data << offset) & mask);
-      write(addr, wr_data);
-    end
-  endtask
-
-  /**
-   * @task read_field
-   * @brief Reads a specific field from a register and returns the un-shifted value.
-   * @param addr The address of the register.
-   * @param data The variable to store the extracted field value.
-   * @param mask The bitmask defining the field (shifted to its target position).
-   * @param offset The bit offset position of the field.
-   */
-  task automatic read_field (
-    input  logic [ADDR_WIDTH        -1:0] addr,
-    output logic [DATA_WIDTH        -1:0] data,
-    input  logic [DATA_WIDTH        -1:0] mask,
-    input  logic [$clog2(ADDR_WIDTH)  :0] offset
-  );
-    begin
-      logic [DATA_WIDTH-1:0] tmp_data;
-      read(addr, tmp_data);
-      data = (tmp_data & mask) >> offset;
-    end
-  endtask
-
-  // ==========================================================================
   // ENHANCED TASKS (Robust & XSim-Safe Timeout Control)
   // ==========================================================================
 
@@ -350,10 +236,10 @@ interface axi4_lite_if#(
       // Address Channel (AW)
       begin : aw_handshake
         int c = 0;
-        while (!m_cb.awready && c < timeout) begin
+        do begin
           @(m_cb);
           c++;
-        end
+        end while (!m_cb.awready && c < timeout);
         if (c >= timeout) $error("[%0t] AXI Write: Timeout waiting for awready", $time);
         m_cb.awvalid <= 1'b0;
       end
@@ -434,6 +320,49 @@ interface axi4_lite_if#(
     data = m_cb.rdata;
     m_cb.rready <= 1'b0;
     @(m_cb);
+  endtask
+
+  /**
+   * @task write_field
+   * @brief Performs a read-modify-write operation on a specific register field.
+   * @param addr The address of the register.
+   * @param data The new data value to be inserted into the field (un-shifted).
+   * @param mask The bitmask defining the field (shifted to its target position).
+   * @param offset The bit offset position where the data should be shifted.
+   */
+  task automatic write_field (
+    input logic [ADDR_WIDTH        -1:0] addr,
+    input logic [DATA_WIDTH        -1:0] data,
+    input logic [DATA_WIDTH        -1:0] mask,
+    input logic [$clog2(ADDR_WIDTH)  :0] offset
+  );
+    begin
+      logic [DATA_WIDTH-1:0] rd_data, wr_data;
+      axi_read(addr, rd_data);
+      wr_data = (rd_data & ~mask) | ((data << offset) & mask);
+      axi_write(addr, wr_data);
+    end
+  endtask
+
+  /**
+   * @task read_field
+   * @brief Reads a specific field from a register and returns the un-shifted value.
+   * @param addr The address of the register.
+   * @param data The variable to store the extracted field value.
+   * @param mask The bitmask defining the field (shifted to its target position).
+   * @param offset The bit offset position of the field.
+   */
+  task automatic read_field (
+    input  logic [ADDR_WIDTH        -1:0] addr,
+    output logic [DATA_WIDTH        -1:0] data,
+    input  logic [DATA_WIDTH        -1:0] mask,
+    input  logic [$clog2(ADDR_WIDTH)  :0] offset
+  );
+    begin
+      logic [DATA_WIDTH-1:0] tmp_data;
+      axi_read(addr, tmp_data);
+      data = (tmp_data & mask) >> offset;
+    end
   endtask
 
   /**

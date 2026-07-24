@@ -203,25 +203,25 @@ interface axi4_stream_if #(
        */
       task automatic tx(
         input logic [TDATA_WIDTH-1:0] data,
-        input logic last = 1'b0,
+        input logic last = 1'b0, 
         input int timeout = 1000
-      );
+        );
         int cnt = 0;
-
-        m_cb.tdata  <= data;
+        @(m_cb);                    // lineup first
+        m_cb.tdata  <= data;        // now the drive falls in T0+skew
         m_cb.tlast  <= last;
         m_cb.tvalid <= 1'b1;
         m_cb.tstrb  <= '1;
-
-        // Wait for clock and verify handshake
+        
         do begin
-          @(m_cb);
-          if (++cnt > timeout)
+          @(m_cb);                  // in T1 the DUT already sees tvalid: the ready signal is valid
+          if (++cnt > timeout) 
             $fatal(1, "[AXIS_FATAL] TX timeout");
         end while (!m_cb.tready);
-
+        
         m_cb.tvalid <= 1'b0;
         m_cb.tlast  <= 1'b0;
+        
       endtask
 
       /**
@@ -241,6 +241,8 @@ interface axi4_stream_if #(
       // DEBUG 1: Advice the input to the task
       //$display("[%0t] [RX_DEBUG] Init wait RX. Rising tready...", $time);
       s_cb.tready <= 1'b1;
+      @(s_cb);    // the tready drive only takes effect AFTER this edge;
+                  // from the next one onwards, every sampled tvalid is a valid handshake
 
       do begin
         @(s_cb);
@@ -264,6 +266,8 @@ interface axi4_stream_if #(
     /**
      * @task wait_for_beat
      * @brief Blocking slave task that halts execution until a successful, synchronized valid handshake occurs.
+     * @note In this case, reading the raw signal is safe: with output #2, the signal 
+     *       changes only 2 ns after a clocking event, so it is stable at the sampling edge. 
      */
     task automatic wait_for_beat();
       do @(s_cb); while (!s_cb.tvalid || !tready);
@@ -273,6 +277,7 @@ interface axi4_stream_if #(
      * @function sample_tdata
      * @brief Direct, asynchronous read access of the physical tdata bus.
      * @return Logic array containing current bus sample.
+     * @note Only for waveform debugging, never for checkers
      */
     function automatic logic [TDATA_WIDTH-1:0] sample_tdata();
       return tdata;
@@ -282,6 +287,7 @@ interface axi4_stream_if #(
      * @function sample_tlast
      * @brief Direct, asynchronous read access of the physical tlast boundary signal.
      * @return Logic state of tlast.
+     * @note Only for waveform debugging, never for checkers
      */
     function automatic logic sample_tlast();
       return tlast;
@@ -358,6 +364,8 @@ interface axi4_stream_if #(
       int unsigned wait_cycles = 0;
       data_array.delete();
       s_cb.tready <= 1'b1;
+      @(s_cb);    // the tready drive only takes effect AFTER this edge;
+                  // from the next one onwards, every sampled tvalid is a valid handshake
 
       while (1) begin
         @(s_cb);
@@ -366,7 +374,7 @@ interface axi4_stream_if #(
         if (wait_cycles > timeout)
           $fatal(1, "[AXIS_FATAL] Burst RX timeout");
 
-        if (s_cb.tvalid) begin
+        if (s_cb.tvalid && tready) begin
           data_array.push_back(s_cb.tdata);
           wait_cycles = 0; // Resetear timeout tras un dato válido
           if (s_cb.tlast) break; // Salir inmediatamente al ver tlast
@@ -408,13 +416,6 @@ interface axi4_stream_if #(
         endproperty
         `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TVALID_RESET,
         "AXIS_ERR: tvalid was not low for the first cycle after reset went low")
-
-        // Duplicate standard checker for verification stability metrics
-        property AXI4STREAM_ERRM_TVALID_STABLE;
-          @(posedge aclk) disable iff (!aresetn) (tvalid && !tready) |=> tvalid;
-        endproperty
-        `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TVALID_STABLE,
-        "AXIS_ERR: tvalid was deasserted even though the data was not consumed")
 
         // Rule: Payload data must remain stable during stalls
         property AXI4STREAM_ERRM_TDATA_STABLE;
@@ -495,7 +496,7 @@ interface axi4_stream_if #(
             "AXIS_ERR: tdest was not stable when tvalid was asserted and tready was low")
 
             property AXI4STREAM_ERRM_TDEST_X;
-              @(posedge aclk) (!aresetn && tvalid) |-> !$isunknown(tdest);
+              @(posedge aclk) (aresetn && tvalid) |-> !$isunknown(tdest);
             endproperty
             `ASSERT_CONCURRENT_LOG(AXI4STREAM_ERRM_TDEST_X,
             "AXIS_ERR: part (or all) of tdest was 1'bX while tvalid was high")
