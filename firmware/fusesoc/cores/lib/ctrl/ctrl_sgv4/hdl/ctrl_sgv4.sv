@@ -1,1 +1,1 @@
-../../../../../../rtl_lib/dsp/ctrl_sgv4.sv
+../../../../../../rtl_lib/ctrl/ctrl_sgv4.sv
