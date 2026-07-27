@@ -150,12 +150,19 @@ module axis_kidsim_v3_unit_test;
 
     task setup();
         svunit_ut.setup();
-        rstn = 1'b0;
+
+        // idle explicit BEFORE the reset, blocking, without m_reset() dependency
+        s_axis.tvalid = 1'b0;  s_axis.tlast = 1'b0;  s_axis.tdata = '0;
+        s_axis.tstrb  = '1;    s_axis.tkeep = '0;    s_axis.tuser = '0;
+        s_axis.tid    = '0;    s_axis.tdest = '0;
         tb_trigger = '0;
-        repeat(10) @(posedge clk);
+
+        rstn = 1'b0;
+        repeat(20) @(posedge clk);
         rstn = 1'b1;
-        s_axi.reset();
+
         s_axis.m_reset();      // master side of input stream
+        s_axi.reset();
         repeat(5) @(posedge clk);
     endtask
 
