@@ -130,7 +130,7 @@ module sgv4_top #(
       .rd_err        ()
    );
 
-   assign fifo_wr_en = s1_axis_tvalid_i & ~fifo_full;
+   assign fifo_wr_en = s1_axis_tvalid_i & s1_axis_tready_o;
    assign fifo_din   = s1_axis_tdata_i;
 
    // --------------------------------------------------------------------------
@@ -152,6 +152,7 @@ module sgv4_top #(
    assign axis_wr.tdata    = s0_axis_tdata_i;
    assign axis_wr.tvalid   = s0_axis_tvalid_i;
    assign s0_axis_tready_o = axis_wr.tready;
+   assign axis_wr.tlast    = 1'b0; //writer does not use package delimiter
 
    // --------------------------------------------------------------------------
    // Envelope writer: AXIS -> shared BRAM write port + one-hot bank select.
