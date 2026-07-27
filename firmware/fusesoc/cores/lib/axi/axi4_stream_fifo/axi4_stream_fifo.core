@@ -65,6 +65,6 @@ targets:
     toplevel: testrunner
     tools:
       xsim:
-        xelab_options: [-debug all -relax]
+        xelab_options: [-debug all -relax -d SVUNIT]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
 

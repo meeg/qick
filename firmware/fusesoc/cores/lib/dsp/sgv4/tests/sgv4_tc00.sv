@@ -105,34 +105,6 @@ module sgv4_unit_test;
         d[149]     = iqsel;
         return d;
     endfunction
-    
-    // =========================================================================
-    // FIFO model: present one descriptor.
-    // =========================================================================
-    task automatic load_descriptor(input logic [159:0] descr);
-        tb_fifo_dout  <= descr;
-        tb_fifo_empty <= 1'b0;
-        @(posedge tb_clk);
-        while (!tb_fifo_rd_en) @(posedge tb_clk);
-        tb_fifo_empty <= 1'b1;
-        @(posedge tb_clk);
-    endtask
-    
-    // =========================================================================
-    // Helper tasks
-    // =========================================================================
-    task automatic set_envelope(input logic [15:0] re, input logic [15:0] im);
-        for (int i = 0; i < N_DDS; i++) begin
-            tb_mem_real[i*16 +: 16] = re;
-            tb_mem_imag[i*16 +: 16] = im;
-        end
-    endtask
-    
-    task automatic wait_output(output logic [31:0] dout0, input int timeout = 100);
-        int t = 0;
-        while (!tb_axis_tvalid && t < timeout) begin @(posedge tb_clk); t++; end
-        dout0 = tb_axis_tdata[15:0];
-    endtask
 
     // =========================================================================
     // Reference models (single lane, signed 16-bit operands, COMPLEX).
@@ -236,6 +208,34 @@ module sgv4_unit_test;
         logic [31:0] full = ref_ideal_prod_complex(env_re, env_im, cos, sin, gain);
         return (outsel == 1'b0) ? full[15:0] : full[31:16];
     endfunction
+
+    // =========================================================================
+    // FIFO model: present one descriptor.
+    // =========================================================================
+    task automatic load_descriptor(input logic [159:0] descr);
+        tb_fifo_dout  <= descr;
+        tb_fifo_empty <= 1'b0;
+        @(posedge tb_clk);
+        while (!tb_fifo_rd_en) @(posedge tb_clk);
+        tb_fifo_empty <= 1'b1;
+        @(posedge tb_clk);
+    endtask
+
+    // =========================================================================
+    // Helper tasks
+    // =========================================================================
+    task automatic set_envelope(input logic [15:0] re, input logic [15:0] im);
+        for (int i = 0; i < N_DDS; i++) begin
+            tb_mem_real[i*16 +: 16] = re;
+            tb_mem_imag[i*16 +: 16] = im;
+        end
+    endtask
+
+    task automatic wait_output(output logic [31:0] dout0, input int timeout = 100);
+        int t = 0;
+        while (!tb_axis_tvalid && t < timeout) begin @(posedge tb_clk); t++; end
+        dout0 = tb_axis_tdata[15:0];
+    endtask
 
     // =========================================================================
     // SVUnit
