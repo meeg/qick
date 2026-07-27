@@ -241,8 +241,6 @@ interface axi4_stream_if #(
       // DEBUG 1: Advice the input to the task
       //$display("[%0t] [RX_DEBUG] Init wait RX. Rising tready...", $time);
       s_cb.tready <= 1'b1;
-      @(s_cb);    // the tready drive only takes effect AFTER this edge;
-                  // from the next one onwards, every sampled tvalid is a valid handshake
 
       do begin
         @(s_cb);
