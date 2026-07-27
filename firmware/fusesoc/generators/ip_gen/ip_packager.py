@@ -12,6 +12,7 @@ import glob
 import argparse
 import subprocess
 import shutil
+from typing import Optional
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -64,7 +65,7 @@ def parse_core_name(core_name: str):
         return parts[0], parts[1], parts[2]
     return None, None, None
 
-def find_core_file(core_name: str, cores_root: Path) -> Path | None:
+def find_core_file(core_name: str, cores_root: Path) -> Optional[Path]:
     """
     Find the .core file for a given core name.
     Supports names like 'qick:ip:xcom', 'qick:axi:axil_slv', etc.
@@ -124,7 +125,7 @@ def read_core_dependencies_recursive(core_name: str, cores_root: Path, visited: 
                         read_core_dependencies_recursive(dep, cores_root, visited)
     return visited
 
-def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Path | None:
+def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Optional[Path]:
     """
     Resolve RTL file path for a dependency from rtl_lib/.
     Example: qick:axi:xcom_axil_slv -> rtl_lib/axi/xcom_axil_slv.sv
@@ -265,7 +266,7 @@ def collect_ooc_xdc(src_dir: Path) -> list:
     """Find out-of-context XDC files."""
     return [p.name for p in src_dir.glob("*_ooc.xdc")]
 
-def find_logo_file(firmware_dir: Path) -> Path | None:
+def find_logo_file(firmware_dir: Path) -> Optional[Path]:
     """
     Find the logo file in common_ip_files/ip_logos/
     Returns None if not found.
