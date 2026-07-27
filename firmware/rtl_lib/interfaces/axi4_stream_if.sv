@@ -203,7 +203,7 @@ interface axi4_stream_if #(
        */
       task automatic tx(
         input logic [TDATA_WIDTH-1:0] data,
-        input logic last = 1'b0, 
+        input logic last = 1'b0,
         input int timeout = 1000
         );
         int cnt = 0;
@@ -212,16 +212,16 @@ interface axi4_stream_if #(
         m_cb.tlast  <= last;
         m_cb.tvalid <= 1'b1;
         m_cb.tstrb  <= '1;
-        
+
         do begin
           @(m_cb);                  // in T1 the DUT already sees tvalid: the ready signal is valid
-          if (++cnt > timeout) 
+          if (++cnt > timeout)
             $fatal(1, "[AXIS_FATAL] TX timeout");
         end while (!m_cb.tready);
-        
+
         m_cb.tvalid <= 1'b0;
         m_cb.tlast  <= 1'b0;
-        
+
       endtask
 
       /**
@@ -266,8 +266,8 @@ interface axi4_stream_if #(
     /**
      * @task wait_for_beat
      * @brief Blocking slave task that halts execution until a successful, synchronized valid handshake occurs.
-     * @note In this case, reading the raw signal is safe: with output #2, the signal 
-     *       changes only 2 ns after a clocking event, so it is stable at the sampling edge. 
+     * @note In this case, reading the raw signal is safe: with output #2, the signal
+     *       changes only 2 ns after a clocking event, so it is stable at the sampling edge.
      */
     task automatic wait_for_beat();
       do @(s_cb); while (!s_cb.tvalid || !tready);

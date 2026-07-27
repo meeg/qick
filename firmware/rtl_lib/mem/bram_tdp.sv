@@ -170,3 +170,4 @@ module bram_tdp #(
     endgenerate
 
 endmodule
+

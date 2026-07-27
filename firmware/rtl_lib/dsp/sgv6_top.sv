@@ -38,6 +38,9 @@
 //! All banks share the read address mem_addrb from sgv6; their outputs
 //! are concatenated into mem_dob_real / mem_dob_imag.
 //!
+//! M_AXIS is a fixed-rate stream (tready ignored). It is designed to drive an
+//! axis_register_slice in non-blocking mode into the DACs. See sgv6.sv header.
+//!
 //! @author  QICK Development Team
 //!
 //! @version 1.0
@@ -115,7 +118,7 @@ module sgv6_top #(
       .rd_err        ()
    );
 
-   assign fifo_wr_en = s1_axis_tvalid_i;
+   assign fifo_wr_en = s1_axis_tvalid_i & s1_axis_tready_o;
    assign fifo_din   = s1_axis_tdata_i;
 
    // --------------------------------------------------------------------------
@@ -127,6 +130,7 @@ module sgv6_top #(
       .aclk    (s0_axis_aclk),
       .aresetn (s0_axis_aresetn)
    );
+
    bram_if #(.NB_DATA(32), .NB_ADDR(N)) bram_wr (
       .i_clk (s0_axis_aclk),
       .i_rst (~s0_axis_aresetn)
@@ -136,6 +140,7 @@ module sgv6_top #(
    assign axis_wr.tdata    = s0_axis_tdata_i;
    assign axis_wr.tvalid   = s0_axis_tvalid_i;
    assign s0_axis_tready_o = axis_wr.tready;
+   assign axis_wr.tlast    = 1'b0; //writer does not use package delimiter
 
    // Per-bank write enable (one-hot) from the writer.
    logic [N_DDS-1:0] mem_en;
@@ -167,7 +172,8 @@ module sgv6_top #(
          // Real bank.
          bram_tdp #(
             .NB_DATA (16),
-            .NB_ADDR (N)
+            .NB_ADDR (N),
+            .OUT_REG_B (1'b1) // 2-cycle read latency: the delay_line in sgv6 is 2 cycles, so we need to match it here.
          ) mem_real_i (
             .clka  (s0_axis_aclk),
             .rsta  (~s0_axis_aresetn),
@@ -189,7 +195,9 @@ module sgv6_top #(
             // Imaginary bank.
             bram_tdp #(
                .NB_DATA (16),
-               .NB_ADDR (N)
+               .NB_ADDR (N),
+               .OUT_REG_B (1'b1) // 2-cycle read latency: the delay_line in sgv6 is 2 cycles,
+                                 // so we need to match it here.
             ) mem_imag_i (
                .clka  (s0_axis_aclk),
                .rsta  (~s0_axis_aresetn),
@@ -241,3 +249,4 @@ module sgv6_top #(
    assign s1_axis_tready_o = ~fifo_full;
 
 endmodule
+

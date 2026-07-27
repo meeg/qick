@@ -82,15 +82,26 @@ module sgv6_unit_test;
     // Descriptor builder (same layout as ctrl_sg_v6).
     // =========================================================================
     function automatic logic [159:0] build_descr(
-        input logic [31:0] freq,  input logic [31:0] phase,
-        input logic [15:0] addr,  input logic [15:0] gain,
-        input logic [15:0] nsamp, input logic [1:0]  outsel,
-        input logic mode, input logic stdysel, input logic phrst
-    );
+        input logic [31:0] freq,
+        input logic [31:0] phase,
+        input logic [15:0] addr,
+        input logic [15:0] gain,
+        input logic [15:0] nsamp,
+        input logic [1:0]  outsel,
+        input logic        mode,
+        input logic        stdysel,
+        input logic        phrst
+    );  
         logic [159:0] d = '0;
-        d[31:0]=freq; d[63:32]=phase; d[79:64]=addr; d[111:96]=gain;
-        d[143:128]=nsamp; d[145:144]=outsel; d[146]=mode;
-        d[147]=stdysel; d[148]=phrst;
+        d[31:0]=freq;
+        d[63:32]=phase;
+        d[79:64]=addr;
+        d[111:96]=gain;
+        d[143:128]=nsamp;
+        d[145:144]=outsel;
+        d[146]=mode;
+        d[147]=stdysel;
+        d[148]=phrst;
         return d;
     endfunction
 

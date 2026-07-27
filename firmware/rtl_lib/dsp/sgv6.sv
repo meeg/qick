@@ -62,6 +62,18 @@
 //! both a faithful reference model (what the RTL does) and the intended
 //! behaviour (Q15 scaling with saturation to MAXV).
 //!
+//! OUTPUT FLOW CONTROL
+//! This is a FIXED-RATE source. Once a descriptor starts, one output beat is
+//! produced per clock until nsamp beats are done; i_axis_tready is NOT honored
+//! and is present only for interface conformance. The downstream consumer must
+//! be able to accept a beat every cycle for the whole burst.
+//! In sgv6_top the output feeds an axis_register_slice in non-blocking mode
+//! (tready always high) and then the DACs, which satisfies this. Do NOT place a
+//! blocking element (a FIFO that can fill, a DMA, a resampler that can stall)
+//! downstream without adding a tready-gated global enable across the entire
+//! pipeline first — a single output FIFO is not enough, since the generator
+//! would keep filling it without back-pressuring.
+//!
 //! @author  QICK Development Team
 //!
 //! @version 1.0
@@ -85,7 +97,7 @@ module sgv6 #(
    input  logic [N_DDS*16-1:0]  i_mem_dout_real ,
    input  logic [N_DDS*16-1:0]  i_mem_dout_imag ,
    // AXIS output.
-   input  logic                 i_axis_tready   ,
+   input  logic                 i_axis_tready   , // verilog_lint: waive unused — fixed-rate output, tready not honored (see header)
    output logic                 o_axis_tvalid   ,
    output logic [N_DDS*16-1:0]  o_axis_tdata    ,
    // Saturation flag: asserted when any lane clamps to +/- MAXV this cycle.

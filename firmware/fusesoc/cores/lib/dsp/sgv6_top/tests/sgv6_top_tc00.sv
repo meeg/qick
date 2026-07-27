@@ -45,6 +45,17 @@ module sgv6_top_unit_test;
     clk_gen #(.FREQ (AXI_FREQ))  u_s0   (.i_enable(1'b1), .o_clk(tb_s0_aclk));
 
     // =========================================================================
+    // Output-domain clocking block (aclk).  All checkers sample through this.
+    // =========================================================================
+    default clocking m_cb @(posedge tb_aclk);
+        default input #1step output #2;
+        input  tb_m_tvalid;
+        input  tb_m_tdata;
+        input  tb_sat;
+        output tb_m_tready;
+    endclocking
+
+    // =========================================================================
     // DUT signals
     // =========================================================================
     // S0 (envelope load)
@@ -99,6 +110,65 @@ module sgv6_top_unit_test;
         .o_sat            (tb_sat) 
     );
 
+
+    localparam int TOL = 2;   // LSBs of slack for gain rounding
+
+    // env_val: unique per (row, bank) so any slip is visible immediately.
+    // Row in the high byte, bank in the low byte, offset by one so row 0 is
+    // never confusable with unwritten memory.
+    function automatic logic [15:0] env_val(input int row, input int bank);
+        return 16'(((row + 1) << 8) | bank);
+    endfunction
+
+    // load_ramp: fill `nrows` rows across all N_DDS banks with env_val().
+    task automatic load_ramp(input int nrows);
+        logic [15:0] re [];
+        logic [15:0] im [];
+        re = new[nrows * N_DDS];
+        im = new[nrows * N_DDS];
+        for (int k = 0; k < nrows * N_DDS; k++) begin
+            re[k] = env_val(k / N_DDS, k % N_DDS);
+            im[k] = 16'h0000;
+        end
+        load_envelope(nrows * N_DDS, re, im);
+    endtask
+
+    // capture_burst: collect every beat of one burst, all lanes.
+    // Returns the beat count; fails the caller if the burst never starts.
+    task automatic capture_burst(
+        output logic [N_DDS*16-1:0] beats [$],
+        input  int                  start_timeout = 400,
+        input  int                  max_beats     = 512
+    );
+        int t = 0;
+        beats.delete();
+        while (!tb_m_tvalid && t < start_timeout) begin
+            @(posedge tb_aclk); t++;
+        end
+        if (!tb_m_tvalid) return;          // caller checks beats.size()
+        while (tb_m_tvalid && beats.size() < max_beats) begin
+            beats.push_back(tb_m_tdata);
+            @(posedge tb_aclk);
+        end
+    endtask
+
+    // lane: extract one 16-bit lane from a captured beat.
+    function automatic logic [15:0] lane(input logic [N_DDS*16-1:0] beat,
+                                         input int l);
+        return beat[l*16 +: 16];
+    endfunction
+
+    // scale_gain: expected output in "mem" mode — envelope scaled by gain.
+    // Pin this against the isolated sgv6 testbench if the datapath rounding
+    // differs; TOL absorbs the last-LSB behaviour.
+    function automatic int scale_gain(input logic [15:0] env, input int gain);
+        return (int'(env) * gain) / 32768;
+    endfunction
+
+    function automatic bit close(input int got, input int exp_v);
+        return (got > exp_v ? got - exp_v : exp_v - got) <= TOL;
+    endfunction
+
     // =========================================================================
     // Descriptor builder (160-bit, same layout as ctrl_sg_v6).
     // =========================================================================
@@ -115,32 +185,65 @@ module sgv6_top_unit_test;
         return d;
     endfunction
 
+
     // =========================================================================
-    // Envelope load helper (S0 domain).
-    //   Streams `count` (real, imag) samples starting at write address
-    //   start_addr. Sample k goes to bank (k % N_DDS), row (k / N_DDS).
+    // load_envelope 
+    //
+    // Sample k lands in bank (k % N_DDS), row (k / N_DDS).  Streaming N_DDS*R
+    // samples therefore fills rows 0..R-1 across every bank.
     // =========================================================================
     task automatic load_envelope(
         input int          count,
-        input logic [15:0] re [],   // real samples
-        input logic [15:0] im []    // imag samples
+        input logic [15:0] re [],
+        input logic [15:0] im []
     );
         @(posedge tb_s0_aclk);
         tb_start_addr <= '0;
-        tb_we         <= 1'b1;       // enable writes (capture)
-        // give the writer's CDC + FSM time to reach the write state
-        repeat(5) @(posedge tb_s0_aclk);
+        tb_we         <= 1'b1;
+        repeat (5) @(posedge tb_s0_aclk);   // CDC + FSM reach the write state
+ 
         for (int k = 0; k < count; k++) begin
-            tb_s0_tdata  <= {im[k], re[k]};   // [31:16]=imag, [15:0]=real
+            tb_s0_tdata  <= {im[k], re[k]};
             tb_s0_tvalid <= 1'b1;
-            @(posedge tb_s0_aclk);
-            while (!tb_s0_tready) @(posedge tb_s0_aclk);
+            // Wait for a real handshake: the value must be on the bus at the
+            // edge where tready is sampled, not one edge earlier.
+            do @(posedge tb_s0_aclk); while (!tb_s0_tready);
         end
+ 
         tb_s0_tvalid <= 1'b0;
-        repeat(5) @(posedge tb_s0_aclk);
-        tb_we <= 1'b0;               // disable writes
-        repeat(5) @(posedge tb_s0_aclk);
+        repeat (10) @(posedge tb_s0_aclk);  // let the 3-stage pipeline flush
+        tb_we <= 1'b0;
+        repeat (5) @(posedge tb_s0_aclk);
     endtask
+ 
+    // =========================================================================
+    // load_flat / load_ramp — the two stimulus shapes the tests use
+    // =========================================================================
+ 
+    // Fill `rows` rows of every bank with a single constant value
+    task automatic load_flat(input int rows, input logic [15:0] val);
+        logic [15:0] re [];
+        logic [15:0] im [];
+        re = new[rows * N_DDS];
+        im = new[rows * N_DDS];
+        for (int k = 0; k < rows * N_DDS; k++) begin
+            re[k] = val;
+            im[k] = 16'h0000;
+        end
+        load_envelope(rows * N_DDS, re, im);
+    endtask
+ 
+    // =========================================================================
+    // Expected datapath scaling
+    //
+    // In memory-only mode (outsel=2) the DDS is bypassed, so the output is the
+    // envelope scaled by gain: out = (env * gain) >>> 15.
+    // Verified against the observed run: env=0x4000, gain=32766 -> 0x3FFF.
+    // =========================================================================
+    function automatic logic [15:0] exp_mem(input logic [15:0] env,
+                                            input logic [15:0] gain);
+        return 16'(($signed(env) * $signed(gain)) >>> 15);
+    endfunction
 
     // =========================================================================
     // Descriptor queue helper (aclk domain).
@@ -160,6 +263,45 @@ module sgv6_top_unit_test;
         int t = 0;
         while (!tb_m_tvalid && t < timeout) begin @(posedge tb_aclk); t++; end
         dout0 = tb_m_tdata[15:0];
+    endtask
+
+    // load_window: write the WHOLE window the burst will read, in one pass —
+    // a ramp over the first `nramp` rows and explicit zeros over the rest.
+    //
+    // The envelope BRAM is not cleared between SVUnit tests, so "rows I did not
+    // load read as zero" is only true in the first test that runs. Any test that
+    // depends on what is beyond its own data has to write that region itself.
+    task automatic load_window(input int nramp, input int nrows_total);
+        logic [15:0] re [];
+        logic [15:0] im [];
+        re = new[nrows_total * N_DDS];
+        im = new[nrows_total * N_DDS];
+        for (int k = 0; k < nrows_total * N_DDS; k++) begin
+            re[k] = (k / N_DDS < nramp) ? env_val(k / N_DDS, k % N_DDS) : 16'h0000;
+            im[k] = 16'h0000;
+        end
+        load_envelope(nrows_total * N_DDS, re, im);
+    endtask
+
+    // capture_n_beats: take exactly `n` beats. Unlike capture_burst it does not
+    // stop when tvalid drops, so two bursts that run back to back with no gap
+    // cannot be silently merged into one capture.
+    task automatic capture_n_beats(
+        output logic [N_DDS*16-1:0] beats [$],
+        input  int                  n,
+        input  int                  timeout = 400
+    );
+        int t;
+        beats.delete();
+        for (int i = 0; i < n; i++) begin
+            t = 0;
+            while (!tb_m_tvalid && t < timeout) begin
+                @(posedge tb_aclk); t++;
+            end
+            if (!tb_m_tvalid) return;      // caller checks beats.size()
+            beats.push_back(tb_m_tdata);
+            @(posedge tb_aclk);
+        end
     endtask
 
     // =========================================================================

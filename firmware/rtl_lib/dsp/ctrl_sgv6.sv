@@ -262,8 +262,7 @@ module ctrl_sgv6 #(
             cnt_n <= '0;
          else
             cnt_n <= cnt_n + N_DDS;
-         if (sync_reg_r1 == 1'b1)
-            cnt_n_reg <= cnt_n;
+         cnt_n_reg <= cnt_n;
 
          // Pinc / phase / sync pipelines.
          pinc_r1     <= pinc_int;
