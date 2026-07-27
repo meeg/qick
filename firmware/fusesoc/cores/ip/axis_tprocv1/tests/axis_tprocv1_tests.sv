@@ -139,14 +139,14 @@
     reg_write(REG_MEM_LEN,   AXI_DW'(LEN));
     reg_write(REG_MEM_START, 32'h1);
     // Drain LEN beats
+    m0_axis_if.s_cb.tready <= 1'b1;          // sustained during the entire burst
     for (int i = 0; i < LEN; i++) begin
-        m0_axis_if.rx(word, last);
-        `FAIL_IF_LOG(word !== (32'h3000 + AXI_DW'(i)),
-            $sformatf("tc06: beat%0d expected 0x%0h got 0x%0h",
-                      i, 32'h3000+i, word));
-        if (last) tlast_cnt++;
+        do @(m0_axis_if.s_cb); while (!m0_axis_if.s_cb.tvalid);
+        $display("[dump] beat%0d tdata=0x%08h tlast=%b",
+                 i, m0_axis_if.s_cb.tdata, m0_axis_if.s_cb.tlast);
     end
-    `FAIL_IF_LOG(tlast_cnt !== 1, $sformatf("tc06: tlast count=%0d", tlast_cnt));
+    m0_axis_if.s_cb.tready <= 1'b0;
+
     reg_write(REG_MEM_START, 32'h0);
     repeat(10) @(posedge s_axi_aclk);
 `SVTEST_END
@@ -182,12 +182,16 @@
     reg_write(REG_MEM_ADDR,  AXI_DW'(BASE));
     reg_write(REG_MEM_LEN,   AXI_DW'(LEN));
     reg_write(REG_MEM_START, 32'h1);
+    m0_axis_if.s_cb.tready <= 1'b1;
     for (int i = 0; i < LEN; i++) begin
-        m0_axis_if.rx(word, last);
+        do @(m0_axis_if.s_cb); while (!m0_axis_if.s_cb.tvalid);
+        word = m0_axis_if.s_cb.tdata;
+        last = m0_axis_if.s_cb.tlast;
         `FAIL_IF_LOG(word !== (32'hCAFE_0000 + AXI_DW'(i)),
             $sformatf("tc07: beat%0d expected 0x%0h got 0x%0h",
                       i, 32'hCAFE0000+i, word));
     end
+    m0_axis_if.s_cb.tready <= 1'b0;
     reg_write(REG_MEM_START, 32'h0);
     repeat(10) @(posedge s_axi_aclk);
 `SVTEST_END

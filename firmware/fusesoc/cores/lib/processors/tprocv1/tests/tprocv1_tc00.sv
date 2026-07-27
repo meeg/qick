@@ -210,17 +210,35 @@ module tprocv1_unit_test;
 
     task setup();
         svunit_ut.setup();
+
+        // For this tests m0 is enough, as it is the only excercited here
+        assign m0_axis.tlast = 1'b0;
+        assign m1_axis.tlast = 1'b0;
+        assign m2_axis.tlast = 1'b0;
+        assign m3_axis.tlast = 1'b0;
+        assign m4_axis.tlast = 1'b0;
+        assign m5_axis.tlast = 1'b0;
+        assign m6_axis.tlast = 1'b0;
+        assign m7_axis.tlast = 1'b0;
     
         // Initialize memories
         for (int i = 0; i < 2**N; i++) pmem_array[i] = {OP_END, 56'b0};
         for (int i = 0; i < 2**M; i++) dmem_array[i] = '0;
     
-        // Scalar signals – start with reset active
-        cb.tb_rstn          <= 1'b0;
-        cb.tb_start         <= 1'b0;
-        cb.tb_start_src_reg <= 1'b0;
-        cb.tb_start_reg     <= 1'b0;
-    
+        // idle explicit BEFORE the reset, blocking, without m_reset() dependency
+        s0_axis.tvalid = 1'b0;  s0_axis.tlast = 1'b0;  s0_axis.tdata = '0;
+        s0_axis.tstrb  = '1;    s0_axis.tkeep = '0;    s0_axis.tuser = '0;
+        s0_axis.tid    = '0;    s0_axis.tdest = '0;
+        s1_axis.tvalid = 1'b0;  s1_axis.tlast = 1'b0;  s1_axis.tdata = '0;
+        s1_axis.tstrb  = '1;    s1_axis.tkeep = '0;    s1_axis.tuser = '0;
+        s1_axis.tid    = '0;    s1_axis.tdest = '0;
+        s2_axis.tvalid = 1'b0;  s2_axis.tlast = 1'b0;  s2_axis.tdata = '0;
+        s2_axis.tstrb  = '1;    s2_axis.tkeep = '0;    s2_axis.tuser = '0;
+        s2_axis.tid    = '0;    s2_axis.tdest = '0;
+        s3_axis.tvalid = 1'b0;  s3_axis.tlast = 1'b0;  s3_axis.tdata = '0;
+        s3_axis.tstrb  = '1;    s3_axis.tkeep = '0;    s3_axis.tuser = '0;
+        s3_axis.tid    = '0;    s3_axis.tdest = '0;
+
         // Drive tready on all master interfaces (DUT is master, TB is slave)
         m0_axis.s_cb.tready <= 1'b1;
         m1_axis.s_cb.tready <= 1'b1;
@@ -230,9 +248,16 @@ module tprocv1_unit_test;
         m5_axis.s_cb.tready <= 1'b1;
         m6_axis.s_cb.tready <= 1'b1;
         m7_axis.s_cb.tready <= 1'b1;
+
+        // Scalar signals – start with reset active
+        cb.tb_rstn          <= 1'b0;
+        cb.tb_start         <= 1'b0;
+        cb.tb_start_src_reg <= 1'b0;
+        cb.tb_start_reg     <= 1'b0;
+    
     
         // Hold reset for a few cycles
-        repeat(4) @(cb);
+        repeat(20) @(cb);
     
         // Deassert reset
         cb.tb_rstn <= 1'b1;
