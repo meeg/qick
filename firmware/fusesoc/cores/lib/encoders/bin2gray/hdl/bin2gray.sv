@@ -1,1 +1,1 @@
-../../../../../../rtl_lib/mem/bin2gray.sv
+../../../../../../rtl_lib/encoders/bin2gray.sv
