@@ -141,6 +141,71 @@ module axis_kidsim_v3_unit_test;
         return {q[15:0], i[15:0]};
     endfunction
 
+    // Compare each 32-bit {Q,I} lane of `got` against `exp` within +/-tol LSB
+    // on I and Q independently. Returns 1 on match, 0 (and $display) on miss.
+    function automatic bit compare_word_tol(input logic [32*L-1:0] got,
+                                            input logic [32*L-1:0] exp,
+                                            input int              tol);
+        bit ok = 1'b1;
+        for (int ln = 0; ln < L; ln++) begin
+            logic signed [15:0] gi, gq, ei, eq;
+            int di, dq;
+            gi = got[ln*32     +: 16];  gq = got[ln*32 + 16 +: 16];
+            ei = exp[ln*32     +: 16];  eq = exp[ln*32 + 16 +: 16];
+            di = int'(gi) - int'(ei);
+            dq = int'(gq) - int'(eq);
+            if ((di > tol) || (di < -tol) || (dq > tol) || (dq < -tol)) begin
+                $display("  lane %0d: exp I=%0d Q=%0d  got I=%0d Q=%0d  (dI=%0d dQ=%0d, tol=%0d)",
+                        ln, ei, eq, gi, gq, di, dq, tol);
+                ok = 1'b0;
+            end
+        end
+        return ok;
+    endfunction
+
+
+    `define Y1_REAL_L0 dut.gen_kidsim[0].kidsim_top_i.kidsim_i.iir_iq_i.u_iir_real.y1_r1a
+    `define Y1_IMAG_L0 dut.gen_kidsim[0].kidsim_top_i.kidsim_i.iir_iq_i.u_iir_imag.y1_r1a
+
+    localparam real PERIOD_NS = 4.0;   // 250 MHz
+
+    function automatic real y1mag_l0();
+        real r, i;
+        r = real'($signed(`Y1_REAL_L0));
+        i = real'($signed(`Y1_IMAG_L0));
+        return $sqrt(r*r + i*i);
+    endfunction
+
+    // base^e for real base, runtime int e (xsim ** with a runtime int gave 0).
+    function automatic real cpow(input real base, input int e);
+        real r; r = 1.0;
+        for (int i = 0; i < e; i++) r = r * base;
+        return r;
+    endfunction
+
+    // Drive the same {Q,I} on every lane, tvalid high for `ncyc` CONTIGUOUS
+    // clocks (tlast=1 each => 1-sample frames). Leaves tvalid asserted; the
+    // caller lowers it. Data can be changed by calling again.
+    task automatic stream_hold(input int qv, input int iv, input int ncyc);
+        logic [32*L-1:0] w;
+        w = '0;
+        for (int ln = 0; ln < L; ln++) w[ln*32 +: 32] = pack_qi(qv, iv);
+        for (int c = 0; c < ncyc; c++) begin
+            @(posedge clk);
+            s_axis.tvalid <= 1'b1;  s_axis.tdata <= w;  s_axis.tlast <= 1'b1;
+        end
+    endtask
+
+    // Reconfigure a lane's DDS frequency ONLY, re-latching identical C0/C1/G so
+    // the pole/gain are unperturbed across the jump (WE latches all regs at once).
+    task automatic jump_freq(input int lane, input int new_freq,
+                            input int c0, input int c1, input int g,
+                            input int punct_id);
+        config_lane(lane, 0, new_freq, c0, c1, g, punct_id);
+    endtask
+
+
+
     // =========================================================================
     // SVUnit
     // =========================================================================

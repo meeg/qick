@@ -1,52 +1,77 @@
 """
-Driver for axis_kidsim_v3 IP core.
-Uses PeakRDL-generated register model.
+QICK driver for axis_kidsim_v3 IP core.
+Uses the PeakRDL-generated register model. Register access via `.regs`, e.g.:
+    ip = soc.axis_kidsim_v3_0
+    ip.regs.CTRL_REG.ENABLE.write(1)
+
+Works with both a raw PYNQ Overlay and QickSoc: the register model is built in
+_init_firmware() (always called from SocIP.__init__, needs only self.mmio).
+configure_connections() is reserved for soc-dependent wiring (revision/version, peers).
 """
 import sys
 from pathlib import Path
-import numpy as np
+# Find the generated PeakRDL package in dev (next to driver) or prod (installed).
+_RDL_PKG_PATHS = [
+    Path(__file__).parent.parent / "rdl",        # dev: fusesoc/cores/ip/.../rdl
+    Path(__file__).parent.parent / "rdl_pkgs",   # prod: qick_lib/qick/rdl_pkgs
+]
+for _path in _RDL_PKG_PATHS:
+    if (_path / "axis_kidsim_v3_regmap_pkg").exists():
+        if str(_path) not in sys.path:
+            sys.path.insert(0, str(_path))
+        break
 
-_REGMAP_DIR = Path(__file__).parent.parent / "rdl"
-if str(_REGMAP_DIR) not in sys.path:
-    sys.path.insert(0, str(_REGMAP_DIR))
-
-from axis_kidsim_v3_regmap_pkg.reg_model.axis_kidsim_v3 import axis_kidsim_v3_cls
+from axis_kidsim_v3_regmap_pkg.reg_model import RegModel
 from axis_kidsim_v3_regmap_pkg.lib import NormalCallbackSet
-from axis_kidsim_v3_regmap_pkg.sim.axis_kidsim_v3 import axis_kidsim_v3_simulator_cls
+from qick.ip import SocIP
 
-def to_unsigned(val, bits=16):
+
+def _to_unsigned(val, bits=16):
     return val & ((1 << bits) - 1)
 
-def to_signed(val, bits=16):
+
+def _to_signed(val, bits=16):
     half = 1 << (bits - 1)
     return val - (1 << bits) if val >= half else val
 
-class Axis_kidsim_v3:
-    """Driver for axis_kidsim_v3 IP core."""
-    
-    def __init__(self):
-        self._reg_model = None
 
-    def configure(self, read_cb, write_cb):
-        self._callbacks = NormalCallbackSet(
-            read_callback=read_cb,
-            write_callback=write_cb
+class AxisKidsimV3(SocIP):
+    """QICK driver for axis_kidsim_v3. Register access through `.regs`."""
+    bindto = ['qick:ip:axis_kidsim_v3:1.0']
+
+    def _init_firmware(self):
+        # Called from SocIP.__init__ for BOTH raw Overlay and QickSoc.
+        # Only needs self.mmio (already set by DefaultIP.__init__).
+        super()._init_firmware()
+        self._reg_model = RegModel(
+            callbacks=NormalCallbackSet(
+                read_callback=self._hw_read,
+                write_callback=self._hw_write,
+                read_block_callback=self._hw_read_block,
+                write_block_callback=self._hw_write_block,
+            )
         )
-        self._reg_model = axis_kidsim_v3_cls(
-            callbacks=self._callbacks,
-            address=0
-        )
+
+    def _hw_read(self, addr, width, accesswidth):
+        return self.mmio.read(addr)
+
+    def _hw_write(self, addr, width, accesswidth, data):
+        self.mmio.write(addr, int(data) & 0xFFFFFFFF)
+
+    def _hw_read_block(self, addr, width, accesswidth, length):
+        return [self.mmio.read(addr + 4*i) for i in range(length)]
+
+    def _hw_write_block(self, addr, width, accesswidth, data):
+        for i, d in enumerate(data):
+            self.mmio.write(addr + 4*i, int(d) & 0xFFFFFFFF)
 
     @property
     def regs(self):
+        if self._reg_model is None:
+            raise RuntimeError(
+                "AxisKidsimV3: register model not initialized "
+                "(expected _init_firmware to run in __init__)"
+            )
         return self._reg_model
 
-    def create_test_model(self):
-        sim = axis_kidsim_v3_simulator_cls(address=0)
-        return axis_kidsim_v3_cls(
-            callbacks=NormalCallbackSet(
-                read_callback=sim.read,
-                write_callback=sim.write
-            ),
-            address=0
-        )
+    # -- hand-written high-level methods below --

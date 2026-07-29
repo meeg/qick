@@ -84,3 +84,176 @@
     // asserted. Check tlast propagated from lane 0.
     `FAIL_IF(last !== 1'b1);
 `SVTEST_END
+
+
+// ----------------------------------------------------------------------------
+// TEST 04: OUTSEL=0 pass-through, CONSTANT carrier (freq=0). Isolates the IIR /
+//   cmult chain from any DDS rotation. With C0=C1=0, G=32767 the processed
+//   output must recover the input within a few LSB. If this passes but TEST 05
+//   fails, the fault is in the rotating-carrier (DDS/demod-remod) path.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_passthrough_dc)
+    logic [32*L-1:0] word_in;
+    logic [32*L-1:0] word_out;
+    logic            last;
+    localparam int   TOL_LSB = 6;
+
+    // OUTSEL=0 (processed), freq=0 (constant carrier), punct_id=0, unity IIR.
+    for (int ln = 0; ln < L; ln++)
+        config_lane(ln, 0, 0, 0, 0, 32767, 0);
+
+    word_in = '0;
+    for (int ln = 0; ln < L; ln++)
+        word_in[ln*32 +: 32] = pack_qi(2000 + ln, 1000 + ln);
+
+    fork
+        s_axis.tx(word_in, 1'b0);            // single selected beat (frame idx 0)
+        m_axis.rx(word_out, last);
+    join
+
+    `FAIL_UNLESS(compare_word_tol(word_out, word_in, TOL_LSB));
+`SVTEST_END
+
+// ----------------------------------------------------------------------------
+// TEST 05: OUTSEL=0 pass-through, ROTATING carrier (freq=4000). Exercises the
+//   full demod * remod cancellation with a non-trivial carrier phase. The
+//   e^{-jw} e^{+jw}=1 identity is exact in the RTL (remod reuses the same
+//   carrier sample delayed by 8), so the output must still recover the input
+//   within a few LSB (now including sin/cos quantization).
+// ----------------------------------------------------------------------------
+`SVTEST(tc_passthrough_rf)
+    logic [32*L-1:0] word_in;
+    logic [32*L-1:0] word_out;
+    logic            last;
+    localparam int   TOL_LSB = 6;
+
+    for (int ln = 0; ln < L; ln++)
+        config_lane(ln, 0, 4000, 0, 0, 32767, 0);
+
+    word_in = '0;
+    for (int ln = 0; ln < L; ln++)
+        word_in[ln*32 +: 32] = pack_qi(2000 + ln, 1000 + ln);
+
+    fork
+        s_axis.tx(word_in, 1'b0);
+        m_axis.rx(word_out, last);
+    join
+
+    `FAIL_UNLESS(compare_word_tol(word_out, word_in, TOL_LSB));
+`SVTEST_END
+
+// ----------------------------------------------------------------------------
+// TEST 06: OUTSEL=1 carrier is alive and unit-magnitude. Select the DDS carrier
+//   on lane 0, send one beat, and check the output sample has magnitude near
+//   full-scale: I^2 + Q^2 ~= (32767)^2. This confirms the DDS actually produces
+//   a carrier on the selected path (the current TB never selects it). Uses a
+//   loose magnitude band because of sin/cos quantization.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_carrier_alive)
+    logic [32*L-1:0] word_out;
+    logic            last;
+    logic signed [15:0] ci, cq;
+    real mag2, lo, hi;
+
+    for (int ln = 0; ln < L; ln++)
+        config_lane(ln, 1, 4000, 0, 0, 32767, 0);   // OUTSEL=1 = carrier
+
+    fork
+        s_axis.tx('0, 1'b0);
+        m_axis.rx(word_out, last);
+    join
+
+    ci   = word_out[0 +: 16];        // cos (I)
+    cq   = word_out[16 +: 16];       // sin (Q)
+    mag2 = real'(int'(ci)*int'(ci) + int'(cq)*int'(cq));
+    lo   = 0.90 * 32767.0 * 32767.0; // +/-10% band on |carrier|^2
+    hi   = 1.10 * 32767.0 * 32767.0;
+    if (!(mag2 >= lo && mag2 <= hi)) begin
+        $display("CARRIER lane0: I=%0d Q=%0d  |.|^2=%0.0f  band=[%0.0f,%0.0f]",
+                ci, cq, mag2, lo, hi);
+        `FAIL_IF(1);
+    end
+`SVTEST_END
+
+
+// ----------------------------------------------------------------------------
+// TEST 07: Pole ringdown -- |y1| decays by C1 PER CLOCK (tau = 1/(1-C1)).
+//   Contiguous charge, then contiguous zero-drive; prints the per-clock curve.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_ringdown_pole)
+    localparam int  C1_REG = 29491;               // 0.9 in Q15
+    localparam real C1_R   = 29491.0/32768.0;
+    localparam int  DRIVE  = 8000;
+    real m0, mn, cref, expected, rel;
+
+    force s_axis.tready = 1'b1;
+    force m_axis.tready = 1'b1;
+
+    for (int ln = 0; ln < L; ln++)
+        config_lane(ln, 0, 0, 0, C1_REG, 32767, 0);   // OUTSEL=0, freq=0, high-Q
+
+    stream_hold(0, DRIVE, 200);                        // contiguous charge to SS
+    stream_hold(0, 0,      25);                        // zero drive; flush to pure decay
+
+    @(negedge clk); m0 = y1mag_l0();
+    cref = 1.0;
+    for (int n = 1; n <= 10; n++) begin
+        @(negedge clk);
+        mn  = y1mag_l0();
+        cref = cref * C1_R;                              // C1^n, iterative
+        $display("  decay clk %0d: |y1|=%0.1f  ratio=%0.4f  C1^%0d=%0.4f",
+                 n, mn, mn/m0, n, cref);
+    end
+    @(negedge clk); s_axis.tvalid <= 1'b0;
+
+    expected = m0 * cpow(C1_R, 10);
+    $display("RINGDOWN: |y1_0|=%0.1f  |y1_10|=%0.1f  expected=%0.1f", m0, mn, expected);
+    `FAIL_IF(m0 < 1000.0);                             // well above the ~13 bias floor
+    rel = (mn - expected) / expected;
+    `FAIL_UNLESS((rel < 0.12) && (rel > -0.12));
+
+    release s_axis.tready;
+    release m_axis.tready;
+`SVTEST_END
+
+// ----------------------------------------------------------------------------
+// TEST 08: Frequency jump preserves the stored field (condition 2). With
+//   zero drive the pole decays 0.9/clock; a mid-decay DDS-frequency register
+//   write must not perturb it. The write spans several clocks, so we use $time
+//   to count them and check |y1| kept decaying at C1 per clock across the jump.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_jump_state_preserved)
+    localparam int  C1_REG = 29491;
+    localparam real C1_R   = 29491.0/32768.0;
+    localparam int  DRIVE  = 8000;
+    real m_before, m_after, expected, rel;
+    real t0, t1;
+    int  ncyc;
+
+    force s_axis.tready = 1'b1;
+    force m_axis.tready = 1'b1;
+
+    for (int ln = 0; ln < L; ln++)
+        config_lane(ln, 0, 4000, 0, C1_REG, 32767, 0);    // ground freq f_g
+
+    stream_hold(0, DRIVE, 200);                            // charge
+    stream_hold(0, 0,      20);                            // flush into decay
+    @(negedge clk); s_axis.tvalid <= 1'b0;                 // stop; DDS still free-runs
+
+    @(negedge clk); m_before = y1mag_l0();  t0 = $realtime;
+
+    jump_freq(0, 8000, 0, C1_REG, 32767, 0);               // f_g -> f_e, same pole
+
+    @(negedge clk); m_after = y1mag_l0();   t1 = $realtime;
+
+    ncyc     = int'((t1 - t0) / PERIOD_NS);                // clocks the write spanned
+    expected = m_before * cpow(C1_R, ncyc);
+    $display("JUMP: |y1_before|=%0.1f  |y1_after|=%0.1f  ncyc=%0d  expected=%0.1f",
+             m_before, m_after, ncyc, expected);
+    `FAIL_IF(m_before < 2000.0);                           // keep m_after above the floor
+    rel = (m_after - expected) / expected;
+    `FAIL_UNLESS((rel < 0.15) && (rel > -0.15));           // decay unbroken by the write
+
+    release s_axis.tready;
+    release m_axis.tready;
+`SVTEST_END
