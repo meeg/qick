@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jul 30 17:09:55 2026
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/build/qick_dsp_iq_gain_1.0.0/test-xsim/iq_gain.vcd"
+[dumpfile_mtime] "Thu Jul 30 17:07:49 2026"
+[dumpfile_size] 185768
+[savefile] "/home/larnaldi/git/qick_internal/firmware/fusesoc/cores/lib/dsp/iq_gain/data/iq_gain.gtkw"
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-19.082720 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.iq_gain_ut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@29
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.aclk
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.aresetn
+@23
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.i_in[15:0]
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.gain[3:0]
+@22
+testrunner.__ts.iq_gain_ut.dut.gain_r[3:0]
+testrunner.__ts.iq_gain_ut.dut.i_in_r[15:0]
+testrunner.__ts.iq_gain_ut.dut.i_mult[19:0]
+testrunner.__ts.iq_gain_ut.dut.q_in_r[15:0]
+testrunner.__ts.iq_gain_ut.dut.q_mult[19:0]
+[color] 6
+testrunner.__ts.iq_gain_ut.dut.i_out[15:0]
+[color] 6
+testrunner.__ts.iq_gain_ut.dut.q_out[15:0]
+[pattern_trace] 1
+[pattern_trace] 0
