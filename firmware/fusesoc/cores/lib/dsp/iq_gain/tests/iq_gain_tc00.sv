@@ -17,7 +17,7 @@ module iq_gain_unit_test;
     // =========================================================================
     localparam real CLOCK_FREQUENCY = 250e6;
     localparam int  DW = 16;
-    localparam int  GW = 4;
+    localparam int  GW = 16;
     localparam int  LATENCY = 3; // 3 stages of registers
 
     // =========================================================================

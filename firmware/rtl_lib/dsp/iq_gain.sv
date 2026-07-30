@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 //! @file    iq_gain.sv
 //! @brief   Multiplies complex baseband samples (I,Q) by a programmable gain.
-//! @details Multiplies I and Q by an unsigned gain (0-15).
+//! @details Multiplies I and Q by an signed gain (0-15).
 //!           Includes saturation to prevent wrapping.
 //!           Latency: 3 aclk cycles.
 //! @author  @lharnaldi
@@ -13,7 +13,7 @@
 
 module iq_gain #(
     parameter int DW = 16,      // Data width (16-bit signed)
-    parameter int GW = 4        // Gain width (4-bit unsigned)
+    parameter int GW = 16        // Gain width (16-bit signed)
 )(
     input  logic                    aclk,
     input  logic                    aresetn,
