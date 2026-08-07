@@ -49,6 +49,21 @@ ipx::add_file ${src_dir}/{{ f }} \
         -of_objects [ipx::current_core]]
 {% endfor %}
 
+# ── Force SystemVerilog packages to compile first ───────────
+# Mark *_pkg.* files with PROCESSING_ORDER=EARLY so Vivado compiles them
+# before any file that imports them. This survives IP expansion into the
+# block-design ipshared/ directory (plain file order in component.xml does
+# NOT — Vivado re-derives compile order there and would otherwise hit
+# 'package is not declared' errors).
+foreach f [ipx::get_files -of_objects \
+        [ipx::get_file_groups xilinx_anylanguagesynthesis \
+            -of_objects [ipx::current_core]]] {
+    if {[string match "*_pkg.*" [file tail [get_property NAME $f]]]} {
+        set_property PROCESSING_ORDER EARLY $f
+        puts "  PROCESSING_ORDER=EARLY -> [file tail [get_property NAME $f]]"
+    }
+}
+
 # ── Auto-infer AXI and clock interfaces ─────────────────────
 ipx::infer_bus_interfaces [ipx::current_core]
 

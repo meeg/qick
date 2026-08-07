@@ -186,59 +186,45 @@ def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Optional[P
         return rtl_file
     return None
 
-def copy_core_hdl_files(ip_core_name: str, cores_root: Path, ip_dir: Path) -> dict:
+def collect_core_hdl_files(ip_core_name: str, cores_root: Path) -> dict:
     """
-    Resolve RTL files from the IP core's hdl/ directory (following symlinks to rtl_lib/).
-    Returns dict mapping source_path -> destination_filename.
-    Note: files in hdl/ are typically symlinks pointing to rtl_lib/ (single source of truth).
+    Collect RTL files listed directly in the IP core's `hdl` fileset `files:` list.
+    These live in the core's hdl/ directory (typically symlinks into rtl_lib/, the
+    single source of truth) and are NOT resolved via `depend:`. Without this, files
+    listed in `files:` but not declared as dependencies (e.g. axi_slv_tprocv1.sv) are
+    never copied to src/.
+    Returns dict mapping resolved_source_path -> destination_filename.
     """
-    all_sources = {}
+    sources = {}
     core_file = find_core_file(ip_core_name, cores_root)
     if not core_file:
-        return all_sources
-
+        return sources
     import yaml
     try:
         with open(core_file) as f:
             core_data = yaml.safe_load(f)
     except Exception:
-        return all_sources
-
-    # Get the hdl fileset
-    if 'filesets' not in core_data or 'hdl' not in core_data['filesets']:
-        return all_sources
-
-    hdl_fileset = core_data['filesets']['hdl']
-    if 'files' not in hdl_fileset:
-        return all_sources
-
+        return sources
+    hdl_fs = core_data.get('filesets', {}).get('hdl', {})
+    files = hdl_fs.get('files', []) or []
     core_dir = core_file.parent
-    print(f"\n  Resolving HDL files from {ip_core_name} core hdl/ (following symlinks to rtl_lib/)...")
-
-    for file_entry in hdl_fileset['files']:
-        # file_entry can be a string (filename) or dict (with properties)
-        if isinstance(file_entry, dict):
-            filename = list(file_entry.keys())[0]
-        else:
-            filename = file_entry
-
-        hdl_path = core_dir / filename
+    print(f"\n  Collecting files from the core's `hdl` fileset...")
+    for entry in files:
+        # An entry may be a plain string or a dict {name: {opts}}.
+        fname = list(entry.keys())[0] if isinstance(entry, dict) else entry
+        hdl_path = core_dir / fname
         if not hdl_path.exists():
-            print(f"    !  File not found: {filename} (from {hdl_path})")
+            print(f"    !  Listed file not found: {fname}")
             continue
-
-        # Follow symlinks to the real source in rtl_lib/
-        try:
-            real_path = hdl_path.resolve()
-            if real_path.exists():
-                all_sources[str(real_path)] = hdl_path.name
-                print(f"    Found: {filename} -> {real_path.name} (from {real_path.parent.name}/)")
-            else:
-                print(f"    !  Resolved path does not exist: {real_path}")
-        except Exception as e:
-            print(f"    !  Error resolving symlink for {filename}: {e}")
-
-    return all_sources
+        # Resolve symlinks to the real file in rtl_lib/ (single source of truth).
+        real_path = hdl_path.resolve()
+        if not real_path.exists():
+            print(f"    !  Broken symlink: {fname} -> {real_path}")
+            continue
+        if real_path.name not in sources.values():
+            sources[str(real_path)] = real_path.name
+            print(f"    {fname} -> {real_path.name} (from {real_path.parent.name}/)")
+    return sources
 
 def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: Path) -> dict:
     """
@@ -476,66 +462,6 @@ def get_relative_logo_path(ip_dir: Path, firmware_dir: Path) -> str:
     rel_path = os.path.relpath(logo_abs, ip_dir)
     return rel_path
 
-def reorder_component_xml_files(ip_dir: Path) -> bool:
-    """
-    Reorder files in component.xml to ensure packages (*_pkg.sv) compile first.
-    This is needed because Vivado doesn't respect the compile order otherwise.
-    """
-    import xml.etree.ElementTree as ET
-
-    component_xml = ip_dir / "component.xml"
-    if not component_xml.exists():
-        return False
-
-    try:
-        # Register namespaces to preserve them
-        ET.register_namespace('spirit', 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009')
-        ET.register_namespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance')
-
-        tree = ET.parse(component_xml)
-        root = tree.getroot()
-
-        # Define namespace
-        ns = {'spirit': 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009'}
-
-        # Find the xilinx_anylanguagesynthesis file group
-        for fileset in root.findall('.//spirit:fileSet', ns):
-            fileset_name = fileset.find('spirit:name', ns)
-            if fileset_name is None or fileset_name.text != 'xilinx_anylanguagesynthesis_view_fileset':
-                continue
-
-            # Get all files
-            files = fileset.findall('spirit:file', ns)
-            pkg_files = []
-            other_files = []
-
-            for f in files:
-                name_elem = f.find('spirit:name', ns)
-                if name_elem is not None and '_pkg.' in name_elem.text:
-                    pkg_files.append(f)
-                else:
-                    other_files.append(f)
-
-            # Remove all files
-            for f in files:
-                fileset.remove(f)
-
-            # Re-add packages first, then others
-            for f in pkg_files:
-                fileset.append(f)
-            for f in other_files:
-                fileset.append(f)
-
-            print(f"    Reordered {len(pkg_files)} package(s) before {len(other_files)} other file(s)")
-            break
-
-        tree.write(component_xml, encoding='utf-8', xml_declaration=True)
-        return True
-
-    except Exception as e:
-        print(f"  ERROR reordering component.xml: {e}")
-        return False
-
 def add_logo_to_component_xml(ip_dir: Path, firmware_dir: Path) -> bool:
     """
     Add logo reference to component.xml after IP packaging.
@@ -612,24 +538,22 @@ def run_standalone(args):
     print(f"   Firmware: {firmware_dir}")
     print(f"   RTL lib:  {rtl_lib_root}")
     print(f"   Cores:    {cores_root}")
-    # 1. Copy HDL files from the core's hdl/ directory
-    print(f"\n Copying core HDL files...")
-    core_hdl_sources = copy_core_hdl_files(core_name, cores_root, ip_dir)
-    if core_hdl_sources:
-        print(f"  Found {len(core_hdl_sources)} core HDL file(s)")
-        copied_core = copy_rtl_sources(ip_dir, core_hdl_sources)
-        print(f"  Copied {len(copied_core)} core HDL file(s) to {src_dir}")
-
-    # 2. Resolve dependencies recursively
+    # Resolve dependencies recursively
     print(f"\n Resolving dependencies from .core file...")
     sources, xci_sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
-
+    # Also collect files listed directly in the core's `hdl` fileset. These are not
+    # covered by dependency resolution or the "main IP RTL" lookup, so files like
+    # axi_slv_tprocv1.sv (in files: but not depend:) would otherwise be skipped.
+    core_hdl_sources = collect_core_hdl_files(core_name, cores_root)
+    for src_path, dst_name in core_hdl_sources.items():
+        if dst_name not in sources.values():
+            sources[src_path] = dst_name
     if sources:
-        print(f"\n  Total dependency RTL files found: {len(sources)}")
-        copied_deps = copy_rtl_sources(ip_dir, sources, xci_sources)
-        print(f"  Copied {len(copied_deps)} dependency file(s) to {src_dir}")
+        print(f"\n  Total RTL files found: {len(sources)}")
+        copied = copy_rtl_sources(ip_dir, sources, xci_sources)
+        print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
     else:
-        print(f"  !  No RTL dependency sources found for {core_name}")
+        print(f"  !  No RTL sources found for {core_name}")
     # Verify source directory exists
     if not src_dir.is_dir():
         print(f" Source directory not found: {src_dir}", file=sys.stderr)
@@ -694,12 +618,12 @@ def run_standalone(args):
         "has_logo": logo_rel_path is not None,
     }
     render_and_run(cfg, script_dir, dry_run=args.dry_run)
-    # After packaging, reorder files and add logo to component.xml
-    if not args.dry_run:
+    # After packaging, add logo to component.xml.
+    # Compile order (packages first) is enforced in the TCL template via
+    # PROCESSING_ORDER=EARLY, which survives IP expansion into ipshared/.
+    if not args.dry_run and not args.no_logo:
         print(f"\n Post-processing component.xml...")
-        reorder_component_xml_files(ip_dir)
-        if not args.no_logo:
-            add_logo_to_component_xml(ip_dir, firmware_dir)
+        add_logo_to_component_xml(ip_dir, firmware_dir)
 
 def main():
     parser = argparse.ArgumentParser(
