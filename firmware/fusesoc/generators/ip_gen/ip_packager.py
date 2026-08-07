@@ -476,6 +476,66 @@ def get_relative_logo_path(ip_dir: Path, firmware_dir: Path) -> str:
     rel_path = os.path.relpath(logo_abs, ip_dir)
     return rel_path
 
+def reorder_component_xml_files(ip_dir: Path) -> bool:
+    """
+    Reorder files in component.xml to ensure packages (*_pkg.sv) compile first.
+    This is needed because Vivado doesn't respect the compile order otherwise.
+    """
+    import xml.etree.ElementTree as ET
+
+    component_xml = ip_dir / "component.xml"
+    if not component_xml.exists():
+        return False
+
+    try:
+        # Register namespaces to preserve them
+        ET.register_namespace('spirit', 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009')
+        ET.register_namespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance')
+
+        tree = ET.parse(component_xml)
+        root = tree.getroot()
+
+        # Define namespace
+        ns = {'spirit': 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009'}
+
+        # Find the xilinx_anylanguagesynthesis file group
+        for fileset in root.findall('.//spirit:fileSet', ns):
+            fileset_name = fileset.find('spirit:name', ns)
+            if fileset_name is None or fileset_name.text != 'xilinx_anylanguagesynthesis_view_fileset':
+                continue
+
+            # Get all files
+            files = fileset.findall('spirit:file', ns)
+            pkg_files = []
+            other_files = []
+
+            for f in files:
+                name_elem = f.find('spirit:name', ns)
+                if name_elem is not None and '_pkg.' in name_elem.text:
+                    pkg_files.append(f)
+                else:
+                    other_files.append(f)
+
+            # Remove all files
+            for f in files:
+                fileset.remove(f)
+
+            # Re-add packages first, then others
+            for f in pkg_files:
+                fileset.append(f)
+            for f in other_files:
+                fileset.append(f)
+
+            print(f"    Reordered {len(pkg_files)} package(s) before {len(other_files)} other file(s)")
+            break
+
+        tree.write(component_xml, encoding='utf-8', xml_declaration=True)
+        return True
+
+    except Exception as e:
+        print(f"  ERROR reordering component.xml: {e}")
+        return False
+
 def add_logo_to_component_xml(ip_dir: Path, firmware_dir: Path) -> bool:
     """
     Add logo reference to component.xml after IP packaging.
@@ -634,9 +694,12 @@ def run_standalone(args):
         "has_logo": logo_rel_path is not None,
     }
     render_and_run(cfg, script_dir, dry_run=args.dry_run)
-    # After packaging, add logo to component.xml (if needed)
-    if not args.no_logo:
-        add_logo_to_component_xml(ip_dir, firmware_dir)
+    # After packaging, reorder files and add logo to component.xml
+    if not args.dry_run:
+        print(f"\n Post-processing component.xml...")
+        reorder_component_xml_files(ip_dir)
+        if not args.no_logo:
+            add_logo_to_component_xml(ip_dir, firmware_dir)
 
 def main():
     parser = argparse.ArgumentParser(
