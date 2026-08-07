@@ -329,13 +329,15 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     return all_sources, xci_sources
 
 def collect_hdl_files(src_dir: Path) -> list:
-    """Auto-discover RTL files, excluding testbenches and non-synthesizable content."""
+    """Auto-discover RTL files, excluding testbenches and non-synthesizable content.
+    Packages (*_pkg.sv) are placed first in compilation order."""
     extensions = {".sv", ".v", ".vhd", ".vhdl"}
     exclude_dirs   = {"tb", "sim", "testbench", "tests"}
     exclude_prefix = ("tb_", "glbl")
     exclude_suffix = ("_tb.sv", "_tb.v", "_tb.vhd")
     exclude_exact  = {"glbl.v"}
     files = []
+    packages = []
     for p in src_dir.rglob("*"):
         if not p.is_file():
             continue
@@ -350,8 +352,14 @@ def collect_hdl_files(src_dir: Path) -> list:
             continue
         if any(p.name.endswith(x) for x in exclude_suffix):
             continue
-        files.append(str(rel_path))
-    return sorted(files)
+        rel_str = str(rel_path)
+        # Separate packages (files ending with _pkg.*) to compile first
+        if "_pkg." in p.name:
+            packages.append(rel_str)
+        else:
+            files.append(rel_str)
+    # Packages first, then everything else (both sorted alphabetically)
+    return sorted(packages) + sorted(files)
 
 def collect_xci_files(src_dir: Path) -> list:
     """Find Xilinx sub-IP .xci files, excluding testbench directories."""
@@ -547,20 +555,21 @@ def run_standalone(args):
     # 1. Copy HDL files from the core's hdl/ directory
     print(f"\n Copying core HDL files...")
     core_hdl_sources = copy_core_hdl_files(core_name, cores_root, ip_dir)
+    if core_hdl_sources:
+        print(f"  Found {len(core_hdl_sources)} core HDL file(s)")
+        copied_core = copy_rtl_sources(ip_dir, core_hdl_sources)
+        print(f"  Copied {len(copied_core)} core HDL file(s) to {src_dir}")
 
     # 2. Resolve dependencies recursively
     print(f"\n Resolving dependencies from .core file...")
     sources, xci_sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
 
-    # 3. Merge core HDL files with resolved dependencies
-    all_sources = {**core_hdl_sources, **sources}
-
-    if all_sources:
-        print(f"\n  Total RTL files found: {len(all_sources)}")
-        copied = copy_rtl_sources(ip_dir, all_sources, xci_sources)
-        print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
+    if sources:
+        print(f"\n  Total dependency RTL files found: {len(sources)}")
+        copied_deps = copy_rtl_sources(ip_dir, sources, xci_sources)
+        print(f"  Copied {len(copied_deps)} dependency file(s) to {src_dir}")
     else:
-        print(f"  !  No RTL sources found for {core_name}")
+        print(f"  !  No RTL dependency sources found for {core_name}")
     # Verify source directory exists
     if not src_dir.is_dir():
         print(f" Source directory not found: {src_dir}", file=sys.stderr)
