@@ -53,19 +53,21 @@ ipx::add_file ${src_dir}/{{ f }} \
 ipx::infer_bus_interfaces [ipx::current_core]
 
 # ── Associate clocks to interfaces (QICK convention) ────────
-# Convention:
-#   AXI-Lite  : interface s_axi  <- clock s_axi_aclk / reset s_axi_aresetn
-#   AXI-Stream: interfaces *axis <- clock aclk        / reset aresetn
+# Priority:
+# 1. Explicit clock_domains from .clock_domains.yaml (if defined)
+# 2. Naming convention: s0_axis* -> s0_axis_aclk, m0_axis* -> m0_axis_aclk
+# 3. Default: all remaining AXIS -> aclk
 set core [ipx::current_core]
 
 # Collect all AXI-Stream interface names present in this core
-set stream_ifs {}
+set all_stream_ifs {}
 foreach bif [ipx::get_bus_interfaces -of_objects $core] {
     set vlnv [get_property BUS_TYPE_VLNV $bif]
     if {[string match "*:axis:*" $vlnv] || [string match "*axis_rtl*" $vlnv]} {
-        lappend stream_ifs [get_property NAME $bif]
+        lappend all_stream_ifs [get_property NAME $bif]
     }
 }
+set remaining_stream_ifs $all_stream_ifs
 
 proc _qick_set_assoc {core clk busif_list reset} {
     set clkif [ipx::get_bus_interfaces $clk -of_objects $core -quiet]
@@ -82,15 +84,50 @@ proc _qick_set_assoc {core clk busif_list reset} {
     }
 }
 
+# 1. Apply explicit clock_domains from .clock_domains.yaml (if any)
+{% if clock_domains %}
+{% for domain in clock_domains %}
+_qick_set_assoc $core {{ domain.name }} \
+    [list {{ domain.interfaces | join(" ") }}] \
+    {{ domain.reset }}
+{% for iface in domain.interfaces %}
+set idx [lsearch -exact $remaining_stream_ifs {{ iface }}]
+if {$idx >= 0} {
+    set remaining_stream_ifs [lreplace $remaining_stream_ifs $idx $idx]
+}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+# 2. Apply naming convention to remaining interfaces
+set s0_axis_ifs {}
+set m0_axis_ifs {}
+set other_axis_ifs {}
+
+foreach name $remaining_stream_ifs {
+    if {[string match "s0_axis*" $name]} {
+        lappend s0_axis_ifs $name
+    } elseif {[string match "m0_axis*" $name]} {
+        lappend m0_axis_ifs $name
+    } else {
+        lappend other_axis_ifs $name
+    }
+}
+
+# 3. Associate each group to its clock domain
+if {[llength $s0_axis_ifs] > 0} {
+    _qick_set_assoc $core s0_axis_aclk $s0_axis_ifs s0_axis_aresetn
+}
+if {[llength $m0_axis_ifs] > 0} {
+    _qick_set_assoc $core m0_axis_aclk $m0_axis_ifs m0_axis_aresetn
+}
+if {[llength $other_axis_ifs] > 0} {
+    _qick_set_assoc $core aclk $other_axis_ifs aresetn
+}
+
 # s_axi_aclk  -> s_axi   (only if the core has an AXI-Lite)
 if {[ipx::get_bus_interfaces s_axi -of_objects $core -quiet] ne ""} {
     _qick_set_assoc $core s_axi_aclk {s_axi} s_axi_aresetn
-}
-
-# aclk -> all AXI-Stream interfaces (explicitly, removing any s_axi the
-# inferencer may have attached here)
-if {[llength $stream_ifs] > 0} {
-    _qick_set_assoc $core aclk $stream_ifs aresetn
 }
 
 # ── Add XCI sub-IPs ──────────────────────────────────────────

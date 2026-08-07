@@ -28,7 +28,47 @@ def get_core_description(core_name, cores_root):
         return data.get('description', None)
     except Exception:
         return None
-    
+
+def parse_clock_domains_from_file(ip_name, cores_root):
+    """
+    Read clock domain metadata from <ip_name>.clock_domains.yaml file.
+    This separate file avoids polluting the CAPI 2.0 .core schema.
+
+    Returns list of dicts: [{"name": "clock_name", "interfaces": [...], "reset": "reset_name"}]
+    Returns empty list if file not found.
+    """
+    import yaml
+    vendor, category, name = parse_core_name(f"qick:{ip_name.split(':')[1] if ':' in ip_name else 'ip'}:{ip_name}")
+    if category == 'ip':
+        core_path = cores_root / 'ip' / name
+    else:
+        core_path = cores_root / name
+
+    clock_domains_file = core_path / f"{name}.clock_domains.yaml"
+    if not clock_domains_file.exists():
+        return []
+
+    try:
+        with open(clock_domains_file) as f:
+            data = yaml.safe_load(f)
+        clock_domains = data.get('clock_domains', []) if data else []
+        result = []
+        if clock_domains and isinstance(clock_domains, list):
+            for domain in clock_domains:
+                if isinstance(domain, dict) and 'name' in domain:
+                    interfaces = domain.get('interfaces', [])
+                    if isinstance(interfaces, str):
+                        interfaces = [interfaces]
+                    result.append({
+                        'name': domain['name'],
+                        'interfaces': interfaces,
+                        'reset': domain.get('reset', '')
+                    })
+        return result
+    except Exception as e:
+        print(f"  ! Error reading clock_domains file {clock_domains_file}: {e}")
+        return []
+
 def find_firmware_root(start: Path) -> Path:
     """Walk up from start until we find the firmware/ directory."""
     p = start.resolve()
@@ -478,7 +518,14 @@ def run_standalone(args):
        description = get_core_description(core_name, cores_root)
     if not description:
        description = f"{ip_name} IP core"
-        
+
+    # Clock domains: read from <ip_name>.clock_domains.yaml if defined
+    clock_domains = parse_clock_domains_from_file(ip_name, cores_root)
+    if clock_domains:
+        print(f"\n  Clock domains from .clock_domains.yaml:")
+        for domain in clock_domains:
+            print(f"    - {domain['name']} -> {', '.join(domain['interfaces'])}")
+
     # Prepare configuration for template
     cfg = {
         "module_name": args.module_name or ip_name,
@@ -494,7 +541,7 @@ def run_standalone(args):
         "xci_files": xci_files,
         "xdc_files": xdc_files,
         "ooc_xdc_files": ooc_xdc,
-        "clock_domains": {},
+        "clock_domains": clock_domains,
         "logo_relative_path": logo_rel_path,
         "has_logo": logo_rel_path is not None,
     }
