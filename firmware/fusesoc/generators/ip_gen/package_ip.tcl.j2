@@ -50,17 +50,27 @@ ipx::add_file ${src_dir}/{{ f }} \
 {% endfor %}
 
 # ── Force SystemVerilog packages to compile first ───────────
-# Mark *_pkg.* files with PROCESSING_ORDER=EARLY so Vivado compiles them
-# before any file that imports them. This survives IP expansion into the
-# block-design ipshared/ directory (plain file order in component.xml does
-# NOT — Vivado re-derives compile order there and would otherwise hit
-# 'package is not declared' errors).
-foreach f [ipx::get_files -of_objects \
-        [ipx::get_file_groups xilinx_anylanguagesynthesis \
-            -of_objects [ipx::current_core]]] {
-    if {[string match "*_pkg.*" [file tail [get_property NAME $f]]]} {
-        set_property PROCESSING_ORDER EARLY $f
-        puts "  PROCESSING_ORDER=EARLY -> [file tail [get_property NAME $f]]"
+# When this IP is expanded into a block design and synthesized out-of-context,
+# Vivado does NOT honor plain file order or PROCESSING_ORDER in component.xml —
+# it re-derives compile order from dependency analysis. That analysis misses the
+# dependency when a module imports a package in its header
+# (`module foo import bar_pkg::*; #(...)`), so it compiles the importer before
+# the package and errors with 'package is not declared'.
+#
+# The robust fix is to mark each package (*_pkg.*) as a GLOBAL INCLUDE
+# (IS_INCLUDE=true -> <spirit:isIncludeFile>true</spirit:isIncludeFile>), which
+# makes Vivado compile it globally, before any other unit, in every context.
+# We also keep PROCESSING_ORDER=EARLY as a belt-and-suspenders hint. Apply to
+# BOTH the synthesis and behavioral-simulation file groups.
+foreach grp {xilinx_anylanguagesynthesis xilinx_anylanguagebehavioralsimulation} {
+    set fg [ipx::get_file_groups $grp -of_objects [ipx::current_core] -quiet]
+    if {$fg eq ""} { continue }
+    foreach f [ipx::get_files -of_objects $fg] {
+        if {[string match "*_pkg.*" [file tail [get_property NAME $f]]]} {
+            set_property IS_INCLUDE true $f
+            set_property PROCESSING_ORDER EARLY $f
+            puts "  global-include + EARLY ($grp) -> [file tail [get_property NAME $f]]"
+        }
     }
 }
 
