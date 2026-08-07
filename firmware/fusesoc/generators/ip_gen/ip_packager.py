@@ -186,6 +186,60 @@ def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Optional[P
         return rtl_file
     return None
 
+def copy_core_hdl_files(ip_core_name: str, cores_root: Path, ip_dir: Path) -> dict:
+    """
+    Resolve RTL files from the IP core's hdl/ directory (following symlinks to rtl_lib/).
+    Returns dict mapping source_path -> destination_filename.
+    Note: files in hdl/ are typically symlinks pointing to rtl_lib/ (single source of truth).
+    """
+    all_sources = {}
+    core_file = find_core_file(ip_core_name, cores_root)
+    if not core_file:
+        return all_sources
+
+    import yaml
+    try:
+        with open(core_file) as f:
+            core_data = yaml.safe_load(f)
+    except Exception:
+        return all_sources
+
+    # Get the hdl fileset
+    if 'filesets' not in core_data or 'hdl' not in core_data['filesets']:
+        return all_sources
+
+    hdl_fileset = core_data['filesets']['hdl']
+    if 'files' not in hdl_fileset:
+        return all_sources
+
+    core_dir = core_file.parent
+    print(f"\n  Resolving HDL files from {ip_core_name} core hdl/ (following symlinks to rtl_lib/)...")
+
+    for file_entry in hdl_fileset['files']:
+        # file_entry can be a string (filename) or dict (with properties)
+        if isinstance(file_entry, dict):
+            filename = list(file_entry.keys())[0]
+        else:
+            filename = file_entry
+
+        hdl_path = core_dir / filename
+        if not hdl_path.exists():
+            print(f"    !  File not found: {filename} (from {hdl_path})")
+            continue
+
+        # Follow symlinks to the real source in rtl_lib/
+        try:
+            real_path = hdl_path.resolve()
+            if real_path.exists():
+                all_sources[str(real_path)] = hdl_path.name
+                print(f"    Found: {filename} -> {real_path.name} (from {real_path.parent.name}/)")
+            else:
+                print(f"    !  Resolved path does not exist: {real_path}")
+        except Exception as e:
+            print(f"    !  Error resolving symlink for {filename}: {e}")
+
+    return all_sources
+
 def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: Path) -> dict:
     """
     Collect all RTL sources for an IP core and its recursive dependencies.
@@ -490,12 +544,20 @@ def run_standalone(args):
     print(f"   Firmware: {firmware_dir}")
     print(f"   RTL lib:  {rtl_lib_root}")
     print(f"   Cores:    {cores_root}")
-    # ALWAYS resolve dependencies recursively
+    # 1. Copy HDL files from the core's hdl/ directory
+    print(f"\n Copying core HDL files...")
+    core_hdl_sources = copy_core_hdl_files(core_name, cores_root, ip_dir)
+
+    # 2. Resolve dependencies recursively
     print(f"\n Resolving dependencies from .core file...")
     sources, xci_sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
-    if sources:
-        print(f"\n  Total RTL files found: {len(sources)}")
-        copied = copy_rtl_sources(ip_dir, sources, xci_sources)
+
+    # 3. Merge core HDL files with resolved dependencies
+    all_sources = {**core_hdl_sources, **sources}
+
+    if all_sources:
+        print(f"\n  Total RTL files found: {len(all_sources)}")
+        copied = copy_rtl_sources(ip_dir, all_sources, xci_sources)
         print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
     else:
         print(f"  !  No RTL sources found for {core_name}")
