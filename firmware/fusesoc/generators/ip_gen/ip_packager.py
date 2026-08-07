@@ -225,6 +225,23 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
                 print(f"    {dep} -> {rtl_file.name}")
         else:
             print(f"    !  RTL not found for: {dep}")
+
+    # 2b. Also resolve .sv files for pkg dependencies (e.g., packages)
+    if pkg_deps := [d for d in deps if d.startswith('qick:pkg:')]:
+        print(f"\n  Resolving package files...")
+        for dep in pkg_deps:
+            vendor, category, name = parse_core_name(dep)
+            # Look for package .sv file in rtl_lib/pkg/<name>.sv or rtl_lib/pkg/<name>/<name>.sv
+            pkg_file = rtl_lib_root / 'pkg' / f"{name}.sv"
+            if not pkg_file.exists():
+                pkg_file = rtl_lib_root / 'pkg' / name / f"{name}.sv"
+
+            if pkg_file.exists():
+                if pkg_file.name not in all_sources.values():
+                    all_sources[str(pkg_file)] = pkg_file.name
+                    print(f"    {dep} -> {pkg_file.name}")
+            else:
+                print(f"    !  Package file not found for: {dep}")
     # 3. Get the main IP RTL
     vendor, category, name = parse_core_name(ip_core_name)
     # Look for main IP RTL in various locations
