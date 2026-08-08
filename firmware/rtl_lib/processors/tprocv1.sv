@@ -10,8 +10,7 @@
 //! @author  QICK Development Team
 //!
 //! @version 1.0
-module tprocv1 import tproc_pkg::*;
-  #(
+module tprocv1#(
     //! program memory address width (default 16)
     parameter int N = 16,  // Program memory address width
     //! data memory address width (default 10)
@@ -56,6 +55,7 @@ module tprocv1 import tproc_pkg::*;
     input  logic         start_reg
   );
 
+  import tproc_pkg::*;
   //--------------------------------------------------------------------------
   // Local parameters
   //--------------------------------------------------------------------------

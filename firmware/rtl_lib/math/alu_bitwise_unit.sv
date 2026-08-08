@@ -1,6 +1,5 @@
-module alu_bitwise_unit import alu_pkg::*;
-  #(
-    parameter int B = alu_pkg::B
+module alu_bitwise_unit#(
+    parameter int B = 16
   )(
     input  logic             clk,
     input  logic             rstn,
@@ -9,6 +8,8 @@ module alu_bitwise_unit import alu_pkg::*;
     input  logic [3:0]       op,
     output logic [B-1:0]     dout
   );
+
+  import alu_pkg::*;
 
   // Input registers
   logic [B-1:0] din_a_r;

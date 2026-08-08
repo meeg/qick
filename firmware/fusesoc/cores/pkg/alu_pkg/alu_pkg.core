@@ -5,7 +5,7 @@ description: Package with fixed point utilities
 filesets:
   hdl:
     files:
-      - hdl/alu_pkg.svh
+      - hdl/alu_pkg.sv
     file_type: systemVerilogSource
 
   lint_files:

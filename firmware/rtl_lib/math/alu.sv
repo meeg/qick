@@ -1,6 +1,5 @@
-module alu import alu_pkg::*;
-  #(
-    parameter int B = alu_pkg::B
+module alu#(
+    parameter int B = 16
   )(
     input  logic       clk,
     input  logic       rstn,
@@ -11,6 +10,8 @@ module alu import alu_pkg::*;
     output logic       zero_b,
     output logic [B-1:0] dout
   );
+
+  import alu_pkg::*;
 
   // Pipeline registers for the operation code to match data latency
   logic [3:0] op_r;

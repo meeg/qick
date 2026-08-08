@@ -10,10 +10,9 @@
 //! @author  QICK Development Team
 //!
 //! @version 1.0
-module alu_arith_unit import alu_pkg::*;
-   #(
+module alu_arith_unit#(
       //! Operand/result width in bits.
-      parameter int B = alu_pkg::B
+      parameter int B = 16
    )(
       //! Clock.
       input  logic         clk,
@@ -32,6 +31,8 @@ module alu_arith_unit import alu_pkg::*;
       //! Registered result, 2-cycle latency from din_a/din_b/op.
       output logic [B-1:0] dout
    );
+
+  import alu_pkg::*;
 
   // Internal signals (signed for arithmetic)
   logic signed [B-1:0] din_a_r;
