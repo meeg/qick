@@ -176,11 +176,14 @@ def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Optional[P
     # Skip common and pkg categories (they don't have RTL)
     if category in ['common', 'pkg']:
         return None
-    # Look for the RTL file in rtl_lib/<category>/<name>.sv
+    # Look for the RTL file in rtl_lib/<category>/<name>.svh (packages first),
+    # then .sv, then .v
+    rtl_file = rtl_lib_root / category / f"{name}.svh"
+    if rtl_file.exists():
+        return rtl_file
     rtl_file = rtl_lib_root / category / f"{name}.sv"
     if rtl_file.exists():
         return rtl_file
-    # Also try with .v extension
     rtl_file = rtl_lib_root / category / f"{name}.v"
     if rtl_file.exists():
         return rtl_file
@@ -271,8 +274,12 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
         print(f"\n  Resolving package files...")
         for dep in pkg_deps:
             vendor, category, name = parse_core_name(dep)
-            # Look for package .sv file in rtl_lib/pkg/<name>.sv or rtl_lib/pkg/<name>/<name>.sv
-            pkg_file = rtl_lib_root / 'pkg' / f"{name}.sv"
+           # Look for package file: try .svh first, then .sv
+            pkg_file = rtl_lib_root / 'pkg' / f"{name}.svh"
+            if not pkg_file.exists():
+                pkg_file = rtl_lib_root / 'pkg' / f"{name}.sv"
+            if not pkg_file.exists():
+                pkg_file = rtl_lib_root / 'pkg' / name / f"{name}.svh"
             if not pkg_file.exists():
                 pkg_file = rtl_lib_root / 'pkg' / name / f"{name}.sv"
 
@@ -317,7 +324,7 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
 def collect_hdl_files(src_dir: Path) -> list:
     """Auto-discover RTL files, excluding testbenches and non-synthesizable content.
     Packages (*_pkg.sv) are placed first in compilation order."""
-    extensions = {".sv", ".v", ".vhd", ".vhdl"}
+    extensions = {".sv", ".svh", ".v", ".vhd", ".vhdl"}
     exclude_dirs   = {"tb", "sim", "testbench", "tests"}
     exclude_prefix = ("tb_", "glbl")
     exclude_suffix = ("_tb.sv", "_tb.v", "_tb.vhd")

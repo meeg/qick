@@ -15,6 +15,16 @@ filesets:
       - qick:mem:bram_tdp
       - qick:processors:tprocv1
 
+  constraints:
+    files:
+      - constraints/axis_tprocv1.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/axis_tprocv1_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
   tb:
     files:
       - tests/axis_tprocv1_tc00.sv
@@ -32,7 +42,7 @@ generate:
   testrunner_gen:
     generator: svunit_gen
     parameters:
-        test_files: 
+        test_files:
           - tests/axis_tprocv1_tc00.sv
 
 targets:
@@ -48,7 +58,6 @@ targets:
       verilator:
         mode: lint-only
         verilator_options: [-Wall]
-
 
   test:
     description: Simulate the design
@@ -67,3 +76,11 @@ targets:
         vlog_options:
           - -timescale=1ns/1ns
 
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none

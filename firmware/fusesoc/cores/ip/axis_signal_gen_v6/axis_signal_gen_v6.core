@@ -46,7 +46,7 @@ generate:
           - tests/axis_signal_gen_v6_tc00.sv
 
 targets:
-  default: 
+  default: &default
     filesets: [hdl]
     toplevel: axis_signal_gen_v6
 
@@ -70,5 +70,10 @@ targets:
         xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
   synth:
-    filesets: [hdl, constraints]
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
     default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
