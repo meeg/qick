@@ -57,19 +57,23 @@ ipx::add_file ${src_dir}/{{ f }} \
 # (`module foo import bar_pkg::*; #(...)`), so it compiles the importer before
 # the package and errors with 'package is not declared'.
 #
-# The robust fix is to mark each package (*_pkg.*) as a GLOBAL INCLUDE
-# (IS_INCLUDE=true -> <spirit:isIncludeFile>true</spirit:isIncludeFile>), which
-# makes Vivado compile it globally, before any other unit, in every context.
-# We also keep PROCESSING_ORDER=EARLY as a belt-and-suspenders hint. Apply to
-# BOTH the synthesis and behavioral-simulation file groups.
+# The robust fix is to mark each package (*_pkg.*) with THREE properties:
+# 1. IS_INCLUDE=true           -> <spirit:isIncludeFile>true</spirit:isIncludeFile>
+# 2. PROCESSING_ORDER=EARLY    -> compile early in synthesis
+# 3. USED_IN=out_of_context    -> ensure it's present even in standalone OOC builds
+#
+# Apply to synthesis, simulation, and out-of-context file groups.
 foreach grp {xilinx_anylanguagesynthesis xilinx_anylanguagebehavioralsimulation} {
     set fg [ipx::get_file_groups $grp -of_objects [ipx::current_core] -quiet]
     if {$fg eq ""} { continue }
     foreach f [ipx::get_files -of_objects $fg] {
-        if {[string match "*_pkg.*" [file tail [get_property NAME $f]]]} {
+        set fname [file tail [get_property NAME $f]]
+        if {[string match "*_pkg.*" $fname]} {
             set_property IS_INCLUDE true $f
             set_property PROCESSING_ORDER EARLY $f
-            puts "  global-include + EARLY ($grp) -> [file tail [get_property NAME $f]]"
+            # Ensure package is available in all contexts (synthesis + simulation + OOC)
+            set_property USED_IN {synthesis simulation out_of_context} $f
+            puts "  pkg -> IS_INCLUDE + EARLY + USED_IN:all ($grp) -> $fname"
         }
     }
 }
