@@ -63,8 +63,7 @@
 //!
 //! @version 1.0
 
-module tpv1_ctrl import tproc_pkg::*;
-  (
+module tpv1_ctrl(
     input  logic        clk,
     input  logic        rstn,
 
@@ -118,6 +117,8 @@ module tpv1_ctrl import tproc_pkg::*;
     input  logic        waitt,
     output logic        waitt_ack
   );
+
+  import tproc_pkg::*;
 
   //--------------------------------------------------------------------------
   // FSM State Encoding (one_hot for Xilinx synthesis)
