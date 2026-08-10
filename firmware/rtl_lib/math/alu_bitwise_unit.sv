@@ -1,3 +1,5 @@
+`include "alu_pkg.sv"
+
 module alu_bitwise_unit#(
     parameter int B = 16
   )(

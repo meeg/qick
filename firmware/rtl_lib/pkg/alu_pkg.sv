@@ -1,3 +1,6 @@
+`ifndef ALU_PKG_SV
+`define ALU_PKG_SV
+
 package alu_pkg;
 
   //===========================================================================
@@ -59,3 +62,5 @@ package alu_pkg;
   localparam logic [3:0] TPV2_ALU_LSR  = {3'b111, TPV2_ALU_LOGIC}; // A >> B
 
 endpackage
+
+`endif

@@ -62,6 +62,7 @@
 //! @author  QICK Development Team
 //!
 //! @version 1.0
+`include "tproc_pkg.sv"
 
 module tpv1_ctrl(
     input  logic        clk,

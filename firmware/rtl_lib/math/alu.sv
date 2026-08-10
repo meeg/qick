@@ -1,3 +1,5 @@
+`include "alu_pkg.sv"
+
 module alu#(
     parameter int B = 16
   )(

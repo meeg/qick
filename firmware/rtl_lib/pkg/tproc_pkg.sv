@@ -1,3 +1,6 @@
+`ifndef TPROC_PKG_SV
+`define TPROC_PKG_SV
+
 package tproc_pkg;
   //tProc v1 related constants/definitions
     // I-Type opcodes
@@ -143,3 +146,4 @@ package tproc_pkg;
 
 endpackage
 
+`endif

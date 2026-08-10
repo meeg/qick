@@ -10,6 +10,8 @@
 //! @author  QICK Development Team
 //!
 //! @version 1.0
+`include "alu_pkg.sv"
+
 module alu_arith_unit#(
       //! Operand/result width in bits.
       parameter int B = 16

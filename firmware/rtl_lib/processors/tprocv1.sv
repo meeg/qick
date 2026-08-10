@@ -10,6 +10,8 @@
 //! @author  QICK Development Team
 //!
 //! @version 1.0
+`include "tproc_pkg.sv"
+
 module tprocv1#(
     //! program memory address width (default 16)
     parameter int N = 16,  // Program memory address width
