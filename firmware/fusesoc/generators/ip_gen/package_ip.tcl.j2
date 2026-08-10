@@ -68,7 +68,7 @@ foreach grp {xilinx_anylanguagesynthesis xilinx_anylanguagebehavioralsimulation}
     foreach f [ipx::get_files -of_objects $fg] {
         set fname [file tail [get_property NAME $f]]
         if {[string match "*_pkg.*" $fname]} {
-            set_property PROCESSING_ORDER EARLY $f
+            set_property IS_INCLUDE true $f
             set_property USED_IN {synthesis simulation out_of_context} $f
             puts "  pkg -> EARLY + USED_IN:all ($grp) -> $fname"
         }
