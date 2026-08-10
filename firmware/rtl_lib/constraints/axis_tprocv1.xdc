@@ -1,44 +1,20 @@
 ###############################################################################
-# Functional constraints for axis_tprocv1 IP core
+# Functional (scoped) constraints for axis_tprocv1 IP core.
 #
-# These constraints apply when the IP is used within a larger design
-# (e.g., integrated into a block design or top-level module).
-# They provide timing guidance beyond what OOC synthesis defines.
+# Intentionally minimal.
 #
-# Clock/async definitions are in axis_tprocv1_ooc.xdc (out-of-context).
+# - Clock definitions and the asynchronous clock-group relationship live in
+#   axis_tprocv1_ooc.xdc (applied only during standalone OOC synthesis).
+# - When this IP is instantiated inside a block design, the top-level design
+#   constraints drive all timing; the two clock domains (s_axi_aclk, aclk) are
+#   already declared asynchronous, and CDC is handled in RTL by the
+#   cdc_gray_sync synchronizers and the dual-clock BRAM (bram_tdp).
+#
+# No multicycle_path / false_path exceptions are declared here on purpose:
+# every internal path is a normal single-cycle path within its own clock
+# domain, and cross-domain paths are covered by the async clock groups. Adding
+# blanket exceptions by cell/pin name would (a) fail to match real hierarchical
+# names and raise critical warnings, and (b) risk masking a genuine timing
+# violation. If timing fails to close after P&R on a specific, understood path,
+# add a targeted exception here then — not preemptively.
 ###############################################################################
-
-#=============================================================================
-# DMEM dual-clock BRAM constraints
-#
-# The dual-clock BRAM (bram_tdp) bridges s_axi_aclk (port A) to aclk (port B).
-# Internally synchronized via CDC primitives; no additional timing needed.
-# Mark the internal BRAM as a multi-cycle path to relax timing on the crossing.
-#=============================================================================
-set_multicycle_path 2 -hold -through [get_cells axis_tprocv1_i/dmem_i/xpm_mem*]
-set_multicycle_path 2 -setup -through [get_cells axis_tprocv1_i/dmem_i/xpm_mem*]
-
-#=============================================================================
-# tProc FIFO dispatcher (per-channel, 16 x 216-bit)
-#
-# Each channel has an independent FIFO for timed instructions.
-# Mark as multicycle (2) since FIFO depth absorption is > 1 cycle.
-#=============================================================================
-set_multicycle_path 2 -hold -through [get_cells *tproc_i/gen_channel*/fifo_time_i*]
-set_multicycle_path 2 -setup -through [get_cells *tproc_i/gen_channel*/fifo_time_i*]
-
-#=============================================================================
-# AXIS handshake (tready/tvalid feedback loops)
-#
-# tready is a multi-cycle signal in streaming contexts. Allow 2 cycles
-# for handshake propagation through FIFO logic and multiplexers.
-#=============================================================================
-set_multicycle_path 2 -hold -to [get_pins *axis*/tready]
-set_multicycle_path 2 -setup -to [get_pins *axis*/tready]
-
-#=============================================================================
-# Optional: relax paths for debugging
-#
-# If timing is still tight after P&R, uncomment to relax non-critical paths:
-#=============================================================================
-# set_false_path -through [get_pins *tproc_i/regfile_i/*/dout*]
