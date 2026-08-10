@@ -289,6 +289,17 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
                     print(f"    {dep} -> {pkg_file.name}")
             else:
                 print(f"    !  Package file not found for: {dep}")
+    # 2c. For each dependency core, also collect the secondary files listed in
+    # its own `hdl` fileset `files:` (e.g. regfile_8p.core lists regfile.sv as a
+    # sub-module, not as a depend). Without this, files referenced in files: but
+    # not declared as deps are never copied.
+    print(f"\n  Collecting secondary hdl files from dependency cores...")
+    for dep in rtl_deps:
+        dep_hdl = collect_core_hdl_files(dep, cores_root)
+        for src_path, dst_name in dep_hdl.items():
+            if dst_name not in all_sources.values():
+                all_sources[src_path] = dst_name
+                print(f"    {dep}: + {dst_name}")
     # 3. Get the main IP RTL
     vendor, category, name = parse_core_name(ip_core_name)
     # Look for main IP RTL in various locations
