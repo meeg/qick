@@ -36,13 +36,13 @@
 `SVTEST_END
 
 `SVTEST(tdp_simultaneous_rw)
-    // Precargar datos conocidos en ambas direcciones
+    // Precharge known data in both addresses
     port_a_if.write_data(10'h030, 32'hAAAA_BBBB);
     port_b_if.write_data(10'h031, 32'h1234_5678);
-    repeat(5) @(port_a_if.tb_cb);   // ← Aumentado de 2 a 5
-    repeat(5) @(port_b_if.tb_cb);   // ← Aumentado de 2 a 5
+    repeat(5) @(port_a_if.tb_cb);   // ← Increased from 2 to 5
+    repeat(5) @(port_b_if.tb_cb);   // ← Increased from 2 to 5
 
-    // Acceso simultáneo a direcciones distintas
+    // Simultaneous access to different addresses
     fork
         port_a_if.write_data(10'h032, 32'hDEAD_BEEF);
         port_b_if.read_data(10'h031, read_val);
@@ -50,16 +50,16 @@
 
     `FAIL_IF_LOG(read_val !== 32'h1234_5678, "Simultaneous RW failed on Port B");
 
-    repeat(5) @(port_a_if.tb_cb);   // ← Aumentado de 2 a 5 (CRÍTICO)
-    repeat(5) @(port_b_if.tb_cb);   // ← Aumentado de 2 a 5 (CRÍTICO)
+    repeat(5) @(port_a_if.tb_cb);   // ← Increased from 2 to 5 (CRITICAL)
+    repeat(5) @(port_b_if.tb_cb);   // ← Increased from 2 to 5 (CRITICAL)
     port_b_if.read_data(10'h032, read_val);
     `FAIL_IF_LOG(read_val !== 32'hDEAD_BEEF, "Port A write during simultaneous RW failed");
 `SVTEST_END
 
 `SVTEST(tdp_b_writes_a_reads)
     port_b_if.write_data(10'h040, 32'hDEAD_C0DE);
-    repeat(2) @(port_b_if.tb_cb);
-    repeat(2) @(port_a_if.tb_cb);
+    repeat(5) @(port_b_if.tb_cb);
+    repeat(5) @(port_a_if.tb_cb);
     port_a_if.read_data(10'h040, read_val);
     `FAIL_IF_LOG(read_val !== 32'hDEAD_C0DE, "Port B write / Port A read failed");
 `SVTEST_END
@@ -72,23 +72,23 @@
     repeat(3) @(port_a_if.tb_cb);
     tb_rstn <= 1'b1;
     repeat(5) @(port_a_if.tb_cb);
-    // Dato debe seguir en memoria
+    // Data should still be in memory
     port_a_if.read_data(10'h050, read_val);
     `FAIL_IF_LOG(read_val !== 32'hBEEF_CAFE, "Reset should not clear BRAM content");
 `SVTEST_END
 
 `SVTEST(tdp_write_collision_same_addr)
-    // Comportamiento no definido — solo verificar que no hay X en la salida
+    // Behavior not defined — only verify that there is no X in the output
     fork
         port_a_if.write_data(10'h060, 32'hAAAA_AAAA);
         port_b_if.write_data(10'h060, 32'hBBBB_BBBB);
     join
-    repeat(2) @(port_a_if.tb_cb);
+    repeat(5) @(port_a_if.tb_cb);
     port_a_if.read_data(10'h060, read_val);
-    // No verificamos el valor — solo que no sea X
+    // We don't verify the value — only that it's not X
     `FAIL_IF_LOG($isunknown(read_val), "Write collision produced X");
     $display("[INFO] Write collision result: 0x%08X (undefined behavior)", read_val);
-    repeat(2) @(port_a_if.tb_cb);
+    repeat(5) @(port_a_if.tb_cb);
 `SVTEST_END
 
 ////-------------------------------------------------------------------------
