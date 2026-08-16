@@ -75,10 +75,10 @@ targets:
       vivado:
         part: xc7z020clg400-1
     parameters:
-      - NB=8
+      - B=8
 
 parameters:
-  NB:
+  B:
     datatype    : int
     description : Width of the I/O ports in bits
     paramtype   : vlogparam
