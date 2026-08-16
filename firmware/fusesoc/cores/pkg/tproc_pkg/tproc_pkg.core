@@ -5,7 +5,7 @@ description: QICK timed processors (tProc) package
 filesets:
   hdl:
     files:
-      - hdl/tproc_pkg.sv
+      - hdl/tproc_pkg.sv: {is_include_file: true}
     file_type: systemVerilogSource
 
   lint_files:
