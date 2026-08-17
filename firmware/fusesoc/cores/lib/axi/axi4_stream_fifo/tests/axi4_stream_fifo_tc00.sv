@@ -7,12 +7,6 @@ module axi4_stream_fifo_unit_test;
     string name = "axi4_stream_fifo_ut";
     svunit_testcase svunit_ut;
 
-    initial begin
-        $dumpfile("axi4_stream_fifo.vcd");
-        $dumpvars();
-    end
-
-
     localparam CLOCK_FREQUENCY = 100e6; //[Hz]
 
     localparam NB_DATA      = 32;
@@ -54,10 +48,6 @@ module axi4_stream_fifo_unit_test;
         .o_clk      ( tb_clk            )
     );
 
-    //===================================
-    // This is the UUT that we're 
-    // running the Unit Tests on
-    //===================================
     axi4_stream_fifo 
     #(
         .DEPTH      ( FIFO_DEPTH        )
@@ -70,53 +60,37 @@ module axi4_stream_fifo_unit_test;
         .o_axis     ( axis_out_if       )
     );
 
-    //===================================
-    // Build
-    //===================================
     function void build();
         svunit_ut = new(name);
     endfunction
 
-    //===================================
-    // Setup for running the Unit Tests
-    //===================================
     task setup();
         svunit_ut.setup();
 
-        axis_out_if.s_cb.tready  <= 1'b0;
-        axis_in_if.m_cb.tlast    <= 1'b0;
-        axis_in_if.m_cb.tvalid   <= 1'b0;
-        axis_in_if.m_cb.tdata    <= '0;
+        axis_out_if.tready  = 1'b1;
+        axis_in_if.tlast    = 1'b0;
+        axis_in_if.tvalid   = 1'b0;
+        axis_in_if.tdata    = '0;
 
         data_payload_queue  = {};
 
         tb_rst = 1'b1;
-        repeat(1)@(axis_out_if.m_cb);
+        repeat(1) @(posedge tb_clk);
         tb_rst = 1'b0;
-        repeat(10)@(axis_out_if.m_cb);
+        repeat(10) @(posedge tb_clk);
     endtask
 
-    //===================================
-    // Here we deconstruct anything we 
-    // need after running the Unit Tests
-    //===================================
     task teardown();
         svunit_ut.teardown();
     endtask
 
-    //===================================
-    // All tests are defined between the
-    // SVUNIT_TESTS_BEGIN/END macros
-    //
-    // Each individual test must be
-    // defined between `SVTEST(_NAME_)
-    // `SVTEST_END
-    //
-    // i.e.
-    //   `SVTEST(mytest)
-    //     <test code>
-    //   `SVTEST_END
-    //===================================
+    initial begin
+        $dumpfile("axi4_stream_fifo.vcd");
+        $dumpvars();
+        #20ms;
+        $display("INFO: Global timeout reached");
+        $finish;
+    end
 
     `SVUNIT_TESTS_BEGIN
         `include "tests.sv"
