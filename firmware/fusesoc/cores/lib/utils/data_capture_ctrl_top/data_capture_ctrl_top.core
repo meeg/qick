@@ -10,7 +10,7 @@ filesets:
     depend: 
       - qick:utils:data_capture_ctrl
       - qick:cdc:cdc_gray_sync
-      - qick:mem:bram_dp
+      - qick:mem:bram_tdp
       - qick:utils:data_reader
 
   tb:

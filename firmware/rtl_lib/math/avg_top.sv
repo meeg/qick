@@ -139,23 +139,6 @@ module avg_top #(
       );
 
   // Dual port BRAM
-  //bram_dp #(
-  //          .N (N),
-  //          .B (4*B)
-  //        ) bram_i (
-  //          .clka (clk),
-  //          .clkb (m_axis_aclk),
-  //          .ena  (1'b1),
-  //          .enb  (mem_en_int),
-  //          .wea  (mem_we_int),
-  //          .web  (1'b0),
-  //          .addra (mem_addra_int),
-  //          .addrb (mem_addrb_int),
-  //          .dia  (mem_di_int),
-  //          .dib  ({4*B{1'b0}}),
-  //          .doa  (),
-  //          .dob  (mem_do_int)
-  //        );
   bram_tdp #(
     .NB_DATA(4*B),
     .NB_ADDR(N)

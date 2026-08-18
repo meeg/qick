@@ -109,23 +109,26 @@ module data_capture_ctrl_top #(
         );
 
   // Dual port BRAM
-  bram_dp #(
-            .N (N),
-            .B (2*B)
-          ) bram_i (
-            .clka  (clk),
-            .clkb  (m_axis_aclk),
-            .ena   (1'b1),
-            .enb   (1'b1),
-            .wea   (mem_we_int),
-            .web   (1'b0),
-            .addra (mem_addra_int),
-            .addrb (mem_addrb_int),
-            .dia   (mem_di_int),
-            .dib   ({2*B{1'b0}}), // Replaced 4*B with 2*B to match width, could also use '0
-            .doa   (),
-            .dob   (mem_do_int)
-          );
+  bram_tdp #(
+    .NB_DATA (2*B),
+    .NB_ADDR (N)
+  ) bram_i (
+    .clka  (clk),
+    .rsta  (~rstn),
+    .ena   (1'b1),
+    .wea   (mem_we_int),
+    .addra (mem_addra_int),
+    .dia   (mem_di_int),
+    .doa   ( ),
+
+    .clkb  (m_axis_aclk),
+    .rstb  (~m_axis_aresetn),
+    .enb   (1'b1),
+    .web   (1'b0),
+    .addrb (mem_addrb_int),
+    .dib   ({2*B{1'b0}}),
+    .dob   (mem_do_int)
+  );
 
   // Data reader
   data_reader #(
