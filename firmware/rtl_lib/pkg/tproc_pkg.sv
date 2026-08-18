@@ -144,6 +144,68 @@ package tproc_pkg;
         return {opcode, page, ch, oper, rd, rs1, rs2, rs3, rs4, rs5, rs6, rs7, 6'b0};
     endfunction
 
+    //===========================================================================
+    // tProcessor v2 (tprocv2 / qick_processor)
+    //===========================================================================
+    // Ported from firmware/ip/qick_processor/src/_qproc_defines.svh.
+    // Only the self-contained top-level packet definitions are ported here;
+    // the instruction-level opcode/state encoding lives inside qcore_cpu.sv
+    // (not yet ported) and will be added to this section once that module is
+    // translated.
+
+    // Port-write packet type (CTRL_REG.src / dispatcher routing)
+    localparam logic [2:0] TPV2_CFG      = 3'b000;
+    localparam logic [2:0] TPV2_BRANCH   = 3'b001;
+    localparam logic [2:0] TPV2_INT_CTRL = 3'b010;
+    localparam logic [2:0] TPV2_EXT_CTRL = 3'b011;
+    localparam logic [2:0] TPV2_REG_WR   = 3'b100;
+    localparam logic [2:0] TPV2_MEM_WR   = 3'b101;
+    localparam logic [2:0] TPV2_PORT_WR  = 3'b110;
+
+    // Register-bank control/status register (qcore_reg_bank REG_CFG/REG_CTRL)
+    typedef struct packed {
+        logic       we        ;
+        logic       r_wave_we ;
+        logic [6:0] addr      ;
+        logic [1:0] src       ;
+        logic       port_re   ;
+    } tpv2_ctrl_reg_t;
+
+    // Decoded control-flow bundle driven by the instruction decoder
+    typedef struct packed {
+        logic       cfg_addr_imm  ;
+        logic       cfg_dt_imm    ;
+        logic       cfg_port_src  ;
+        logic       cfg_port_type ;
+        logic       cfg_port_time ;
+        logic [3:0] cfg_cond      ;
+        logic       cfg_alu_src   ;
+        logic [3:0] cfg_alu_op    ;
+        logic [8:0] usr_ctrl      ;
+        logic       flag_we       ;
+        logic       dmem_we       ;
+        logic       wmem_we       ;
+        logic       port_we       ;
+    } tpv2_ctrl_flow_t;
+
+    // Output-port data packet (dispatcher -> OUT_DPORT/OUT_WPORT)
+    typedef struct packed {
+        logic [31:0]  p_time ;
+        logic         p_type ; // 0-WAVE 1-DATA
+        logic [5:0]   p_addr ;
+        logic [167:0] p_data ;
+    } tpv2_port_dt_t;
+
+    // QICK timed-packet (xcom) control header
+    typedef struct packed {
+        logic [47:0] qtp_time    ;
+        logic [7:0]  qtp_version ;
+        logic [7:0]  qtp_cfg     ;
+        logic [7:0]  qtp_ctrl    ;
+        logic [7:0]  qtp_dst     ;
+        logic [15:0] qtp_len     ;
+    } tpv2_qtp_ctrl_t;
+
 endpackage
 
 `endif

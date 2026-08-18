@@ -24,7 +24,9 @@
 //! @author  QICK Development Team
 //!
 //! @version 1.0
-module tpv2_alu import alu_pkg::*; (
+`include "alu_pkg.sv"
+
+module tpv2_alu (
    input  wire signed [31:0]  a_i           ,
    input  wire signed [31:0]  b_i           ,
    input  wire        [3:0]   alu_op_i      ,
@@ -33,6 +35,8 @@ module tpv2_alu import alu_pkg::*; (
    output wire                s_o           ,
    output wire signed [31:0]  alu_result_o
 );
+
+   import alu_pkg::*;
 
    reg  [32:0] result;
    wire zero_flag, carry_flag, sign_flag;
