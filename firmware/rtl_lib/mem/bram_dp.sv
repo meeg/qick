@@ -20,6 +20,12 @@ module bram_dp #(
 typedef logic [B-1:0] ram_t [0:2**N-1];
 ram_t ram;
 
+initial begin
+    for (int i = 0; i < 2**N; i++) begin
+        ram[i] = '0;
+    end
+end
+
 // Port A: Write and read
 always_ff @(posedge clka) begin
     if (ena) begin
