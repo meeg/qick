@@ -24,7 +24,7 @@ module axil_slv#(
 
   // Protection parameters (optional)
   parameter bit ENABLE_AW_EN = 1'b1,       // Enable aw_en logic (VHDL compatibility)
-  parameter bit AUTO_CLEAR_BIT0 = 1'b0     // Auto-clear bit 0 of register 0
+  parameter bit AUTO_CLEAR_BIT0 = 1'b0     // Auto-clear register 0 (whole word) one cycle after any nonzero write
 )(
   // Global signals
   input  logic                                s_axi_aclk,
@@ -199,6 +199,12 @@ module axil_slv#(
         o_slv_regs[i] <= REG_INIT_VAL[i];
       end
     end else begin
+      // Auto-clear register 0 one cycle after it holds any nonzero value
+      // (one-shot pulse register). Lower priority than the write below, so
+      // a write to register 0 on this same cycle still lands.
+      if (AUTO_CLEAR_BIT0 && (o_slv_regs[0] != '0)) begin
+        o_slv_regs[0] <= '0;
+      end
       if (slv_reg_wren) begin
         // Get register index from address
         automatic int reg_idx = axi_awaddr[ADDR_MSB:ADDR_LSB];
