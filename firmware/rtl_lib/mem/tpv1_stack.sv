@@ -44,7 +44,8 @@
 //! @version 1.0
 
 module tpv1_stack #(
-    parameter int B = 16       // Data width
+    parameter int B = 16,       // Data width
+    parameter int N = 8         // Address width (2^N words)
 ) (
     // Clock and reset
     input  logic               clk,
@@ -66,8 +67,7 @@ module tpv1_stack #(
     //--------------------------------------------------------------------------
     // Local parameters
     //--------------------------------------------------------------------------
-    localparam int N = 8;         // Address width (256 words)
-    localparam int MAX = 255;     // Max stack pointer value (empty)
+    localparam int MAX = (1 << N) - 1;     // Max stack pointer value (empty)
 
     //--------------------------------------------------------------------------
     // Internal signals
