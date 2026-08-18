@@ -6,6 +6,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
+- **tpv2_alu** (`qick:math:tpv2_alu`): tProcessor v2 combinational ALU,
+  faithful port of `AB_alu` from `firmware/ip/qick_processor/src/_qproc_ips.sv`.
+  First bottom-up piece of the tprocv2 port (rest of the processor still
+  lives only in `firmware/ip/qick_processor/src/`).
 - **SG-v6 IP** (`axis_signal_gen_v6`): full close-out — Python driver
   (`AxisSignalGen`, shared v4/v5/v6), SVUnit RTL testbench, PeakRDL
   register-layer tests, and documentation (`docs/sg_v6.rst`).

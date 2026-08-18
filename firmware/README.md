@@ -21,9 +21,19 @@ firmware/
 ├── rtl_lib/          Source of truth for shared RTL modules
 │   ├── axi/          AXI4/AXI4-Lite/AXI4-Stream utilities
 │   ├── cdc/          Clock domain crossing modules
+│   ├── constraints/  Shared XDC constraint files
+│   ├── ctrl/         Control-plane blocks (streamer, ramp/DDS control, etc.)
+│   ├── dsp/          DSP datapath blocks (signal gen, IQ correction, etc.)
+│   ├── encoders/     Link-layer / 8b10b / framing blocks
 │   ├── interfaces/   SystemVerilog interfaces (AXI, BRAM, etc.)
-│   ├── pkg/          Shared packages (qick_pkg.sv)
-│   └── utils/        Utility modules (FIFOs, buffers, command handlers)
+│   ├── ip/           Top-level packaged-IP RTL (axis_tprocv1.sv, etc.)
+│   ├── math/         ALUs and other math blocks
+│   ├── mem/          Memories, FIFOs, register files
+│   ├── misc/         Miscellaneous shared blocks
+│   ├── pkg/          Shared packages (qick_pkg.sv, tproc_pkg.sv, alu_pkg.sv, ...)
+│   ├── processors/   tProcessor cores (tprocv1.sv, ...)
+│   ├── utils/        Utility modules (FIFOs, buffers, command handlers)
+│   └── xci/          Xilinx-IP (.xci) sources used by dsp/ behavioural pairs
 ├── ip/               Custom QICK IP cores (use modules from rtl_lib)
 ├── Projects/         Vivado generated projects — gitignored, recreated with HOG
 ├── bin/              Bitfile outputs — gitignored
@@ -148,6 +158,12 @@ RTL sources are organized as:
 - `rtl_lib/` — Shared modules (AXI, CDC, interfaces, utilities)
 - `ip/` — QICK IP cores that use modules from `rtl_lib`
 
+> **In progress**: `qick:ip:qick_processor` (tProcessor v2) is being ported
+> from `firmware/ip/qick_processor/src/` into `rtl_lib/` bottom-up, the same
+> way `axis_tprocv1` was. Its `.core` file describes the target layout but
+> `hdl/` is not populated yet, so `make sim IP=qick_processor` does not work
+> until that port is further along.
+
 ### Available Makefile commands in `fusesoc/`
 
 | Command | Description |
@@ -167,7 +183,7 @@ cd firmware/fusesoc
 source venv/bin/activate
 
 # Simulate an IP
-make sim IP=qick_processor
+make sim IP=tpv2_alu
 
 # Run all tests
 make sim_svunit
@@ -185,7 +201,7 @@ For detailed FuseSoC documentation, see `fusesoc/README.md`.
 | Task | Tool | Command |
 |------|------|---------|
 | Full bitstream build | HOG | `./Hog/Do W 216/tpv2_std` |
-| Single IP simulation | FuseSoC | `cd fusesoc && make sim IP=qick_processor` |
+| Single IP simulation | FuseSoC | `cd fusesoc && make sim IP=tpv2_alu` |
 | Unit tests | FuseSoC | `cd fusesoc && make sim_svunit` |
 | IP packaging | FuseSoC | `cd fusesoc && make package IP=xcom` |
 
