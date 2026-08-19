@@ -226,7 +226,11 @@ module xcom import qick_pkg::*;
     .AXI_AW    ( 6  ),
     .AXI_DW    ( 32 ),
     .NUM_REGS  ( XCOM_NUM_REGS )
+<<<<<<< HEAD
   ) u_axil_slv(
+=======
+  ) u_xcom_axil_slv(
+>>>>>>> bd1fb315 (#106 Update XCOM implementation files)
     .s_axi_aclk      ( i_ps_clk           ),
     .s_axi_aresetn   ( i_ps_rstn          ),
     .s_axi_awaddr    ( s_axi_awaddr [6-1:0] ),
@@ -434,7 +438,11 @@ module xcom import qick_pkg::*;
   assign s_cfg_sync_dis = s_xcom_cfg_sync[28];
   assign s_cfg_loopback = s_xcom_cfg_sync[31];
 
+<<<<<<< HEAD
   diff_in_nb #(
+=======
+  i_diff_nb #(
+>>>>>>> bd1fb315 (#106 Update XCOM implementation files)
     .NB( NCH )
   ) dt_i_diff_nb(
     .i_diff_p( i_xcom_data_p ),
@@ -442,7 +450,7 @@ module xcom import qick_pkg::*;
     .o_se    ( si_xcom_data  )
   );
 
-  diff_in_nb #(
+  i_diff_nb #(
     .NB( NCH )
   ) ck_i_diff_nb(
     .i_diff_p( i_xcom_clk_p ),
@@ -450,7 +458,7 @@ module xcom import qick_pkg::*;
     .o_se    ( si_xcom_clk  )
   );
 
-  diff_out_nb #(
+  o_diff_nb #(
     .NB( 1 )
   ) dt_o_diff_nb(
     .o_diff_p( o_xcom_data_p  ),
@@ -458,7 +466,7 @@ module xcom import qick_pkg::*;
     .i_se    ( so_xcom_data[0])
   );
 
-  diff_out_nb #(
+  o_diff_nb #(
     .NB( 1 )
   ) ck_o_diff_nb(
     .o_diff_p( o_xcom_clk_p   ),
@@ -466,6 +474,7 @@ module xcom import qick_pkg::*;
     .i_se    ( so_xcom_clk[0] )
   );
 
+<<<<<<< HEAD
 
   generate
     if (LOOPBACK_EN == 0) begin : gen_no_loopback
@@ -484,6 +493,26 @@ module xcom import qick_pkg::*;
   assign o_xcom_id   = s_xcom_id;
   assign xreg_status = s_dbg_status_ps;
 
+=======
+
+  generate
+    if (LOOPBACK_EN == 0) begin : gen_no_loopback
+      assign si_xcom_data_int = si_xcom_data;
+      assign si_xcom_clk_int  = si_xcom_clk;
+    end
+    else if (LOOPBACK_EN == 1) begin : gen_loopback
+      assign si_xcom_data_int[NCH-1:0]    = si_xcom_data;
+      assign si_xcom_clk_int[NCH-1:0]     = si_xcom_clk;
+      assign si_xcom_data_int[NCH_INT-1]  = so_xcom_data[1];
+      assign si_xcom_clk_int[NCH_INT-1]   = so_xcom_clk[1];
+    end
+  endgenerate
+
+
+  assign o_xcom_id   = s_xcom_id;
+  assign xreg_status = s_dbg_status_ps;
+
+>>>>>>> bd1fb315 (#106 Update XCOM implementation files)
   ///////////////////////////////////////////////////////////////////////////////
   // DEBUG
   ///////////////////////////////////////////////////////////////////////////////

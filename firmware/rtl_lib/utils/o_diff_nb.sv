@@ -26,6 +26,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 module diff_out_nb#(
+=======
+module o_diff_nb#(
+>>>>>>> bd1fb315 (#106 Update XCOM implementation files):firmware/rtl_lib/utils/o_diff_nb.sv
   parameter integer NB = 16 // The width of the differential bus.
 )(
   input  logic [NB-1:0] i_se,     // Single-ended input
