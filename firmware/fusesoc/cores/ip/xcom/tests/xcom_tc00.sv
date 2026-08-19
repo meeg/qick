@@ -187,12 +187,16 @@ xcom#(
    .o_time_update_data (),
    .o_core_start       (),   
    .o_core_stop        (),   
-   .o_xcom_id          (),   
-   .i_xcom_clk         (),   
-   .i_xcom_data        (),   
-   .o_xcom_clk         (),   
-   .o_xcom_data        (),   
-   .s_axi_awaddr       (),   
+   .o_xcom_id          (),
+   .i_xcom_clk_p       ( '0 ),
+   .i_xcom_clk_n       ( '0 ),
+   .i_xcom_data_p      ( '0 ),
+   .i_xcom_data_n      ( '0 ),
+   .o_xcom_clk_p       (),
+   .o_xcom_clk_n       (),
+   .o_xcom_data_p      (),
+   .o_xcom_data_n      (),
+   .s_axi_awaddr       (),
    .s_axi_awprot       (),   
    .s_axi_awvalid      (),   
    .s_axi_awready      (),   
@@ -210,7 +214,10 @@ xcom#(
    .s_axi_rdata        (),
    .s_axi_rresp        (),
    .s_axi_rvalid       (),
-   .s_axi_rready       ()
+   .s_axi_rready       (),
+   .o_dbg_probe1       (),
+   .o_dbg_probe2       (),
+   .o_dbg_probe3       ()
 );
 
 //===================================

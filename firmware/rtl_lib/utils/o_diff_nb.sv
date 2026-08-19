@@ -1,24 +1,31 @@
 ///////////////////////////////////////////////////////////////////////////////
+// vim:set shiftwidth=3 softtabstop=3 expandtab:
+//
 // Fermi National Accelerator Laboratory
-// Module : diff_out_nb
+//
+// Module: req_ack_cmd.sv
 // Project: QICK
+// Description:
+// A file containing a module that use the Xilinx
+// OBUFDS primitive. The module is parametrizable,
+// allowing for easy adjustment of the bus width.
+// This module drives a differential output bus from
+// a single-ended input bus.
+// The bus width is controlled by the `NB` parameter.
+//
+//Inputs:
+// - i_se        single-ended input
+//Outputs:
+// - o_diff_out_p/n differential outputs
+//
+//Parameters:
+// - NB          bus width
+//
+//
+// Change history: 09/08/25 - Started by @lharnaldi
+//
 ///////////////////////////////////////////////////////////////////////////////
-//! @file    diff_out_nb.sv
-//!
-//! @brief   A file containing a module that use the Xilinx
-//!
-//! @details
-//!
-//! OBUFDS primitive. The module is parametrizable,
-//! allowing for easy adjustment of the bus width.
-//! This module drives a differential output bus from
-//! a single-ended input bus.
-//! The bus width is controlled by the `NB` parameter.
-//!
-//! @author  QICK Development Team
-//!
-//! @version 1.0
-module diff_out_nb#(
+module o_diff_nb#(
   parameter integer NB = 16 // The width of the differential bus.
 )(
   input  logic [NB-1:0] i_se,     // Single-ended input
@@ -28,7 +35,7 @@ module diff_out_nb#(
 
   // Use a `generate` block to instantiate the OBUFDS primitives for each bit.
   generate
-    for (genvar i = 0; i < NB; i = i + 1) begin : g_obufds
+    for (genvar i = 0; i < NB; i = i + 1) begin : g_obufds_gen
       OBUFDS obuf_ds_inst (
         .O  (o_diff_p[i]),
         .OB (o_diff_n[i]),

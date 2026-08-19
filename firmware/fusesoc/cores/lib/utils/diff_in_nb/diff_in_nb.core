@@ -5,7 +5,7 @@ description: Differential input buffer
 filesets:
   hdl:
     files:
-      - hdl/diff_in_nb.sv
+      - hdl/i_diff_nb.sv
     file_type: systemVerilogSource
 
   tb:

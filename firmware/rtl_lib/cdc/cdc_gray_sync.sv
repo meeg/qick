@@ -5,13 +5,25 @@
 ///////////////////////////////////////////////////////////////////////////////
 //! @file    cdc_gray_sync.sv
 //!
-//! @brief   N-stage, M-bit Gray style data synchronizer.
+//! @brief   N-stage, M-bit vector synchronizer (per-bit independent).
 //!
 //! @details
+//! Each bit of the M-bit vector is synchronized through its own N-stage
+//! flip-flop chain, independently of the others -- there is no gray decode
+//! logic here, "gray" in the name refers to the intended use case, not a
+//! transform performed by this module.
 //!
-//! This block is intended to use to sync gray coded vectors.
-//! NOTE: Do not use with generic vector data, as it may result
-//! in corrupted re-sync data.
+//! Safe for:
+//!  - a genuinely gray-coded vector (by construction at most one bit changes
+//!    per source-clock edge, so a torn/inconsistent sample can't happen), or
+//!  - M independent, unrelated single-bit signals bundled into one vector
+//!    purely for port convenience (each bit has no coherence requirement
+//!    with the others, so independent per-bit sync is exactly correct).
+//!
+//! NOT safe for: an arbitrary coherent multi-bit binary value (e.g. a raw
+//! counter, address or data word) where more than one bit can change at
+//! once -- different bits can then land on opposite sides of the source
+//! transition and be sampled torn. Use `cdc_handshake` for that case.
 //!
 //! @author  QICK Development Team
 //!

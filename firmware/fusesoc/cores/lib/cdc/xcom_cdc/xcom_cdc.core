@@ -9,7 +9,8 @@ filesets:
     file_type: systemVerilogSource
     depend:
       - qick:pkg:qick_pkg
-      - qick:cdc:synchronizer
+      - qick:cdc:cdc_bit_sync
+      - qick:cdc:cdc_handshake
       - qick:utils:wide_en_signal
 
 

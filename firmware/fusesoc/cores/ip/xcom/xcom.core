@@ -8,7 +8,7 @@ filesets:
       - hdl/xcom.sv
     file_type: systemVerilogSource
     depend:
-      - qick:axi:xcom_axil_slv
+      - qick:axi:axil_slv
       - qick:cdc:xcom_cdc
       - qick:utils:xcom_cmd
       - qick:utils:xcom_txrx
@@ -31,6 +31,7 @@ filesets:
     file_type: systemVerilogSource
     depend:
       - qick:common:sim_base
+      - qick:common:xilinx
 
   lint_files:
     depend:
@@ -90,10 +91,10 @@ targets:
     filesets: [hdl, lint_files, tb]
     default_tool: xsim
     generate: [testrunner_gen]
-    toplevel: testrunner
+    toplevel: [testrunner, glbl]
     tools:
       xsim:
-        xelab_options: [-debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
       icarus:
         iverilog_options:

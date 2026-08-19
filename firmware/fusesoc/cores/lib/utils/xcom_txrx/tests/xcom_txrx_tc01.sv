@@ -171,7 +171,7 @@ module xcom_txrx_unit_test;
     .i_ack_net       ( tb_o_ack_net   ),
     .o_op            ( tb_o_op        ),
     .o_data          ( tb_o_data      ),
-    .o_data_cntr     ( tb_o_data_cntr )
+    .o_cmd_cntr      ( tb_o_data_cntr )
   );
 
   assign s_core_data = {tb_i_core_data,tb_i_core_addr};
