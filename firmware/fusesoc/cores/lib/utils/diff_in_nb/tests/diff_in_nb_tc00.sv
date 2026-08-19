@@ -1,136 +1,66 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module diff_in_buff_unit_test;
-  import svunit_pkg::svunit_testcase;
+module diff_in_nb_unit_test;
+import svunit_pkg::svunit_testcase;
 
-  string name = "diff_in_buff_ut";
+  string name = "diff_in_nb_ut";
   svunit_testcase svunit_ut;
 
-  localparam CLOCK_FREQUENCY = 100e6; //[Hz]
+  localparam int NB = 4;
 
+  logic [NB-1:0] tb_i_diff_p = '0;
+  logic [NB-1:0] tb_i_diff_n = '1;
+  logic [NB-1:0] tb_o_se;
 
-  logic  tb_clk     = 1'b0;
-  logic  tb_rstn    = 1'b1;
+initial begin
+  $dumpfile("diff_in_nb.vcd");
+  $dumpvars();
+end
 
-  logic  tb_i_ref   = 1'b0;
-  logic  tb_i_sync  = 1'b0;
-  logic  tb_o_tri   ;
-  logic  tb_o_up    ;
-  logic  tb_o_dn    ;
+//===================================
+// This is the UUT that we're
+// running the Unit Tests on
+//===================================
+diff_in_nb #(
+  .NB ( NB )
+) u_diff_in_nb (
+  .i_diff_p ( tb_i_diff_p ),
+  .i_diff_n ( tb_i_diff_n ),
+  .o_se     ( tb_o_se     )
+);
 
-  initial begin
-    $dumpfile("diff_in_buff.vcd");
-    $dumpvars();
-  end
+//===================================
+// Build
+//===================================
+function void build();
+  svunit_ut = new(name);
+endfunction
 
-  clk_gen
-  #(
-    .FREQ       ( CLOCK_FREQUENCY   )
-  )
-  u_clk_gen
-  (
-    .i_enable   ( 1'b1              ),
-    .o_clk      ( tb_clk            )
-  );
+//===================================
+// Setup for running the Unit Tests
+//===================================
+task setup();
+  svunit_ut.setup();
+  tb_i_diff_p = '0;
+  tb_i_diff_n = '1;
+  #1;
+endtask
 
-  clk_gen
-  #(
-    .FREQ       ( 10.8e6  )
-  )
-  u_clk_gen_sync
-  (
-    .i_enable   ( 1'b1              ),
-    .o_clk      ( tb_i_sync         )
-  );
+//===================================
+// Here we deconstruct anything we
+// need after running the Unit Tests
+//===================================
+task teardown();
+  svunit_ut.teardown();
+endtask
 
-  clk_gen
-  #(
-    .FREQ       ( 10.5e6   )
-  )
-  u_clk_gen_ref
-  (
-    .i_enable   ( 1'b1              ),
-    .o_clk      ( tb_i_ref          )
-  );
-
-  default clocking cb @(posedge tb_clk);
-    default input #1step output #2;
-    output tb_rstn   ;
-//    output tb_i_ref  ;
-//    output tb_i_sync ;
-    input  tb_o_tri  ;
-    input  tb_o_up   ;
-    input  tb_o_dn   ;
-  endclocking
-
-//  initial begin
-//  tb_i_sync <= 1'b0;
-//  forever # (20) tb_i_sync <= ~tb_i_sync;
-//  end
-//
-//  initial begin
-//  tb_i_ref <= 1'b0;
-//  forever # (38) tb_i_ref <= ~tb_i_ref;
-//  end
-  //===================================
-  // This is the UUT that we're
-  // running the Unit Tests on
-  //===================================
-
-  diff_in_nb#(NB) u_diff_in_nb (
-    .i_diff_p   ( tb_clk    ),
-    .i_diff_n   ( tb_clk    ),
-    .o_se       ( tb_o_se   )
-  );
-
-  //===================================
-  // Build
-  //===================================
-
-  function void build();
-    svunit_ut = new(name);
-  endfunction
-
-  //===================================
-  // Setup for running the Unit Tests
-  //===================================
-  task setup();
-    svunit_ut.setup();
-
-    @(cb);
-    cb.tb_rstn             <= 1'b0;
-    repeat(2) @(cb);
-    cb.tb_rstn             <= 1'b1;
-    repeat(5) @(cb);
-
-  endtask
-
-  //===================================
-  // Here we deconstruct anything we 
-  // need after running the Unit Tests
-  //===================================
-  task teardown();
-    svunit_ut.teardown();
-  endtask
-
-  //===================================
-  // All tests are defined between the
-  // SVUNIT_TESTS_BEGIN/END macros
-  //
-  // Each individual test must be
-  // defined between `SVTEST(_NAME_)
-  // `SVTEST_END
-  //
-  // i.e.
-  //   `SVTEST(mytest)
-  //     <test code>
-  //   `SVTEST_END
-  //===================================
-
-
-  `SVUNIT_TESTS_BEGIN
-  `include "tests.sv"
-  `SVUNIT_TESTS_END 
+//===================================
+// All tests are defined between the
+// SVUNIT_TESTS_BEGIN/END macros
+//===================================
+`SVUNIT_TESTS_BEGIN
+`include "tests.sv"
+`SVUNIT_TESTS_END
 
 endmodule

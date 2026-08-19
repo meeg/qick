@@ -3,7 +3,7 @@
 //
 // Fermi National Accelerator Laboratory
 //
-// Module: req_ack_cmd.sv
+// Module: diff_out_nd.sv
 // Project: QICK
 // Description:
 // A file containing a module that use the Xilinx
@@ -25,7 +25,7 @@
 // Change history: 09/08/25 - Started by @lharnaldi
 //
 ///////////////////////////////////////////////////////////////////////////////
-module o_diff_nb#(
+module diff_out_nb#(
   parameter integer NB = 16 // The width of the differential bus.
 )(
   input  logic [NB-1:0] i_se,     // Single-ended input

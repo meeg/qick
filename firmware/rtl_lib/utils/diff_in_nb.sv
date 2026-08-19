@@ -25,7 +25,7 @@
 // Change history: 09/08/25 - Started by @lharnaldi
 //
 ///////////////////////////////////////////////////////////////////////////////
-module i_diff_nb#(
+module diff_in_nb#(
   parameter integer NB = 16 // The width of the differential bus.
 )(
   input  logic [NB-1:0] i_diff_p, // Positive differential input

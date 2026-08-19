@@ -1,40 +1,33 @@
-`SVTEST(test00_reset)
+//-------------------------------------------------------------------------------------------------//
+// IBUFDS's behavioral sim model passes the P leg straight through to O and
+// ignores N (matching real differential-input semantics: N is just the
+// complement of P on the board, only P carries the logical value).
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test00_reset_value)
+  `FAIL_IF(tb_o_se !== '0);
+`SVTEST_END
 
-//`ASSERT_IMMEDIATE(cb.tb_o_up  == 1'b0);     
-//`ASSERT_IMMEDIATE(cb.tb_o_dn  == 1'b0);     
-for (integer k = 0; k < 10; k = k + 1) begin
-  cb.tb_rstn <= 1'b0;
-  //`ASSERT_IMMEDIATE(cb.tb_o_up  == 1'b0);     
-  //`ASSERT_IMMEDIATE(cb.tb_o_dn  == 1'b0);     
-  @(cb);
-  cb.tb_rstn <= 1'b1;
-  @(cb);
-end
-  repeat(100) @(cb);
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test01_follows_diff_p)
+  for (int k = 0; k < 20; k++) begin
+    logic [NB-1:0] pattern;
+    pattern = $urandom();
+    tb_i_diff_p = pattern;
+    tb_i_diff_n = ~pattern;
+    #1;
+    `FAIL_IF(tb_o_se !== pattern);
+  end
+`SVTEST_END
 
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test02_all_bits_independent)
+  for (int b = 0; b < NB; b++) begin
+    tb_i_diff_p = '0;
+    tb_i_diff_n = '1;
+    tb_i_diff_p[b] = 1'b1;
+    tb_i_diff_n[b] = 1'b0;
+    #1;
+    `FAIL_IF(tb_o_se !== (1 << b));
+  end
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test01_normal)
-
-    @(cb);
-    for (integer k = 0; k < 10; k = k + 1) begin
-        repeat($urandom_range(1,100))@(cb);
-        //`ASSERT_IMMEDIATE(tb_o_data  == k);     
-    end
-    repeat(1000) @(cb);
-     
-`SVTEST_END
-//-------------------------------------------------------------------------------------------------//
-//`SVTEST(test02_8bit_data)
-//
-//    cb.tb_i_data  <= 8'hAB;     
-//    @(cb);
-//        for (integer k = 0; k < 10; k = k + 1) begin
-//          cb.tb_i_data <= k;
-//          repeat(5)@(cb);
-//          //`ASSERT_IMMEDIATE(tb_o_data  == k);     
-//    end
-//    repeat(10) @(cb);
-//     
-//`SVTEST_END
-////-------------------------------------------------------------------------------------------------//

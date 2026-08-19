@@ -1,40 +1,34 @@
-`SVTEST(test00_reset)
+//-------------------------------------------------------------------------------------------------//
+// OBUFDS's behavioral sim model drives O = I and OB = ~I.
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test00_reset_value)
+  `FAIL_IF(tb_o_diff_p !== '0);
+  `FAIL_IF(tb_o_diff_n !== '1);
+`SVTEST_END
 
-//`ASSERT_IMMEDIATE(cb.tb_o_up  == 1'b0);     
-//`ASSERT_IMMEDIATE(cb.tb_o_dn  == 1'b0);     
-for (integer k = 0; k < 10; k = k + 1) begin
-  cb.tb_rstn <= 1'b0;
-  //`ASSERT_IMMEDIATE(cb.tb_o_up  == 1'b0);     
-  //`ASSERT_IMMEDIATE(cb.tb_o_dn  == 1'b0);     
-  @(cb);
-  cb.tb_rstn <= 1'b1;
-  @(cb);
-end
-  repeat(100) @(cb);
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test01_follows_i_se)
+  for (int k = 0; k < 20; k++) begin
+    logic [NB-1:0] pattern;
+    pattern = $urandom();
+    tb_i_se = pattern;
+    #1;
+    `FAIL_IF(tb_o_diff_p !== pattern);
+    `FAIL_IF(tb_o_diff_n !== ~pattern);
+  end
+`SVTEST_END
 
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test02_all_bits_independent)
+  for (int b = 0; b < NB; b++) begin
+    logic [NB-1:0] expected;
+    tb_i_se = '0;
+    tb_i_se[b] = 1'b1;
+    expected = '0;
+    expected[b] = 1'b1;
+    #1;
+    `FAIL_IF(tb_o_diff_p !== expected);
+    `FAIL_IF(tb_o_diff_n !== ~expected);
+  end
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test01_normal)
-
-    @(cb);
-    for (integer k = 0; k < 10; k = k + 1) begin
-        repeat($urandom_range(1,100))@(cb);
-        //`ASSERT_IMMEDIATE(tb_o_data  == k);     
-    end
-    repeat(1000) @(cb);
-     
-`SVTEST_END
-//-------------------------------------------------------------------------------------------------//
-//`SVTEST(test02_8bit_data)
-//
-//    cb.tb_i_data  <= 8'hAB;     
-//    @(cb);
-//        for (integer k = 0; k < 10; k = k + 1) begin
-//          cb.tb_i_data <= k;
-//          repeat(5)@(cb);
-//          //`ASSERT_IMMEDIATE(tb_o_data  == k);     
-//    end
-//    repeat(10) @(cb);
-//     
-//`SVTEST_END
-////-------------------------------------------------------------------------------------------------//
