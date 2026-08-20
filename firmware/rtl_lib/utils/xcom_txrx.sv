@@ -73,6 +73,7 @@
 //                            in one place (external).
 //
 ///////////////////////////////////////////////////////////////////////////////
+`include "qick_pkg.sv"
 module xcom_txrx import qick_pkg::*;
 #(
    parameter int NCH        = 2 ,

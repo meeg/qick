@@ -1,3 +1,6 @@
+`ifndef FXP_PKG_SV
+`define FXP_PKG_SV
+
 package fxp_pkg;
   typedef struct packed  {
     bit sign;
@@ -157,3 +160,5 @@ package fxp_pkg;
   endfunction
 
 endpackage
+
+`endif // FXP_PKG_SV

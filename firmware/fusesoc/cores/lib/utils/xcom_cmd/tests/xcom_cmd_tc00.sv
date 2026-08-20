@@ -1,6 +1,7 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
+`include "qick_pkg.sv"
 module xcom_cmd_unit_test;
   import svunit_pkg::svunit_testcase;
   import qick_pkg::*;

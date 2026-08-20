@@ -65,6 +65,7 @@
 //                 09/08/25 - @lharnaldi add differential I/O ports
 //
 ///////////////////////////////////////////////////////////////////////////////
+`include "qick_pkg.sv"
 module xcom import qick_pkg::*;
   # (
     parameter int NCH          = 2 ,
@@ -225,7 +226,7 @@ module xcom import qick_pkg::*;
     .AXI_AW    ( 6  ),
     .AXI_DW    ( 32 ),
     .NUM_REGS  ( XCOM_NUM_REGS )
-  ) u_xcom_axil_slv(
+  ) u_axil_slv(
     .s_axi_aclk      ( i_ps_clk           ),
     .s_axi_aresetn   ( i_ps_rstn          ),
     .s_axi_awaddr    ( s_axi_awaddr [6-1:0] ),
