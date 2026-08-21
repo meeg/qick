@@ -20,13 +20,17 @@ module iq_gain_unit_test;
     localparam int  GW = 16;
     localparam int  LATENCY = 3; // 3 stages of registers
 
+    // Constants for the limits and unity gain (Q-format)
+    localparam signed [DW-1:0] MAXV = (1 << (DW-1)) - 1;
+    localparam signed [DW-1:0] MINV = -(1 << (DW-1));
+    localparam signed [GW-1:0] GAIN_UNITY = (1 << (GW-1)) - 1; // 0x7FFF (~1.0)
+
     // =========================================================================
     // Clock & Reset
     // =========================================================================
     logic tb_aclk    = 1'b0;
     logic tb_aresetn = 1'b0;
     
-    // Assuming that you have the clk_gen component in your library
     clk_gen #(.FREQ (CLOCK_FREQUENCY)) u_clk (.i_enable(1'b1), .o_clk(tb_aclk));
 
     // =========================================================================
@@ -34,7 +38,8 @@ module iq_gain_unit_test;
     // =========================================================================
     logic signed [DW-1:0] tb_i_in = '0;
     logic signed [DW-1:0] tb_q_in = '0;
-    logic        [GW-1:0] tb_gain  = '0;
+    logic        [GW-1:0] tb_gain_i = '0;
+    logic        [GW-1:0] tb_gain_q = '0;
     logic signed [DW-1:0] tb_i_out;
     logic signed [DW-1:0] tb_q_out;
 
@@ -46,7 +51,8 @@ module iq_gain_unit_test;
         output tb_aresetn;
         output tb_i_in;
         output tb_q_in;
-        output tb_gain;
+        output tb_gain_i;
+        output tb_gain_q;
         input  tb_i_out;
         input  tb_q_out;
     endclocking
@@ -62,7 +68,8 @@ module iq_gain_unit_test;
         .aresetn (tb_aresetn),
         .i_in    (tb_i_in),
         .q_in    (tb_q_in),
-        .gain    (tb_gain),
+        .gain_i  (tb_gain_i),
+        .gain_q  (tb_gain_q),
         .i_out   (tb_i_out),
         .q_out   (tb_q_out)
     );
@@ -76,7 +83,7 @@ module iq_gain_unit_test;
     end
 
     // =========================================================================
-    // Golden Model
+    // Golden Model (Bit-True con el DUT)
     // =========================================================================
     typedef struct {
         logic signed [DW-1:0] i;
@@ -86,20 +93,29 @@ module iq_gain_unit_test;
     function automatic iq_t golden_model(
         input logic signed [DW-1:0] i_in,
         input logic signed [DW-1:0] q_in,
-        input logic        [GW-1:0] gain
+        input logic signed [GW-1:0] gain_i,
+        input logic signed [GW-1:0] gain_q
     );
-        // Model the internal multiplication width
-        logic signed [DW+GW-1:0] i_mult;
-        logic signed [DW+GW-1:0] q_mult;
+        logic signed [DW+GW-1:0] i_mult, q_mult;
+        logic signed [DW+GW-1:0] i_round, q_round;
+        logic signed [DW+GW-1:0] i_scale, q_scale;
         iq_t out;
 
-        // Multiply by treating gain as positive signed
-        i_mult = i_in * $signed({1'b0, gain});
-        q_mult = q_in * $signed({1'b0, gain});
+        // 1. Multiplication
+        i_mult = i_in * gain_i;
+        q_mult = q_in * gain_q;
 
-        // Saturation logic
-        out.i = (i_mult > 32767) ? 32767 : ((i_mult < -32768) ? -32768 : i_mult[DW-1:0]);
-        out.q = (q_mult > 32767) ? 32767 : ((q_mult < -32768) ? -32768 : q_mult[DW-1:0]);
+        // 2. Rounding: add (1 << (GW-2))
+        i_round = i_mult + (1 << (GW-2));
+        q_round = q_mult + (1 << (GW-2));
+
+        // 3. Scaling: Arithmetic Shift (>>> GW-1)
+        i_scale = i_round >>> (GW-1);
+        q_scale = q_round >>> (GW-1);
+
+        // 4. Parametric Saturación
+        out.i = (i_scale > MAXV) ? MAXV : ((i_scale < MINV) ? MINV : i_scale[DW-1:0]);
+        out.q = (q_scale > MAXV) ? MAXV : ((q_scale < MINV) ? MINV : q_scale[DW-1:0]);
 
         return out;
     endfunction
@@ -111,7 +127,8 @@ module iq_gain_unit_test;
         tb_cb.tb_aresetn <= 1'b0;
         tb_cb.tb_i_in    <= '0;
         tb_cb.tb_q_in    <= '0;
-        tb_cb.tb_gain    <= '0;
+        tb_cb.tb_gain_i  <= '0;
+        tb_cb.tb_gain_q  <= '0;
         repeat(5) @(tb_cb);
         tb_cb.tb_aresetn <= 1'b1;
         repeat(2) @(tb_cb);
@@ -126,28 +143,27 @@ module iq_gain_unit_test;
                 for (int n = 0; n < count; n++) begin
                     logic signed [DW-1:0] rnd_i = $urandom;
                     logic signed [DW-1:0] rnd_q = $urandom;
-                    logic        [GW-1:0] rnd_g = $urandom;
+                    logic        [2*GW-1:0] rnd_g = $urandom;
 
-                    tb_cb.tb_i_in  <= rnd_i;
-                    tb_cb.tb_q_in  <= rnd_q;
-                    tb_cb.tb_gain  <= rnd_g;
+                    tb_cb.tb_i_in   <= rnd_i;
+                    tb_cb.tb_q_in   <= rnd_q;
+                    tb_cb.tb_gain_i <= rnd_g[GW-1:0];
+                    tb_cb.tb_gain_q <= rnd_g[2*GW-1:GW];
 
-                    expected_q.push_back(golden_model(rnd_i, rnd_q, rnd_g));
+                    expected_q.push_back(golden_model(rnd_i, rnd_q, rnd_g[GW-1:0], rnd_g[2*GW-1:GW]));
                     @(tb_cb);
                 end
-                tb_cb.tb_i_in  <= '0;
-                tb_cb.tb_q_in  <= '0;
-                tb_cb.tb_gain  <= '0;
+                tb_cb.tb_i_in   <= '0;
+                tb_cb.tb_q_in   <= '0;
+                tb_cb.tb_gain_i <= '0;
+                tb_cb.tb_gain_q <= '0;
             end
 
             // Monitor thread
             begin
-                // Wait LATENCY cycles (DUT) + 1 extra cycle (Clocking Block)
                 repeat(LATENCY + 1) @(tb_cb); 
-                
                 for (int n = 0; n < count; n++) begin
                     iq_t exp = expected_q.pop_front();
-                    // Add a small delay to ensure the sample is stable
                     if (tb_cb.tb_i_out !== exp.i || tb_cb.tb_q_out !== exp.q) begin
                         $display("STREAM MISMATCH n=%0d: exp(%0d,%0d) got(%0d,%0d)",
                                 n, exp.i, exp.q, signed'(tb_cb.tb_i_out), signed'(tb_cb.tb_q_out));

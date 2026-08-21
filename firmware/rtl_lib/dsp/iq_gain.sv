@@ -1,26 +1,15 @@
-`timescale 1ns / 1ps
-///////////////////////////////////////////////////////////////////////////////
-// Project: QICK
-// Module : iq_gain
-///////////////////////////////////////////////////////////////////////////////
-//! @file    iq_gain.sv
-//! @brief   Multiplies complex baseband samples (I,Q) by a programmable gain.
-//! @details Multiplies I and Q by an signed gain (0-15).
-//!           Includes saturation to prevent wrapping.
-//!           Latency: 3 aclk cycles.
-//! @author  @lharnaldi
-//! @version 1.0
-
 module iq_gain #(
-    parameter int DW = 16,      // Data width (16-bit signed)
-    parameter int GW = 16        // Gain width (16-bit signed)
+    parameter int DW = 16,        //!  Data width (16-bit signed)
+    parameter int GW = 16,        //!  Gain width (16-bit signed)
+    parameter int GAIN_SHIFT = 0  //!  Integer gain bits (i.e. 4 = up to 16x). 
+                                  //!  Default 0 = full Q1.15 gain range (-32768 to 32767)
 )(
     input  logic                    aclk,
     input  logic                    aresetn,
     input  logic signed [DW-1:0]    i_in,
     input  logic signed [DW-1:0]    q_in,
-    input  logic signed [GW-1:0]    gain_i,  // Independent Gain for I
-    input  logic signed [GW-1:0]    gain_q,  // Independent Gain for Q
+    input  logic        [GW-1:0]    gain_i,  // Independent Gain for I
+    input  logic        [GW-1:0]    gain_q,  // Independent Gain for Q
     output logic signed [DW-1:0]    i_out,
     output logic signed [DW-1:0]    q_out
 );
@@ -29,6 +18,9 @@ module iq_gain #(
     // For DW=16: MAXV = 32767, MINV = -32768
     localparam signed [DW-1:0] MAXV = (1 << (DW-1)) - 1;
     localparam signed [DW-1:0] MINV = -(1 << (DW-1));
+
+    // Calculate the new value of shift based on the GAIN_SHIFT parameter
+    localparam int SHIFT_AMT = (GW - 1 - GAIN_SHIFT);
 
     // Stage 0: input register
     logic signed [DW-1:0] i_r, q_r;
@@ -65,14 +57,16 @@ module iq_gain #(
         logic signed [DW+GW-1:0] rounded;
         logic signed [DW+GW-1:0] scaled; // Keep the full width to avoid truncation
 
-        // Rounding: add half of the LSB of the part that will be kept
-        // If we shift right by (GW-1), the most significant bit of the fractional part is at (GW-2)
-        rounded = val + (1 << (GW-2));
+        // Rounding adjusted to the new SHIFT_AMT
+        // We avoid adding if SHIFT_AMT is 0 or negative to avoid compilation errors
+        if (SHIFT_AMT > 0) begin
+            rounded = val + (1 << (SHIFT_AMT-1));
+            scaled  = rounded >>> SHIFT_AMT;
+        end else begin
+            scaled  = val <<< (-SHIFT_AMT); // If left shift is required
+        end
 
-        // Arithmetic right shift
-        scaled = rounded >>> (GW-1);
-
-        // Saturation
+        // Saturation hard clipping by channel
         if (scaled > MAXV)
             return MAXV;
         else if (scaled < MINV)
