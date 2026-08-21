@@ -5,7 +5,7 @@ description: Package with fixed point utilities
 filesets:
   hdl:
     files:
-      - hdl/fxp_pkg.sv
+      - hdl/fxp_pkg.sv: {is_include_file: true}
       - hdl/fxp.svh: {is_include_file: true}
     file_type: systemVerilogSource
 
