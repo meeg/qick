@@ -165,10 +165,43 @@ def read_core_dependencies_recursive(core_name: str, cores_root: Path, visited: 
                         read_core_dependencies_recursive(dep, cores_root, visited)
     return visited
 
+def resolve_rtl_files_from_core(dep_name: str, cores_root: Path, extra_suffixes: tuple = ()) -> list:
+    """
+    Resolve ALL HDL files for a dependency by reading its own .core file's
+    'hdl' fileset directly (following the hdl/*.sv -> rtl_lib/... symlinks
+    every core uses). This is the authoritative source -- a core's actual
+    file list, not a name -> rtl_lib/<category>/<name>.sv guess, which
+    silently drops any core bundling more than one file under a name that
+    doesn't match its own (e.g. qick:encoders:gearbox ships ten_to_eight.sv
+    + eight_to_ten.sv, neither named "gearbox.sv"; qick:pkg:fxp_pkg ships
+    fxp_pkg.sv *and* the fxp.svh header it `includes -- pass extra_suffixes=
+    ('.svh',) to pick that up too).
+    """
+    core_file = find_core_file(dep_name, cores_root)
+    if not core_file:
+        return []
+    import yaml
+    try:
+        with open(core_file) as f:
+            data = yaml.safe_load(f)
+    except Exception:
+        return []
+    hdl_fs = (data.get('filesets') or {}).get('hdl') or {}
+    entries = hdl_fs.get('files') or []
+    suffixes = ('.sv', '.v') + tuple(extra_suffixes)
+    resolved = []
+    for entry in entries:
+        fname = list(entry.keys())[0] if isinstance(entry, dict) else entry
+        fpath = (core_file.parent / fname).resolve()
+        if fpath.exists() and fpath.suffix in suffixes:
+            resolved.append(fpath)
+    return resolved
+
 def resolve_rtl_from_dependency(dep_name: str, rtl_lib_root: Path) -> Optional[Path]:
     """
-    Resolve RTL file path for a dependency from rtl_lib/.
-    Example: qick:axi:xcom_axil_slv -> rtl_lib/axi/xcom_axil_slv.sv
+    Fallback single-file guess, kept for callers that just want one path
+    (e.g. the main IP's own top-level RTL, which really is name -> file).
+    Example: qick:axi:axil_slv -> rtl_lib/axi/axil_slv.sv
     """
     vendor, category, name = parse_core_name(dep_name)
     if not category:
@@ -236,12 +269,24 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     """
     all_sources = {}
     xci_sources = {}
+    pkg_sources = {}
     # 1. Get all dependencies recursively
     print(f"\n  Resolving dependencies recursively...")
     deps = read_core_dependencies_recursive(ip_core_name, cores_root)
     # Remove the IP itself from dependencies
     deps.discard(ip_core_name)
-    # Filter out common/pkg dependencies (they don't have RTL)
+    # qick:pkg:* deps (qick_pkg, fxp_pkg, crc8_pkg, ...) DO have RTL -- a
+    # SystemVerilog package .sv file the IP's own sources `import`. They must
+    # still ship inside the packaged IP (as Global Include files, see below),
+    # or Vivado's IP Integrator can't resolve the `import` when this IP is
+    # dropped into a block design: unlike a plain module dependency, a
+    # package isn't instantiated, so it never gets pulled in from a normal
+    # RTL file reference -- only a file explicitly marked global-include (or
+    # separately added to the top project) is visible outside the IP's own
+    # private compile scope.
+    pkg_deps = [d for d in deps if d.startswith('qick:pkg:')]
+    # Filter out common/pkg dependencies from the *module* RTL list (pkg
+    # deps are handled separately above; common has no RTL at all).
     rtl_deps = [d for d in deps
                 if not d.startswith('qick:common:')
                 and not d.startswith('qick:pkg:')
@@ -250,8 +295,30 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
     print(f"  Found {len(rtl_deps)} RTL dependency(ies):")
     for dep in sorted(rtl_deps):
         print(f"    - {dep}")
-    # 2. Resolve RTL for each dependency
-    print(f"\n  Resolving RTL files from rtl_lib/...")
+    if pkg_deps:
+        print(f"  Found {len(pkg_deps)} package dependency(ies) (packaged as Global Include: is_include + used_in synthesis):")
+        for dep in sorted(pkg_deps):
+            print(f"    - {dep}")
+    # 1b. Resolve RTL for each package dependency, via its own .core file
+    # (a package can bundle more than just its <name>.sv -- e.g. fxp_pkg
+    # ships fxp_pkg.sv *and* the fxp.svh header it `includes).
+    for dep in pkg_deps:
+        pkg_files = resolve_rtl_files_from_core(dep, cores_root, extra_suffixes=('.svh',))
+        if not pkg_files:
+            vendor, category, name = parse_core_name(dep)
+            single = rtl_lib_root / 'pkg' / f"{name}.sv"
+            pkg_files = [single] if single.exists() else []
+        if pkg_files:
+            for pkg_file in pkg_files:
+                pkg_sources[str(pkg_file)] = pkg_file.name
+        else:
+            print(f"    !  Package RTL not found for: {dep}")
+    # 2. Resolve RTL for each dependency, reading each dep's own .core file's
+    # hdl fileset (a core can bundle more than one file, e.g.
+    # qick:encoders:gearbox ships both ten_to_eight.sv and eight_to_ten.sv --
+    # a name->rtl_lib/<category>/<name>.sv guess would silently drop the
+    # second one).
+    print(f"\n  Resolving RTL files from each dependency's .core file...")
     for dep in rtl_deps:
         vendor, category, name = parse_core_name(dep)
         # If a Xilinx .xci exists for this name, it's a Xilinx IP:
@@ -261,11 +328,17 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
             xci_sources[str(xci)] = f"{name}/{name}.xci"
             print(f"    {dep} -> {name}/{name}.xci (Xilinx IP, sim model skipped)")
             continue
-        rtl_file = resolve_rtl_from_dependency(dep, rtl_lib_root)
-        if rtl_file and rtl_file.exists():
-            if rtl_file.name not in all_sources.values():
-                all_sources[str(rtl_file)] = rtl_file.name
-                print(f"    {dep} -> {rtl_file.name}")
+        rtl_files = resolve_rtl_files_from_core(dep, cores_root)
+        if not rtl_files:
+            # Fall back to the old name-based guess for any core whose .core
+            # file couldn't be parsed.
+            single = resolve_rtl_from_dependency(dep, rtl_lib_root)
+            rtl_files = [single] if single else []
+        if rtl_files:
+            for rtl_file in rtl_files:
+                if rtl_file.name not in all_sources.values():
+                    all_sources[str(rtl_file)] = rtl_file.name
+                    print(f"    {dep} -> {rtl_file.name}")
         else:
             print(f"    !  RTL not found for: {dep}")
 
@@ -330,7 +403,7 @@ def collect_all_rtl_sources(ip_core_name: str, cores_root: Path, rtl_lib_root: P
             all_sources[str(xdc)] = xdc.name
             print(f"    Found: {xdc.name}")
 
-    return all_sources, xci_sources
+    return all_sources, xci_sources, pkg_sources
 
 def collect_hdl_files(src_dir: Path) -> list:
     """Auto-discover RTL files, excluding testbenches and non-synthesizable content.
@@ -558,17 +631,11 @@ def run_standalone(args):
     print(f"   Cores:    {cores_root}")
     # Resolve dependencies recursively
     print(f"\n Resolving dependencies from .core file...")
-    sources, xci_sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
-    # Also collect files listed directly in the core's `hdl` fileset. These are not
-    # covered by dependency resolution or the "main IP RTL" lookup, so files like
-    # axi_slv_tprocv1.sv (in files: but not depend:) would otherwise be skipped.
-    core_hdl_sources = collect_core_hdl_files(core_name, cores_root)
-    for src_path, dst_name in core_hdl_sources.items():
-        if dst_name not in sources.values():
-            sources[src_path] = dst_name
-    if sources:
-        print(f"\n  Total RTL files found: {len(sources)}")
-        copied = copy_rtl_sources(ip_dir, sources, xci_sources)
+    sources, xci_sources, pkg_sources = collect_all_rtl_sources(core_name, cores_root, rtl_lib_root)
+    all_copyable = {**sources, **pkg_sources}
+    if all_copyable:
+        print(f"\n  Total RTL files found: {len(all_copyable)}")
+        copied = copy_rtl_sources(ip_dir, all_copyable, xci_sources)
         print(f"\n  Copied {len(copied)} file(s) to {src_dir}")
     else:
         print(f"  !  No RTL sources found for {core_name}")
@@ -576,19 +643,26 @@ def run_standalone(args):
     if not src_dir.is_dir():
         print(f" Source directory not found: {src_dir}", file=sys.stderr)
         sys.exit(1)
-    # Collect RTL files from src_dir
-    hdl_files = args.hdl_files or collect_hdl_files(src_dir)
+    # Collect RTL files from src_dir. Package files (qick_pkg.sv etc.) are
+    # tracked separately -- they're added to the IP.XACT file group first, as
+    # Global Include files (see package_ip.tcl.j2), not mixed into the
+    # regular hdl_files list.
+    pkg_files = sorted(set(pkg_sources.values())) if not args.hdl_files else []
+    auto_hdl = args.hdl_files or collect_hdl_files(src_dir)
+    hdl_files = [f for f in auto_hdl if f not in pkg_files]
     xci_files = args.xci_files or collect_xci_files(src_dir)
     ooc_xdc = args.ooc_xdc or collect_ooc_xdc(src_dir)
     xdc_files = collect_xdc(src_dir)
     if not hdl_files:
         print(f" No RTL files found in {src_dir}", file=sys.stderr)
         sys.exit(1)
-    print(f"\n Found {len(hdl_files)} RTL file(s) to package:")
+    print(f"\n Found {len(hdl_files)} RTL file(s) to package ({len(pkg_files)} as Global Include):")
     for f in hdl_files[:5]:
         print(f"     - {f}")
     if len(hdl_files) > 5:
         print(f"     ... and {len(hdl_files) - 5} more")
+    for f in pkg_files:
+        print(f"     - {f} (global include)")
     logo_path = None
     if not args.no_logo:
         logo_path = find_logo_file(firmware_dir)
@@ -628,6 +702,7 @@ def run_standalone(args):
         "ip_dir": str(ip_dir.resolve()),
         "src_dir": str(src_dir.resolve()),
         "hdl_files": hdl_files,
+        "pkg_files": pkg_files,
         "xci_files": xci_files,
         "xdc_files": xdc_files,
         "ooc_xdc_files": ooc_xdc,

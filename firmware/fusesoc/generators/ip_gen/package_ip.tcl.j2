@@ -11,7 +11,11 @@ set src_dir      [file normalize "{{ src_dir }}"]
 # ── Create in-memory project ─────────────────────────────────
 create_project -in_memory -part {{ part | default('xczu49dr-ffvf1760-2-e') }}
 
-# ── Add all RTL sources ──────────────────────────────────────
+# ── Add package sources first (compile order: packages before their
+#    importers), then the rest of the RTL ────────────────────
+{% for f in pkg_files | default([]) %}
+add_files -norecurse ${src_dir}/{{ f }}
+{% endfor %}
 {% for f in hdl_files %}
 add_files -norecurse ${src_dir}/{{ f }}
 {% endfor %}
@@ -43,6 +47,34 @@ foreach f [ipx::get_files -of_objects \
             -of_objects [ipx::current_core]]
 }
 
+# ── SystemVerilog packages & headers, added FIRST ───────────
+# Packages are packaged as INCLUDE files, matching the convention the RTL
+# now follows repo-wide (and that axis_tprocv1 already used): every package
+# carries an `ifndef guard, and every consumer does BOTH
+#   `include "qick_pkg.sv"   +   import qick_pkg::*;
+#
+# Why not ship them as ordinary compiled sources: Vivado's automatic
+# compile-order inference gets NO dependency hint from a bare
+# `import pkg::*` (unlike a module instantiation), so it happily orders the
+# package AFTER its consumer -- measured here as
+#   6 fxp_pkg.sv / 14 frame_deframer.sv / 21 crc8_pkg.sv
+# and synthesis then dies with "ERROR: [Synth 8-36] 'crc8_pkg' is not
+# declared". That happens in BOTH packaged-IP OOC synthesis and BD Global
+# mode, and neither file-group order nor USED_IN fixes it. Pulling the
+# package in textually via `include sidesteps ordering entirely.
+#
+# USED_IN is still set so the file is delivered for synthesis, simulation
+# and OOC alike. Plain *.svh headers need only IS_INCLUDE (cf. fxp_pkg's
+# fxp.svh, qick_processor's _qproc_defines.svh).
+{% for f in pkg_files | default([]) %}
+set pkg_file [ipx::add_file ${src_dir}/{{ f }} \
+    [ipx::get_file_groups xilinx_anylanguagesynthesis \
+        -of_objects [ipx::current_core]]]
+set_property is_include true $pkg_file
+{% if not f.endswith('.svh') %}
+set_property used_in {synthesis simulation out_of_context} $pkg_file
+{% endif %}
+{% endfor %}
 {% for f in hdl_files %}
 ipx::add_file ${src_dir}/{{ f }} \
     [ipx::get_file_groups xilinx_anylanguagesynthesis \
@@ -110,50 +142,20 @@ proc _qick_set_assoc {core clk busif_list reset} {
     }
 }
 
-# 1. Apply explicit clock_domains from .clock_domains.yaml (if any)
-{% if clock_domains %}
-{% for domain in clock_domains %}
-_qick_set_assoc $core {{ domain.name }} \
-    [list {{ domain.interfaces | join(" ") }}] \
-    {{ domain.reset }}
-{% for iface in domain.interfaces %}
-set idx [lsearch -exact $remaining_stream_ifs {{ iface }}]
-if {$idx >= 0} {
-    set remaining_stream_ifs [lreplace $remaining_stream_ifs $idx $idx]
-}
-{% endfor %}
-{% endfor %}
-{% endif %}
-
-# 2. Apply naming convention to remaining interfaces
-set s0_axis_ifs {}
-set m0_axis_ifs {}
-set other_axis_ifs {}
-
-foreach name $remaining_stream_ifs {
-    if {[string match "s0_axis*" $name]} {
-        lappend s0_axis_ifs $name
-    } elseif {[string match "m0_axis*" $name]} {
-        lappend m0_axis_ifs $name
-    } else {
-        lappend other_axis_ifs $name
-    }
-}
-
-# 3. Associate each group to its clock domain
-if {[llength $s0_axis_ifs] > 0} {
-    _qick_set_assoc $core s0_axis_aclk $s0_axis_ifs s0_axis_aresetn
-}
-if {[llength $m0_axis_ifs] > 0} {
-    _qick_set_assoc $core m0_axis_aclk $m0_axis_ifs m0_axis_aresetn
-}
-if {[llength $other_axis_ifs] > 0} {
-    _qick_set_assoc $core aclk $other_axis_ifs aresetn
-}
-
-# s_axi_aclk  -> s_axi   (only if the core has an AXI-Lite)
+# s_axi clock/reset -> s_axi (only if the core has an AXI-Lite). Two
+# conventions coexist in this repo: axis_*-style IPs name the ports
+# s_axi_aclk/s_axi_aresetn; the XCOM lineage (xcom.sv, xcom_async.sv) names
+# them i_ps_clk/i_ps_rstn instead -- infer_core has no way to guess which is
+# the AXI clock from the name alone, so try both rather than silently
+# leaving the interface unassociated (Vivado accepts an unassociated s_axi
+# in a block design, but flags it -- CRITICAL WARNING [BD 41-967] -- and
+# some downstream automation/DRC depends on the association being present).
 if {[ipx::get_bus_interfaces s_axi -of_objects $core -quiet] ne ""} {
-    _qick_set_assoc $core s_axi_aclk {s_axi} s_axi_aresetn
+    if {[ipx::get_ports s_axi_aclk -of_objects $core -quiet] ne ""} {
+        _qick_set_assoc $core s_axi_aclk {s_axi} s_axi_aresetn
+    } elseif {[ipx::get_ports i_ps_clk -of_objects $core -quiet] ne ""} {
+        _qick_set_assoc $core i_ps_clk {s_axi} i_ps_rstn
+    }
 }
 
 # ── Add XCI sub-IPs ──────────────────────────────────────────
