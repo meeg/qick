@@ -1,3 +1,10 @@
+`ifndef QICK_PKG_SV
+`define QICK_PKG_SV
+
+// fxp_pkg must be pulled in at file scope, BEFORE this package opens -- a
+// package cannot be declared inside another package.
+`include "fxp_pkg.sv"
+
 package qick_pkg;
   import fxp_pkg::*;
 
@@ -192,3 +199,5 @@ package qick_pkg;
   localparam integer unsigned NB_ADDR_TRANSL_OFFSET   = 10;
 
 endpackage
+
+`endif // QICK_PKG_SV
