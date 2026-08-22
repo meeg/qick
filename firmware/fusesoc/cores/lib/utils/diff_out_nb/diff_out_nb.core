@@ -5,7 +5,7 @@ description: Differential output buffer
 filesets:
   hdl:
     files:
-      - hdl/o_diff_nb.sv
+      - hdl/diff_out_nb.sv
     file_type: systemVerilogSource
 
   tb:

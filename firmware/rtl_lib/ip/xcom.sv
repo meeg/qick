@@ -442,7 +442,7 @@ module xcom import qick_pkg::*;
     .o_se    ( si_xcom_data  )
   );
 
-  i_diff_nb #(
+  diff_in_nb #(
     .NB( NCH )
   ) ck_i_diff_nb(
     .i_diff_p( i_xcom_clk_p ),
@@ -450,7 +450,7 @@ module xcom import qick_pkg::*;
     .o_se    ( si_xcom_clk  )
   );
 
-  o_diff_nb #(
+  diff_out_nb #(
     .NB( 1 )
   ) dt_o_diff_nb(
     .o_diff_p( o_xcom_data_p  ),
@@ -458,7 +458,7 @@ module xcom import qick_pkg::*;
     .i_se    ( so_xcom_data[0])
   );
 
-  o_diff_nb #(
+  diff_out_nb #(
     .NB( 1 )
   ) ck_o_diff_nb(
     .o_diff_p( o_xcom_clk_p   ),
