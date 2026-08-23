@@ -20,8 +20,6 @@
 //!
 //! @version 1.0
 
-`include "_qproc_defines.svh"
-
 module qproc_inport_reg #(
     parameter int PORT_QTY = 2
 )(
@@ -44,9 +42,8 @@ module qproc_inport_reg #(
     logic [63:0]        port_dt_r   [PORT_QTY];
     logic [PORT_QTY-1:0] port_dt_new;
 
-    genvar ind;
     generate
-        for (ind = 0; ind < PORT_QTY; ind = ind + 1) begin : g_port_reg
+        for (genvar ind = 0; ind < PORT_QTY; ind = ind + 1) begin : g_port_reg
             always_ff @(posedge c_clk_i) begin
                 if (!c_rst_ni) begin
                     port_dt_r[ind]   <= '0;
