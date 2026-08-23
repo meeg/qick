@@ -5,7 +5,6 @@ description: qproc_inport_reg (utils library core).
 filesets:
   hdl:
     files:
-      - hdl/_qproc_defines.svh: {is_include_file: true}
       - hdl/qproc_inport_reg.sv
     file_type: systemVerilogSource
   tb:
