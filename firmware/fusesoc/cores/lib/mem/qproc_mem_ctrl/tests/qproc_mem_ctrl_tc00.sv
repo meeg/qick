@@ -87,12 +87,12 @@ module qproc_mem_ctrl_unit_test;
         .m_axis_tlast_o  (tb_m_axis_tlast_o),
         .m_axis_tvalid_o (tb_m_axis_tvalid_o),
         .m_axis_tready_i (tb_m_axis_tready_i),
-        .MEM_CTRL        (tb_mem_ctrl),
-        .MEM_ADDR        (tb_mem_addr),
-        .MEM_LEN         (tb_mem_len),
-        .MEM_DT_I        (tb_mem_dt_i),
-        .MEM_DT_O        (tb_mem_dt_o),
-        .DEBUG_O         (tb_debug_o),
+        .mem_ctrl        (tb_mem_ctrl),
+        .mem_addr        (tb_mem_addr),
+        .mem_len         (tb_mem_len),
+        .mem_dt_i        (tb_mem_dt_i),
+        .mem_dt_o        (tb_mem_dt_o),
+        .debug_o         (tb_debug_o),
         .busy_o          (tb_busy_o),
         .end_single_o    (tb_end_single_o)
     );
@@ -115,7 +115,7 @@ module qproc_mem_ctrl_unit_test;
         repeat(5) @(posedge tb_clk);
     endtask
 
-    // Drive MEM_CTRL fields and pulse start (MEM_CTRL[0]) high; caller is
+    // Drive mem_ctrl fields and pulse start (mem_ctrl[0]) high; caller is
     // responsible for eventually clearing start via stop_mem().
     task automatic start_mem(input logic op, input logic [1:0] sel, input logic source, input logic [1:0] core = 2'b00);
         tb_mem_ctrl = {core, source, sel, op, 1'b1};

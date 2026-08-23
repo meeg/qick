@@ -12,21 +12,21 @@
 //!
 //! Three modes of accessing the (external) qcore_mem memory banks:
 //!
-//! * Single access using the MEM_DT_I/MEM_DT_O register interface. Only
+//! * Single access using the mem_dt_i/mem_dt_o register interface. Only
 //!   available when busy_o = 0 (no AXIS transaction in progress). Gated to
 //!   the data-memory bank only (mem_sel == PMEM/WMEM ignore single writes),
 //!   matching the legacy behavior.
-//! * AXIS read: streams data out via m_axis_*, using MEM_ADDR as the
-//!   starting address and MEM_LEN as the sample count. The user sets
-//!   MEM_CTRL[0] (start) = 1 to begin; the last sample asserts
+//! * AXIS read: streams data out via m_axis_*, using mem_addr as the
+//!   starting address and mem_len as the sample count. The user sets
+//!   mem_ctrl[0] (start) = 1 to begin; the last sample asserts
 //!   m_axis_tlast_o.
 //! * AXIS write: receives data via s_axis_* and writes it starting at
-//!   MEM_ADDR, relying on s_axis_tlast_i to terminate the burst.
+//!   mem_addr, relying on s_axis_tlast_i to terminate the burst.
 //!
-//! Once an AXIS transaction completes, MEM_CTRL[0] must be deasserted and
+//! Once an AXIS transaction completes, mem_ctrl[0] must be deasserted and
 //! reasserted to start a new one.
 //!
-//! MEM_CTRL bit fields:
+//! mem_ctrl bit fields:
 //! * [0]   start   : 1 = start the operation indicated below, 0 = stop.
 //! * [1]   op      : 0 = AXIS read (memory -> m_axis), 1 = AXIS write
 //!                   (s_axis -> memory).
@@ -88,12 +88,12 @@ module qproc_mem_ctrl #(
     input  logic         m_axis_tready_i,
 
     // Control registers
-    input  logic [6:0]   MEM_CTRL,
-    input  logic [15:0]  MEM_ADDR,
-    input  logic [15:0]  MEM_LEN,
-    input  logic [31:0]  MEM_DT_I,
-    output logic [31:0]  MEM_DT_O,
-    output logic [31:0]  DEBUG_O,
+    input  logic [6:0]   mem_ctrl,
+    input  logic [15:0]  mem_addr,
+    input  logic [15:0]  mem_len,
+    input  logic [31:0]  mem_dt_i,
+    output logic [31:0]  mem_dt_o,
+    output logic [31:0]  debug_o,
 
     // Status (see header: real ports, fixing a legacy implicit-net bug)
     output logic         busy_o,
@@ -108,11 +108,11 @@ module qproc_mem_ctrl #(
     logic [1:0]  core_sel;
     logic        start_axis, start_single;
 
-    assign mem_start  = MEM_CTRL[0];   // 1 = start, go to 0 for next.
-    assign mem_op     = MEM_CTRL[1];   // 0 = read, 1 = write.
-    assign mem_sel    = MEM_CTRL[3:2]; // 01 = Pmem, 10 = Dmem, 11 = Wmem.
-    assign mem_source = MEM_CTRL[4];   // 0 = AXIS, 1 = registers (single).
-    assign core_sel   = MEM_CTRL[6:5]; // Core selection.
+    assign mem_start  = mem_ctrl[0];   // 1 = start, go to 0 for next.
+    assign mem_op     = mem_ctrl[1];   // 0 = read, 1 = write.
+    assign mem_sel    = mem_ctrl[3:2]; // 01 = Pmem, 10 = Dmem, 11 = Wmem.
+    assign mem_source = mem_ctrl[4];   // 0 = AXIS, 1 = registers (single).
+    assign core_sel   = mem_ctrl[6:5]; // Core selection.
 
     assign start_axis   = mem_start & ~mem_source;
     assign start_single  = mem_start & mem_source;
@@ -181,9 +181,9 @@ module qproc_mem_ctrl #(
         .rw_i       (mem_op),
         .exec_i     (start_single),
         .exec_ack_o (end_single_o),
-        .addr_i     (MEM_ADDR),
-        .din_i      (MEM_DT_I),
-        .do_o       (MEM_DT_O),
+        .addr_i     (mem_addr),
+        .din_i      (mem_dt_i),
+        .do_o       (mem_dt_o),
         .bram       (bram_single)
     );
 
@@ -200,8 +200,8 @@ module qproc_mem_ctrl #(
         .rstn       (rstn),
         .exec_i     (ar_exec),
         .exec_ack_o (ar_exec_ack),
-        .addr_i     (MEM_ADDR),
-        .len_i      (MEM_LEN),
+        .addr_i     (mem_addr),
+        .len_i      (mem_len),
         .bram       (bram_reader),
         .axis       (m_axis_if)
     );
@@ -224,7 +224,7 @@ module qproc_mem_ctrl #(
         .rstn       (rstn),
         .exec_i     (aw_exec),
         .exec_ack_o (aw_exec_ack),
-        .addr_i     (MEM_ADDR),
+        .addr_i     (mem_addr),
         .bram       (bram_writer),
         .axis       (s_axis_if)
     );
@@ -298,9 +298,9 @@ module qproc_mem_ctrl #(
     assign ext_mem_we_o   = ext_mem_we;
     assign ext_mem_addr_o = ext_mem_addr;
 
-    assign DEBUG_O[31:24] = 8'd0;
-    assign DEBUG_O[23:16] = {mem_op, core_sel, mem_source, mem_sel, ar_exec, aw_exec};
-    assign DEBUG_O[15:8]  = ext_mem_addr[7:0];
-    assign DEBUG_O[7:0]   = ext_mem_w_dt_o[7:0];
+    assign debug_o[31:24] = 8'd0;
+    assign debug_o[23:16] = {mem_op, core_sel, mem_source, mem_sel, ar_exec, aw_exec};
+    assign debug_o[15:8]  = ext_mem_addr[7:0];
+    assign debug_o[7:0]   = ext_mem_w_dt_o[7:0];
 
 endmodule
