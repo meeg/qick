@@ -332,8 +332,72 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     validated against an actual synthesized netlist.
   - This closes the 4-IP signal-generator group the user asked to keep
     (axis_sg_mux8_v1, axis_sg_mixmux8_v1, axis_sg_int4_v2, plus the
-    already-ported axis_signal_gen_v6). Remaining: the 5 readout IPs
-    (axis_dyn_readout_v1, axis_pfb_readout_v2/v4, axis_readout_v2/v3).
+    already-ported axis_signal_gen_v6).
+- **axis_dyn_readout_v1 bottom-up port** (tProc-controlled dynamic readout,
+  first of the 5 readout IPs): 8 parallel real-ADC-sample x complex-DDS
+  demodulators feeding an 8x decimating lowpass FIR. Unlike every signal
+  generator ported so far, this IP has NO AXI-Lite register block at all --
+  configuration (freq/phase/nsamp/outsel/mode/phrst, 88-bit descriptor)
+  arrives entirely over an s0_axis stream pushed by the tProc at run time,
+  matching the production driver (`AbsDynReadout` in
+  `qick_lib/qick/drivers/readout.py`), which is a connectivity-only
+  `DummyIP` with no register I/O -- confirmed no `bindto`/register work was
+  needed for this port. Also confirmed the legacy source tree's
+  `down_conversion.v` (an N_DDS-parametric predecessor) is dead code,
+  superseded by `down_conversion_fir.v`; only the latter's chain is
+  instantiated by the real top level, and only it was ported.
+  - **ctrl_dyn_ro** (`qick:ctrl:ctrl_dyn_ro`): phase-coherent DDS
+    controller, faithful port of `ctrl_dyn_ro_v1.sv` (88-bit descriptor,
+    no gain/stdy/en outputs -- a continuous demodulator, not a pulsed
+    generator, so that whole side of the legacy file was already commented
+    out). Same phase-coherent pinc*N / pinc*cnt_n construction as
+    `phase_ctrl_sgmux8`/`ctrl_sgv4`, ported fresh since the descriptor
+    layout and lane count (N=8) don't match either.
+  - **down_conversion_dynro** (`qick:dsp:down_conversion_dynro`): the
+    per-lane demodulator (real sample x complex DDS, round-to-nearest,
+    output-source mux product/DDS-only/raw-input/zero), faithful port of
+    `down_conversion.v`, built on `ctrl_dyn_ro` + `dds_compiler_dyn_readout`
+    (the same 32-bit-phase DDS model reused from `sgv4`/`axis_sg_int4_v2`).
+  - **fir_decim8_dynro** (`qick:dsp:fir_decim8_dynro`): behavioural model
+    of `fir_compiler_0.xci` (for sim/lint only, real .xci for synth -- same
+    two-tier pattern as `fir_interp4_sgint`). Implements the actual 120-tap
+    direct-form decimate-by-8 convolution in real arithmetic using the
+    exact `fir.coe` coefficients (NOT bit/cycle-exact to the Vivado core's
+    internal polyphase/MAC/rounding structure). Confirmed the legacy
+    `fir_compiler_0.v` in the source tree is itself only a simulation
+    placeholder (`assign m_axis_data_tdata = s_axis_data_tdata[31:0]` --
+    lane-0 passthrough, no filtering at all), NOT the real IP; the real
+    120-tap/decimate-8/2-path Xilinx core lives in the sibling
+    `fir_compiler_0/fir_compiler_0.xci`, which is what got renamed and
+    wired into the `synth_xci` fileset here. 6/6 SVUnit tests.
+  - **readout_top_dynro** (`qick:dsp:readout_top_dynro`): assembles the
+    88-bit descriptor FIFO (depth bumped 8->16: `fifo_sync`'s
+    `XPM_FIFO_SYNC` backend has a hard 16-entry minimum, harmless), the
+    demodulator, and the decimating FIR, mirroring `readout_top.v`. 4/4
+    SVUnit tests, including a full ADC-in -> demod -> decimate ->
+    m1_axis integration path.
+  - **axis_dyn_readout_v1** (`qick:ip:axis_dyn_readout_v1`): the packaged
+    IP -- single clock domain (`aclk`), three AXI-Stream ports (s0
+    descriptor push, s1 ADC data in, m0 undecimated / m1 decimated out),
+    no AXI-Lite. 4/4 SVUnit tests, lint clean.
+  - **Driver**: no `bindto` change -- `AxisDynReadoutV1`
+    (`qick_lib/qick/drivers/readout.py`) is resolved by IP-type string via
+    connectivity tracing (`trace_back`/`trace_bus`), not the usual
+    bindto-scan mechanism, and has no registers to match. Symlinked
+    `cores/ip/axis_dyn_readout_v1/driver/axis_dyn_readout_v1.py` to it
+    anyway for documentation consistency with every other IP in this port.
+    `make driver`/PeakRDL generation does not apply (no registers); the
+    RDL file is kept as an empty addrmap purely so the standard rdl/
+    scaffold stays consistent with the rest of the repo.
+  - **Constraints**: both files are NEW (the legacy IP had no XDC at all).
+    `_ooc.xdc` defines just the single `aclk`; `.xdc` has one false-path
+    rule for the descriptor input (`s0_axis_t*`, mirroring
+    `axis_sg_int4_v2.xdc`'s equivalent `s1_axis_t*` rule) -- there is no
+    AXI-Lite domain and therefore no CDC clock-group declaration needed,
+    unlike every signal-generator IP so far. NOT validated against an
+    actual synthesized netlist.
+  - Remaining: `axis_pfb_readout_v2`, `axis_pfb_readout_v4`,
+    `axis_readout_v2`, `axis_readout_v3` (the other 4 readout IPs).
 - **tpv2_alu** (`qick:math:tpv2_alu`): tProcessor v2 combinational ALU,
   faithful port of `AB_alu` from `firmware/ip/qick_processor/src/_qproc_ips.sv`.
   First bottom-up piece of the tprocv2 port (rest of the processor still
