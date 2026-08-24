@@ -103,11 +103,13 @@ module bram_tdp_unit_test;
     // Init signals to avoid "X"
     port_a_if.en   <= 1'b0;
     port_a_if.we   <= 1'b0;
+    port_a_if.we_be<= '1;
     port_a_if.addr <= '0;
     port_a_if.din  <= '0;
 
     port_b_if.en   <= 1'b0;
     port_b_if.we   <= 1'b0;
+    port_b_if.we_be<= '1;
     port_b_if.addr <= '0;
     port_b_if.din  <= '0;
   
