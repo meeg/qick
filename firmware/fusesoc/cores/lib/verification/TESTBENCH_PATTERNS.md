@@ -1,7 +1,3 @@
-Aquí tienes el documento actualizado. He integrado las dos nuevas reglas en una nueva sección (**Sección 17: Structure and Scope**) para mantener la coherencia organizativa, ya que afectan a la arquitectura de los archivos y no solo al timing o al protocolo.
-
-***
-
 **# SVUnit Testbench Patterns — QICK Firmware Verification**
 
 Lessons learned from the verification campaign on `alu_arithmetic_unit`, `alu_bitwise_unit`, `alu`, `timed_ictrl`, `tpv1_ctrl`, `bram_simple_sp`, and `regfile_8p`. These patterns apply to any SVUnit testbench in this repo.
@@ -371,3 +367,32 @@ To ensure maintainability and avoid compilation errors in large test suites:
 
 1. **Variable Declarations in `SVTEST`**: Any variable used within a `` `SVTEST(name) ... `SVTEST_END `` block must be declared at the beginning of the block. Do not declare variables in the middle of the test logic.
 2. **Helper Function Location**: The `_tests.sv` file must contain only the test cases. Any helper functions (e.g., reference models like `exp_mem` or complex checkers) must be placed in the `_tc00.sv` (or corresponding top-level test) file to avoid multiple-definition errors and keep the test list clean.
+
+---
+
+**## 18. `axil_slv`: always connect `i_reg_is_readonly` explicitly**
+
+`axil_slv.sv` declares `input logic [NUM_REGS-1:0] i_reg_is_readonly = '0`, so it looks safe to leave unconnected when every register is plain `sw=rw`. In xsim it is not: for a parameter-sized vector port, an omitted connection resolves bit 0 to the declared default but leaves the remaining bits floating (`z`), rather than replicating the default across the whole width.
+
+`axil_slv`'s write-enable guard is `!i_reg_is_readonly[reg_idx]`. `!1'bz` evaluates to `1'bx`, and `if (x)` is treated as false — so a write to any register index whose readonly bit floated is silently dropped. Register 0 writes fine (its bit happens to resolve to `0`), which is exactly the trap: a `tc_axi_register_round_trip` test that only checks register 0 passes while every other register is dead.
+
+This was found via four IPs whose round-trip tests failed at the *second* register in the test (`tc_axi_register_round_trip::FAILED` on the second `reg_write`/`reg_read` pair, first one always green): `axis_sg_int4_v2`, `axis_readout_v2`, `axis_sg_mux8_v1`, `axis_sg_mixmux8_v1`. In `axis_sg_int4_v2` this was worse than a failed assertion: the dead register was `WE_REG` (envelope capture enable), so `axis_to_bram_sg`'s FSM never left `INIT_ST`, `s0_axis_tready` never asserted, and the testbench's unbounded `while (!tready)` wait in `load_envelope` spun forever — multi-GB VCD, simulator killed by hand.
+
+```systemverilog
+// WRONG — relies on the port default for every bit; only bit 0 gets it in xsim
+axil_slv #(.NUM_REGS(NUM_REGS)) axil_slv_i (
+    ...
+    .o_slv_regs (slv_regs_o),
+    .i_slv_regs (slv_regs_o)
+);
+
+// CORRECT — tie off explicitly, even when nothing is read-only
+axil_slv #(.NUM_REGS(NUM_REGS)) axil_slv_i (
+    ...
+    .o_slv_regs        (slv_regs_o),
+    .i_slv_regs        (slv_regs_o),
+    .i_reg_is_readonly ('0)
+);
+```
+
+The tell: `tc_axi_register_round_trip` (or equivalent) fails on a specific register, not on all of them, and the value read back is the register's *previous* contents (reset value or whatever the last successful write left), not X. If a downstream test hangs instead of failing, check whether the dead register gates a blocking wait in the testbench (a capture/write-enable bit) rather than just a datapath value.

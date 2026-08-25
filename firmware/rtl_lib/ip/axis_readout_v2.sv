@@ -129,7 +129,8 @@ module axis_readout_v2 #(
         .s_axi_rvalid  (s_axi_rvalid),
         .s_axi_rready  (s_axi_rready),
         .o_slv_regs    (slv_regs_o),
-        .i_slv_regs    (slv_regs_o)
+        .i_slv_regs    (slv_regs_o),
+        .i_reg_is_readonly ('0)
     );
 
     // --------------------------------------------------------------------------
