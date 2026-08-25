@@ -7,8 +7,9 @@ filesets:
     files:
       - hdl/down_conversion_ro_v2.sv
     file_type: systemVerilogSource
-    # depend:
-    #   - qick:pkg:<your_pkg>   # add package deps here if needed
+    depend:
+      - qick:ctrl:ctrl_ro_v2
+      - qick:dsp:dds_compiler_dyn_readout
   tb:
     files:
       - tests/down_conversion_ro_v2_tc00.sv
