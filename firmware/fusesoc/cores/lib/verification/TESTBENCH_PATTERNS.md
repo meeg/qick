@@ -1,10 +1,10 @@
-**# SVUnit Testbench Patterns — QICK Firmware Verification**
+# SVUnit Testbench Patterns — QICK Firmware Verification
 
-Lessons learned from the verification campaign on `alu_arithmetic_unit`, `alu_bitwise_unit`, `alu`, `timed_ictrl`, `tpv1_ctrl`, `bram_simple_sp`, and `regfile_8p`. These patterns apply to any SVUnit testbench in this repo.
+Lessons learned from the verification campaign on `alu_arithmetic_unit`, `alu_bitwise_unit`, `alu`, `timed_ictrl`, `tpv1_ctrl`, `bram_simple_sp`, `regfile_8p`, and `xcom_async`. These patterns apply to any SVUnit testbench in this repo.
 
 ---
 
-**## 1. Clocking Block Timing: outputs drive before the edge, inputs sample after**
+## 1. Clocking Block Timing: outputs drive before the edge, inputs sample after
 
 All testbenches use:
 
@@ -25,7 +25,7 @@ This is the most common source of off-by-one errors in Moore FSM testbenches.
 
 ---
 
-**## 2. Moore FSM: present the opcode/input one cycle before it is needed**
+## 2. Moore FSM: present the opcode/input one cycle before it is needed
 
 For processors or decoders where an input (e.g. opcode) is latched in state N and used in state N+1, present it **during state N**, not after reaching N+1.
 
@@ -44,7 +44,7 @@ cb.tb_opcode <= op; // IR load: mirrors hardware ir_en behavior
 
 ---
 
-**## 3. Pipeline latency: count register stages, not clock edges**
+## 3. Pipeline latency: count register stages, not clock edges
 
 Every pipeline register between input and output adds one cycle of latency. Count them explicitly before writing helper tasks.
 
@@ -71,7 +71,7 @@ endtask
 
 ---
 
-**## 4. Diagnosing read failures: X vs 0x0000 mean different things**
+## 4. Diagnosing read failures: X vs 0x0000 mean different things
 
 When a read check fails, the value returned tells you the root cause:
 
@@ -87,7 +87,7 @@ When a read check fails, the value returned tells you the root cause:
 
 ---
 
-**## 5. Memories without reset must be explicitly initialized in tests**
+## 5. Memories without reset must be explicitly initialized in tests
 
 Modules using `logic [B-1:0] mem [N]` (e.g. `regfile`, `bram_simple_sp`) do not reset their array contents — only control registers reset. In simulation, `mem[]` starts as X.
 
@@ -108,7 +108,7 @@ test, then verify it is unchanged after.
 
 ---
 
-**## 6. Concurrent assertions: always use** `disable iff (!rstn)`
+## 6. Concurrent assertions: always use `disable iff (!rstn)`
 
 Assertions that fire at time zero — before the clocking block has run — will
 fail spuriously because signals are X. Guard all concurrent assertions:
@@ -133,7 +133,7 @@ valid.
 
 ---
 
-**## 7. Inter-test state isolation**
+## 7. Inter-test state isolation
 
 SVUnit runs `setup()` / `teardown()` between tests, but hardware state (memory contents, pipeline registers) carries over. Each test should initialize only the state it depends on. Do not assume a fresh device.
 
@@ -146,7 +146,7 @@ Individual tests are responsible for initializing any memory locations they need
 
 ---
 
-**## 8. Clocking-block drives land at the** _next_ **clocking event**
+## 8. Clocking-block drives land at the _next_ clocking event
 
 A synchronous drive through a clocking block is not visible on the bus at the edge you are standing on. `cb.sig <= v` schedules the drive for the next clocking event plus the output skew. This single fact caused four separate bugs in one campaign.
 
@@ -189,7 +189,7 @@ The tell for all of these is an off-by-one that is _constant_ and _data-independ
 
 ---
 
-**## 9. Never mix raw-signal sampling with clocking-block drives**
+## 9. Never mix raw-signal sampling with clocking-block drives
 
 If you drive a signal through a clocking block, sample everything on that interface through the same clocking block. Reading the raw signal right after `@(cb)` returns puts you in the same delta region in which the DUT is updating it — you get the old value or the new one depending on scheduling order.
 
@@ -214,7 +214,7 @@ The symptom is a test that passes and an almost identical one that fails, with a
 
 ---
 
-**## 10. Single-beat and packet APIs are not interchangeable**
+## 10. Single-beat and packet APIs are not interchangeable
 
 `rx()` consumes one beat and lowers `tready` immediately. Calling it in a loop to drain a packet does **not** work: the deassert at the end of one call and the assert at the start of the next land in the same clocking slot and cancel, so `tready` stays continuously high. The DUT then free-runs at one beat per cycle while the testbench counts one per two, the packet ends mid-loop, and the task dies on a timeout with no explanation.
 
@@ -231,7 +231,7 @@ That one assertion covers early `tlast`, late `tlast`, and dropped beats. It is 
 
 ---
 
-**## 11. Park buses in idle** _before_ **reset, not after**
+## 11. Park buses in idle _before_ reset, not after
 
 `m_reset()` blocks until `aresetn` is high, so it cannot be what clears `tvalid` during the reset window itself. Anything not explicitly driven sits at X, and X fails `tvalid == 1'b0`.
 
@@ -259,7 +259,7 @@ Also check what the reset helpers leave behind. A `s_reset()` that ends with `s_
 
 ---
 
-**## 12. Run with the protocol assertions on**
+## 12. Run with the protocol assertions on
 
 The `axi4_stream_if` compliance checkers only compile under `-d SVUNIT`. A suite that has never been run with them is measuring far less than it looks. Turning them on for the first time typically surfaces uninitialised buses (section 11) before it surfaces anything about the DUT.
 
@@ -272,7 +272,7 @@ While reviewing the interface's own assertions, check for copy-paste inversions 
 
 ---
 
-**## 13. Escape paths in helper tasks must fail the test**
+## 13. Escape paths in helper tasks must fail the test
 
 Every early `return`, `break` and timeout inside a drain or send helper is a path where the test finishes without checking anything. If it only prints, the test goes green.
 
@@ -288,7 +288,7 @@ This is worse than a plain false pass: for a DUT whose read burst must be consum
 
 ---
 
-**## 14. Verify the parametrisation you actually deploy**
+## 14. Verify the parametrisation you actually deploy
 
 A parametrised core verified at one set of parameters tells you nothing about another. `bram_to_axis_nt` was green for months at `NM=8, N=8` and shipped in a bitstream at `NM=2, N=16`, where it lost the last `NT` beats of every burst. The bug needed the producer to barely outrun the consumer; at `NT=8` the margin hid it completely.
 
@@ -321,7 +321,7 @@ The deployed target is slower — a full-depth burst is minutes of wall clock ra
 
 ---
 
-**## 15. A new test must fail against the old RTL**
+## 15. A new test must fail against the old RTL
 
 After writing a test for a bug you just fixed, revert the fix and confirm the test fails. Two tests written for specific `axis_to_bram_trig` fixes passed against both versions — the failure mode simply was not reachable from the testbench, so the tests were documentation, not verification.
 
@@ -329,7 +329,7 @@ This costs two minutes and is the only thing that distinguishes a regression tes
 
 ---
 
-**## 16. Do not retire on a status flag — count the events**
+## 16. Do not retire on a status flag — count the events
 
 An RTL pattern rather than a testbench one, but it is what the whole campaign came down to, and it is worth recognising in review.
 
@@ -361,7 +361,7 @@ The generalisation: **status flags are advisory, strobes are authoritative.** An
 
 ---
 
-**## 17. Structure and Scope**
+## 17. Structure and Scope
 
 To ensure maintainability and avoid compilation errors in large test suites:
 
@@ -370,7 +370,7 @@ To ensure maintainability and avoid compilation errors in large test suites:
 
 ---
 
-**## 18. `axil_slv`: always connect `i_reg_is_readonly` explicitly**
+## 18. `axil_slv`: always connect `i_reg_is_readonly` explicitly
 
 `axil_slv.sv` declares `input logic [NUM_REGS-1:0] i_reg_is_readonly = '0`, so it looks safe to leave unconnected when every register is plain `sw=rw`. In xsim it is not: for a parameter-sized vector port, an omitted connection resolves bit 0 to the declared default but leaves the remaining bits floating (`z`), rather than replicating the default across the whole width.
 
@@ -396,3 +396,35 @@ axil_slv #(.NUM_REGS(NUM_REGS)) axil_slv_i (
 ```
 
 The tell: `tc_axi_register_round_trip` (or equivalent) fails on a specific register, not on all of them, and the value read back is the register's *previous* contents (reset value or whatever the last successful write left), not X. If a downstream test hangs instead of failing, check whether the dead register gates a blocking wait in the testbench (a capture/write-enable bit) rather than just a datapath value.
+
+---
+
+## 19. Without a clocking block, `#TSU` is the contract — apply it at *every* edge
+
+Sections 1, 8 and 9 all assume a clocking block. Some testbenches legitimately cannot use one: `xcom_async_tc00` drives three mutually asynchronous domains (`i_time_clk`, `i_core_clk`, `i_ps_clk`), so it declares its own convention instead —
+
+```systemverilog
+localparam time TSU = 1ns; // drive/sample offset from the clock edge
+```
+
+— and every stimulus is driven and sampled `#TSU` **after** the rising edge, never at it. That works, but unlike a clocking block nothing enforces it. It is a convention held up by hand, on every task, on every interface.
+
+```systemverilog
+// WRONG — drives AT the edge, racing the DUT's own always_ff
+@(posedge tb_core_clk);
+tb_i_core_op = {1'b0, op};
+tb_i_core_en = 1'b1;
+
+// CORRECT — the whole point of the convention
+@(posedge tb_core_clk); #TSU;
+tb_i_core_op = {1'b0, op};
+tb_i_core_en = 1'b1;
+```
+
+**One omission is enough.** In `xcom_async_tc00` the AXI-Lite tasks honoured `#TSU` and the QP1 core-port task did not — two lines out of a 400-line bench.
+
+**And the race is not stable across tool versions.** Those two lines passed 4/4 under xsim 2023.1 and failed under 2025.2, with no RTL change whatsoever: the newer scheduler resolved the race the other way, the DUT sampled the stale idle value, `i_core_en` was never observed, and no command was ever dispatched. A green testbench is not evidence that the convention was followed — it may only be evidence that today's simulator resolved the race in your favour. Treat a suite that breaks on a tool upgrade, with RTL untouched, as a race until proven otherwise.
+
+**Corollary — debug from the source, not the sink.** That lost `i_core_en` surfaced thousands of cycles downstream as `rx_aligned=0`, `frm_valid=0` and a fixed `disp_err=23`: an almost perfect impression of an 8b/10b disparity or word-alignment fault, in a decoder already known to be fragile about running disparity. Two plausible hypotheses were chased and disproved there. What settled it in a single run was probing the *transmitter* instead: `link_tx.send_i` never asserted at all (`send_cyc=0`), so no frame had ever been sent and nothing downstream could have worked.
+
+When a self-loopback fails, confirm the stimulus actually left the source before analysing the sink. The generalisation: **an absent stimulus and a corrupted one look identical at the far end of a pipeline** — distinguish them at the near end, where one probe separates the two, rather than at the far end, where every theory fits.
