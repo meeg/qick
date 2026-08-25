@@ -14,10 +14,10 @@ module tb_bin2gray;
         $display("Binary -> Gray code test:");
         $display(" Binary    Gray");
         
-        for (int i = 0; i < 16; i++) begin
+        for (int i = 0; i < 256; i++) begin
             din = i;
             #10;
-            $display("  %0d (%3b) -> %0d (%3b)", i, din, dout, dout);
+            $display("  %0d (%h) -> %0d (%h)", i, din, dout, dout);
         end
         
         $finish;

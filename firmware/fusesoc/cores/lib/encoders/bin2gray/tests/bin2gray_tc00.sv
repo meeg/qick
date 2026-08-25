@@ -9,13 +9,12 @@ import svunit_pkg::svunit_testcase;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam NB             = 8; //[Hz]
+  localparam B = 8;
 
   logic          tb_clk     = 1'b0;
-  logic          tb_rstn    = 1'b1;
 
-  logic [NB-1:0] tb_i_data  = 1'b0;
-  logic [NB-1:0] tb_o_data  = 1'b0;
+  logic [B-1:0] tb_i_data  = '0;
+  logic [B-1:0] tb_o_data  = '0;
 
 initial begin
   $dumpfile("bin2gray.vcd");
@@ -32,13 +31,6 @@ u_clk_gen
   .o_clk      ( tb_clk            )
 );
 
-
-default clocking cb @(posedge tb_clk);
-output tb_rstn   ;
-output tb_i_data ;
-input  tb_o_data ;
-endclocking
-
 //===================================
 // This is the UUT that we're
 // running the Unit Tests on
@@ -46,14 +38,10 @@ endclocking
 
 bin2gray
 #(
-    .NB(NB)
+    .B(B)
     ) u_bin2gray (
-  .i_clk      ( tb_clk     ),
-  .i_rstn     ( tb_rstn    ),
-
-  .i_async    ( tb_i_data  ),
-                           
-  .o_sync     ( tb_o_data  )
+  .din    ( tb_i_data  ),
+  .dout   ( tb_o_data  )
 );
 
 //===================================
@@ -69,14 +57,8 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-  cb.tb_i_data  <= '0;
-  
-  @(cb);
-  cb.tb_rstn             <= 1'b0;
-  repeat(2) @(cb);
-  cb.tb_rstn             <= 1'b1;
-  repeat(5) @(cb);
-
+  tb_i_data  <= '0;
+  #1;
 endtask
 
 //===================================
