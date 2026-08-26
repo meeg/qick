@@ -18,6 +18,16 @@ filesets:
       - qick:utils:diff_in_nb
       - qick:utils:diff_out_nb
 
+  constraints:
+    files:
+      - constraints/xcom.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/xcom_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
   tcl:
     files:         
       - tcl/metadata.tcl : {file_type : user, copyto : tcl/metadata.tcl}
