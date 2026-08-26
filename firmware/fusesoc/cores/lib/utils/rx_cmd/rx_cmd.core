@@ -21,6 +21,9 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
+      # provides glbl.v, needed by the ODELAYE3/ODDRE1 UNISIM primitives
+      # that xcom_link_tx instantiates (cf. xcom_link_tx.core)
+      - qick:common:xilinx
       - qick:utils:xcom_link_tx
 
   lint_files:
@@ -62,10 +65,13 @@ targets:
     filesets_append: [tb]
     default_tool: xsim
     generate: [testrunner_gen]
-    toplevel: testrunner
+    # glbl is required alongside testrunner: rx_cmd pulls in xcom_link_tx,
+    # which instantiates ODELAYE3/ODDRE1, and those UNISIM primitives need
+    # glbl's global reset net. Same shape as xcom_link_tx.core.
+    toplevel: [testrunner, glbl]
     tools:
       xsim:
-        xelab_options: [-debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
       icarus:
         iverilog_options:
