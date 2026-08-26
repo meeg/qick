@@ -22,7 +22,7 @@ module req_ack_cmd_unit_test;
   logic          tb_o_req_net   ;
   logic  [8-1:0] tb_o_op        ;
   logic [NB-1:0] tb_o_data      ;
-  logic  [4-1:0] tb_o_data_cntr ;
+  logic  [4-1:0] tb_o_cmd_cntr ;
 
   logic [NB-1:0] random_data;
 
@@ -51,7 +51,7 @@ module req_ack_cmd_unit_test;
     input   tb_o_req_net     ;
     input   tb_o_op          ;
     input   tb_o_data        ;
-    input   tb_o_data_cntr   ;
+    input   tb_o_cmd_cntr   ;
   endclocking
 
   //===================================
@@ -71,7 +71,7 @@ module req_ack_cmd_unit_test;
     .o_req_net  (tb_o_req_net  ),
     .o_op       (tb_o_op       ),
     .o_data     (tb_o_data     ),
-    .o_data_cntr(tb_o_data_cntr)
+    .o_cmd_cntr (tb_o_cmd_cntr )
   );
 
   //===================================

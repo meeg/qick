@@ -73,7 +73,7 @@ module xcom_txrx_unit_test;
   logic          tb_i_ack_net    = 1'b0;
   logic  [8-1:0] tb_o_op         ; 
   logic [NB-1:0] tb_o_data       ;
-  logic  [4-1:0] tb_o_data_cntr  ;
+  logic  [4-1:0] tb_o_cmd_cntr  ;
 
   logic  [2-1:0][NB-1:0] s_core_data    ;
   logic  [2-1:0][NB-1:0] s_ps_data       ;
@@ -149,7 +149,7 @@ module xcom_txrx_unit_test;
     input   tb_o_req_net     ;
     input   tb_o_op          ;
     input   tb_o_data        ;
-    input   tb_o_data_cntr   ;
+    input   tb_o_cmd_cntr   ;
     //end xcom_cmd
   endclocking
 
@@ -172,7 +172,7 @@ module xcom_txrx_unit_test;
     .i_ack_net       ( tb_o_ack_net   ),
     .o_op            ( tb_o_op        ),
     .o_data          ( tb_o_data      ),
-    .o_cmd_cntr      ( tb_o_data_cntr )
+    .o_cmd_cntr      ( tb_o_cmd_cntr )
   );
 
   assign s_core_data = {tb_i_core_data,tb_i_core_addr};

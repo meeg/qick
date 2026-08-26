@@ -86,16 +86,16 @@ testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_req_loc
 testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data[31:0]
 @c00023
 [color] 6
-testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data_cntr[3:0]
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
 @29
 [color] 6
-(0)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data_cntr[3:0]
+(0)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
 [color] 6
-(1)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data_cntr[3:0]
+(1)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
 [color] 6
-(2)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data_cntr[3:0]
+(2)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
 [color] 6
-(3)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data_cntr[3:0]
+(3)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
 @1401201
 -group_end
 [pattern_trace] 1

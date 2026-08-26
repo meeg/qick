@@ -85,7 +85,7 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.o_req_net
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.o_data[31:0]
 [color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.o_data_cntr[3:0]
+testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.o_cmd_cntr[3:0]
 @1000200
 -xcom_cmd
 @c00200
@@ -117,7 +117,7 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_valid
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_data[31:0]
 [color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_data_cntr[3:0]
+testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_cmd_cntr[3:0]
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_op[7:0]
 @28
