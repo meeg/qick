@@ -15,11 +15,14 @@ module axil_slv_unit_test;
   localparam AXI_DW   = 32;             // Data width (32 or 64).
   localparam NUM_REGS = 16;              // Configurable number of registers
 
+  localparam time TSU = 1ns; // setup offset from clock edge (xsim-safe)
+
   logic          tb_clk         = 1'b0;
   logic          tb_rstn        = 1'b1;
   logic [AXI_DW-1:0]   tb_o_slv_reg[NUM_REGS];
   logic [AXI_DW-1:0]   tb_i_slv_reg[NUM_REGS];
   logic [AXI_DW-1:0] tb_slv_regs [NUM_REGS];
+  logic [NUM_REGS-1:0] tb_i_reg_is_readonly;
 
   initial begin
     $dumpfile("axil_slv.vcd");
@@ -29,11 +32,6 @@ module axil_slv_unit_test;
   clk_gen#(.FREQ( CLOCK_FREQUENCY )) u_clk_gen(.i_enable( 1'b1 ), .o_clk( tb_clk ));
   axi4_lite_if#(.DATA_WIDTH(AXI_DW), .ADDR_WIDTH(AXI_AW)) s_axi(.aclk(tb_clk ), .aresetn(tb_rstn));
 
-
-  clocking tb_cb @(posedge tb_clk);
-    default input #1step output #2;
-    output  tb_rstn          ;
-  endclocking
 
   //===================================
   // This is the UUT that we're
@@ -66,7 +64,7 @@ module axil_slv_unit_test;
     .s_axi_rready ( s_axi.rready  ),  // Read data ready
     .o_slv_regs   ( tb_o_slv_reg     ),  // Writable registers
     .i_slv_regs   ( tb_i_slv_reg     ),  // Read-only register values
-    .i_reg_is_readonly ( '0 )  // No read-only registers, this means all registers are writable. Adjust as needed for specific tests.
+    .i_reg_is_readonly ( tb_i_reg_is_readonly )
   );
 
   always_comb begin
@@ -74,6 +72,7 @@ module axil_slv_unit_test;
       tb_i_slv_reg[i] = tb_o_slv_reg[i];
     end
   end
+
   //===================================
   // Build
   //===================================
@@ -88,13 +87,15 @@ module axil_slv_unit_test;
   task setup();
     svunit_ut.setup();
 
+    tb_i_reg_is_readonly = '0;
+
     s_axi.reset();
 
-    @(s_axi.m_cb);
-    tb_rstn <= 1'b0; // aresetn is usually a simple signal in the if
-    repeat(5) @(s_axi.m_cb);
+    @(posedge tb_clk); #TSU;
+    tb_rstn <= 1'b0;
+    repeat(5) @(posedge tb_clk); #TSU;
     tb_rstn <= 1'b1;
-    repeat(5) @(tb_cb);
+    repeat(5) @(posedge tb_clk); #TSU;
 
   endtask
 
@@ -119,6 +120,7 @@ module axil_slv_unit_test;
   //     <test code>
   //   `SVTEST_END
   //===================================
+
 
   `SVUNIT_TESTS_BEGIN
   `include "tests.sv"

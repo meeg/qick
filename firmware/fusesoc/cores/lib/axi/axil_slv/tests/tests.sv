@@ -41,18 +41,15 @@
 `SVTEST(readonly_register_protection)
   logic [AXI_DW-1:0] read_data;
 
-  // Force the register 2 to be read-only from the testbench
-  force u_axil_slv.i_reg_is_readonly[2] = 1'b1;
+  tb_i_reg_is_readonly[2] = 1'b1;
 
-  // Try to overwrite Reg 2 (Offset 0x08)
   s_axi.axi_write(.addr(8'h08), .data(32'hDEAD_DEAD));
   s_axi.axi_read(.addr(8'h08), .data(read_data));
 
-  // The write should be ignored, preserving the previous value (0 in this case)
   `FAIL_IF(read_data === 32'hDEAD_DEAD);
   `FAIL_IF(read_data !== 32'h0);
 
-  release u_axil_slv.i_reg_is_readonly[2];
+  tb_i_reg_is_readonly[2] = 1'b0;
 `SVTEST_END
 
 `SVTEST(back_to_back_transactions)
