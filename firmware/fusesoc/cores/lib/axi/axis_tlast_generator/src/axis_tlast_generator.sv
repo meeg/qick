@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module axis_tlast_generator
 #(
     parameter integer unsigned          NB_PACKET_SIZE = 16
