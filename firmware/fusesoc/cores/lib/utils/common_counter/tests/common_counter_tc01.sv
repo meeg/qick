@@ -56,11 +56,6 @@ module common_counter_01_generator_unit_test;
     //===================================
     // Build
     //===================================
-    initial begin
-        $dumpfile("common_counter_test.vcd");
-        $dumpvars();
-    end
-
     function void build();
         svunit_ut = new(name);
     endfunction
