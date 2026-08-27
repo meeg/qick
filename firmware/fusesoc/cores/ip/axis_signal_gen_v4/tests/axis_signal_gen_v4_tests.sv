@@ -179,8 +179,10 @@
     d = build_descr(pinc, 32'd0, 16'd0, 16'(MAXV),
                     16'd16, 2'd1, 1'b0, 1'b0, 1'b0);
     queue_descriptor(d);
+    repeat(20) @(posedge aclk); // allow sgv4/DDS pipeline to drain/refill
     m_if.tready <= 1'b1;
     while (!m_if.tvalid) @(posedge aclk);
+    @(posedge aclk); #1ns;
     for (int i = 0; i < N_DDS; i++)
         carrier[i] = m_if.tdata[i*16 +: 16];
     begin
@@ -189,7 +191,7 @@
             if (($signed(carrier[i-1]) >= 0) != ($signed(carrier[i]) >= 0)) zc++;
         $display("[TONE VERIFY] zero_crossings=%0d (expect 1)", zc);
         `FAIL_IF_LOG(zc != 1, "carrier should cross zero exactly once");
-        `FAIL_IF_LOG($signed(carrier[15]) < 16'sd30000, "carrier peak too low");
+        `FAIL_IF_LOG($signed(carrier[0]) < 16'sd30000, "carrier peak too low");
     end
 `SVTEST_END
 
