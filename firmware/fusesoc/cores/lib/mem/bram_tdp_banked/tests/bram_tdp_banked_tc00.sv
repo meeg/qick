@@ -15,6 +15,7 @@ module bram_tdp_banked_unit_test;
     localparam real CLK_B_FREQ = 150e6;
     localparam int  MEM_AW      = 4;   // 16 words
     localparam int  MEM_DW      = 32;
+    localparam time TSU         = 1ns; // setup offset from clock edge (xsim-safe)
 
     logic clk_a = 1'b0;
     logic clk_b = 1'b0;
