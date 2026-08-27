@@ -19,6 +19,7 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - qick:common:sim_base
+      - qick:common:xilinx
 
   lint_files:
     depend:
@@ -55,10 +56,10 @@ targets:
     filesets_append: [tb]
     default_tool: xsim
     generate: [testrunner_gen]
-    toplevel: testrunner
+    toplevel: [testrunner, glbl]
     tools:
       xsim:
-        xelab_options: [-debug all -L XPM]
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
         xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
       icarus:
         iverilog_options:

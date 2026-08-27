@@ -12,6 +12,16 @@ filesets:
       - qick:cdc:cdc_gray_sync
       - qick:ip:axis_constant_iq_regmap
 
+  constraints:
+    files:
+      - constraints/axis_constant_iq.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/axis_constant_iq_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
   tb:
     files:
       - tests/axis_constant_iq_tc00.sv
@@ -39,18 +49,19 @@ targets:
     toplevel: axis_constant_iq
 
   lint:
-    filesets: [hdl, lint_files]
-    toplevel: axis_constant_iq
+    <<: *default
+    filesets_append: [lint_files]
     default_tool: veriblelint
+    toplevel: axis_constant_iq
     tools:
       verilator:
         mode: lint-only
         verilator_options: [-Wall]
 
-
   test:
+    <<: *default
     description: Simulate the design
-    filesets: [hdl, tb]
+    filesets_append: [tb]
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner
@@ -65,3 +76,18 @@ targets:
         vlog_options:
           - -timescale=1ns/1ns
 
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+    filesets_append:
+      - constraints
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam
