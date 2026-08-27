@@ -68,6 +68,7 @@
 
 
 `SVTEST(we_edge_detection_clear_and_trigger)
+    axis_if.s_cb.tready <= 1'b1;
     // 1. First shot (we write data and activate WE)
     s_axi.axi_write(REAL_REG, 32'hAAAA);
     s_axi.axi_write(IMAG_REG, 32'hBBBB);
@@ -92,5 +93,6 @@
 
     // Now the output should be updated to the new value (0xCCCC)
     `FAIL_UNLESS_EQUAL(axis_if.tdata[15:0], 16'hCCCC);
+    axis_if.s_cb.tready <= 1'b0;
     repeat(10) @(axis_cb);
 `SVTEST_END
