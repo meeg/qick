@@ -30,24 +30,24 @@ module axis_skid_buffer_unit_test;
 
   // Interface to drive the input signals
   axi4_stream_if#(
-    .N_BYTES_TDATA  ($ceil(NB_DATA/8.0)),
+    .TDATA_WIDTH   (NB_DATA),
     .HAS_TUSER      (1'b1),
     .HAS_TKEEP      (1'b1),
     .HAS_TSTRB      (1'b1)
   ) axis_input_if (
-    .i_clk          (tb_clk), 
-    .i_rstn         (tb_rstn)
+    .aclk          (tb_clk), 
+    .aresetn       (tb_rstn)
   );
 
   // Interface to monitor the output signals
   axi4_stream_if#(
-    .N_BYTES_TDATA  ($ceil(NB_DATA/8.0)),
+    .TDATA_WIDTH   (NB_DATA),
     .HAS_TUSER      (1'b1),
     .HAS_TKEEP      (1'b1),
     .HAS_TSTRB      (1'b1)
   ) axis_output_if (
-    .i_clk          (tb_clk), 
-    .i_rstn         (tb_rstn)
+    .aclk          (tb_clk), 
+    .aresetn       (tb_rstn)
   );
 
   // Clock generator

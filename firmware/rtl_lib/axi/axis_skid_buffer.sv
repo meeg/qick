@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module axis_skid_buffer#(
     parameter int NB_DATA = 0   // deprecated
 )(
@@ -8,7 +9,7 @@ module axis_skid_buffer#(
     axi4_stream_if.master   o_axis
 );
 
-    localparam int DW = i_axis.N_BYTES_TDATA * 8;
+    localparam int DW = i_axis.TDATA_WIDTH;
 
     // -----------------------------
     // Output register
@@ -16,9 +17,9 @@ module axis_skid_buffer#(
     logic out_valid;
     logic [DW-1:0] out_tdata;
     logic          out_tlast;
-    logic [i_axis.N_BITS_TUSER-1:0] out_tuser;
-    logic [i_axis.N_BYTES_TDATA-1:0] out_tkeep;
-    logic [i_axis.N_BYTES_TDATA-1:0] out_tstrb;
+    logic [i_axis.TUSER_WIDTH-1:0] out_tuser;
+    logic [(DW/8)-1:0] out_tkeep;
+    logic [(DW/8)-1:0] out_tstrb;
 
     // -----------------------------
     // Skid register
@@ -26,9 +27,9 @@ module axis_skid_buffer#(
     logic skid_valid;
     logic [DW-1:0] skid_tdata;
     logic          skid_tlast;
-    logic [i_axis.N_BITS_TUSER-1:0] skid_tuser;
-    logic [i_axis.N_BYTES_TDATA-1:0] skid_tkeep;
-    logic [i_axis.N_BYTES_TDATA-1:0] skid_tstrb;
+    logic [i_axis.TUSER_WIDTH-1:0] skid_tuser;
+    logic [(DW/8)-1:0] skid_tkeep;
+    logic [(DW/8)-1:0] skid_tstrb;
 
     // -----------------------------
     // Handshake
