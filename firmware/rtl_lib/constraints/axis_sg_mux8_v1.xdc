@@ -14,7 +14,7 @@
 # WE_REG is resynchronized into the aclk domain via cdc_bit_sync
 # (ASYNC_REG-tagged internal register) inside phase_ctrl_sgmux8, one
 # instance per output channel (8x) -- generic ASYNC_REG-based rule, matches
-# the upgraded (name-independent) approach used by axis_qick_processor.xdc.
+# the upgraded (name-independent) approach used by qick_processor.xdc.
 set_false_path -to [get_cells -hier -filter {ASYNC_REG == "TRUE"}]
 
 # PINC/POFF/GAIN are plain axil_slv registers (s_axi_aclk domain) read

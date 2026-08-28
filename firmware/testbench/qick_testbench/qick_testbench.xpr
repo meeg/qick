@@ -341,7 +341,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_qick_processor.sv">
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qick_processor.sv">
         <FileInfo>
           <Attr Name="Library" Val="lib_qick_processor"/>
           <Attr Name="UsedIn" Val="synthesis"/>

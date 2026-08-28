@@ -32,7 +32,7 @@ ip/qick_processor/src/axis_write.v
 ip/qick_processor/src/axis_read.v 
 ip/qick_processor/src/qproc_core.sv 
 ip/qick_processor/src/qproc_ctrl.sv 
-ip/qick_processor/src/axis_qick_processor.sv 
+ip/qick_processor/src/qick_processor.sv 
 ip/axis_signal_gen_v6/src/latency_reg.v 
 ip/axis_signal_gen_v6/src/signal_gen.v 
 ip/axis_signal_gen_v6/src/signal_gen_top.v 

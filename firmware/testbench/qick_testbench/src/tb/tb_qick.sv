@@ -348,7 +348,7 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m_axi_wvalid  (s_axi_tproc_wvalid  )
    );
 
-   axis_qick_processor # (
+   qick_processor # (
       .DUAL_CORE           (  `DUAL_CORE        ) ,
       .GEN_SYNC            (  `GEN_SYNC         ) ,
       .IO_CTRL             (  `IO_CTRL          ) ,
