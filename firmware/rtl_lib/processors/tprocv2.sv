@@ -42,7 +42,7 @@
 
 `include "tpv2_pkg.sv"
 
-module qick_processor #(
+module tprocv2 #(
     parameter int DEBUG         = 0,
     parameter int DUAL_CORE     = 0,
     parameter int LFSR          = 0,

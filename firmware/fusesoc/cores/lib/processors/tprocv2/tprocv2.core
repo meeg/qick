@@ -1,11 +1,11 @@
 CAPI=2:
-name: qick:processors:qick_processor:1.0.0
-description: qick_processor (processors library core).
+name: qick:processors:tprocv2:1.0.0
+description: tprocv2 (tProcessor v2 core).
 
 filesets:
   hdl:
     files:
-      - hdl/qick_processor.sv
+      - hdl/tprocv2.sv
     file_type: systemVerilogSource
     depend:
       - qick:pkg:tpv2_pkg
@@ -21,8 +21,8 @@ filesets:
       - qick:math:restoring_divider
   tb:
     files:
-      - tests/qick_processor_tc00.sv
-      - tests/qick_processor_tests.sv: {is_include_file: true}
+      - tests/tprocv2_tc00.sv
+      - tests/tprocv2_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:xilinx
@@ -36,17 +36,17 @@ generate:
     generator: svunit_gen
     parameters:
         test_files:
-          - tests/qick_processor_tc00.sv
+          - tests/tprocv2_tc00.sv
 
 targets:
   default: &default
     filesets: [hdl]
-    toplevel: qick_processor
+    toplevel: tprocv2
   lint:
     <<: *default
     filesets_append: [lint_files]
     default_tool: veriblelint
-    toplevel: qick_processor
+    toplevel: tprocv2
     tools:
       verilator:
         mode: lint-only

@@ -1,10 +1,10 @@
 // ============================================================================
-// File: qick_processor_tests.sv
-// Description: SVUnit test cases for qick_processor. Included by
-//              qick_processor_tc00.sv.
+// File: tprocv2_tests.sv
+// Description: SVUnit test cases for tprocv2. Included by
+//              tprocv2_tc00.sv.
 //
 // Register map (byte-addressed, matches qproc_axi_reg.sv's header; the
-// ADDR_* localparams live in qick_processor_tc00.sv, module scope).
+// ADDR_* localparams live in tprocv2_tc00.sv, module scope).
 // ============================================================================
 
 `SVTEST(tc_reset_idle)

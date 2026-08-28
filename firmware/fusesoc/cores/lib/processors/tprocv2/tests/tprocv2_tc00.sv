@@ -1,6 +1,6 @@
 // ============================================================================
-// File: qick_processor_tc00.sv
-// Description: SVUnit testbench top-level for qick_processor.
+// File: tprocv2_tc00.sv
+// Description: SVUnit testbench top-level for tprocv2.
 //
 // Single clock drives t_clk_i/c_clk_i/ps_clk_i (the CDC synchronizers still
 // add their fixed latency). DEBUG=3 unlocks the raw debug buses
@@ -10,10 +10,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module qick_processor_unit_test;
+module tprocv2_unit_test;
     import svunit_pkg::svunit_testcase;
 
-    string name = "qick_processor_ut";
+    string name = "tprocv2_ut";
     svunit_testcase svunit_ut;
 
     // =========================================================================
@@ -127,14 +127,14 @@ module qick_processor_unit_test;
     logic [31:0] tb_c_proc_do, tb_c_port_do, tb_c_core_do;
 
     initial begin
-        $dumpfile("qick_processor.vcd");
+        $dumpfile("tprocv2.vcd");
         $dumpvars();
     end
 
     // =========================================================================
     // DUT
     // =========================================================================
-    qick_processor #(
+    tprocv2 #(
         .DEBUG         (3),
         .DUAL_CORE     (0),
         .LFSR          (1),
@@ -210,7 +210,7 @@ module qick_processor_unit_test;
         .c_core_do     (tb_c_core_do)
     );
 
-    // core_st_ds is bits [2:0] of c_debug_do (see qick_processor.sv's
+    // core_st_ds is bits [2:0] of c_debug_do (see tprocv2.sv's
     // DEBUG_OUT block: c_debug_do[2:0] = core_st_ds).
     function automatic logic [2:0] core_st();
         return tb_c_debug_do[2:0];
@@ -268,7 +268,7 @@ module qick_processor_unit_test;
     // Test cases
     // =========================================================================
     `SVUNIT_TESTS_BEGIN
-    `include "qick_processor_tests.sv"
+    `include "tprocv2_tests.sv"
     `SVUNIT_TESTS_END
 
 endmodule
