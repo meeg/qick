@@ -1,9 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Fermi National Accelerator Laboratory
-// Module : axis_qick_processor
+// Module : qick_processor
 // Project: QICK
 ///////////////////////////////////////////////////////////////////////////////
-//! @file    axis_qick_processor.sv
+//! @file    qick_processor.sv
 //!
 //! @brief   Packaged-IP top level for the QICK tProcessor v2
 //!          (qick_processor): flattens its unpacked-array AXI-Stream/
@@ -25,7 +25,7 @@
 //! and edge-detected into one-shot pulses before reaching qick_processor
 //! (mirrors qproc_ctrl's own `PS_TPROC_CTRL` pulse-from-level handling).
 //!
-//! Ported from firmware/ip/qick_processor/src/axis_qick_processor.sv
+//! Ported from firmware/ip/qick_processor/src/qick_processor.sv
 //! (pinout and tie-offs unchanged). The legacy `TYPE_IF_AXI_REG` interface
 //! -> `axi4_lite_if` (matching qick_processor/qproc_axi_reg); the
 //! proc_start/stop synchronizer's first two stages -> `cdc_reg_sync`
@@ -43,7 +43,7 @@
 //!
 //! @version 1.0
 
-module axis_qick_processor #(
+module qick_processor #(
     parameter int DUAL_CORE     = 0, // 0=single core, 1=dual core
     parameter int GEN_SYNC      = 0, // Generate the pulse_sync_o output
     parameter int DEBUG         = 1, // 0=no debug, 1=AXI ctrl, 2=+registers, 3=+out signals
@@ -347,7 +347,7 @@ module axis_qick_processor #(
     assign proc_stop_t01  = proc_stop_sync  & ~proc_stop_r2;
 
 
-    qick_processor #(
+    tprocv2 #(
         .DEBUG         (DEBUG),
         .DUAL_CORE     (DUAL_CORE),
         .LFSR          (LFSR),

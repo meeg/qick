@@ -1,5 +1,5 @@
-// axis_qick_processor_regmap.rdl
-// SystemRDL register definition for the axis_qick_processor IP core
+// qick_processor_regmap.rdl
+// SystemRDL register definition for the qick_processor IP core
 // (QICK tProcessor v2).
 //
 // RTL decode is a hand-written custom AXI-Lite slave (qproc_axi_reg, built
@@ -7,8 +7,8 @@
 // self-clearing (one-shot pulse) write, which `peakrdl regblock` cannot
 // express cleanly. This RDL is used ONLY for the Python driver layer and
 // documentation -- do NOT generate RTL from it (no --hdl in rdl/Makefile).
-addrmap axis_qick_processor {
-    name = "axis_qick_processor (tProcessor v2) Registers";
+addrmap qick_processor {
+    name = "qick_processor (tProcessor v2) Registers";
     desc = "Control/status registers for the QICK tProcessor v2. Bulk
             PMEM/DMEM/WMEM access goes over a separate AXI-Stream DMA path
             (s_dma_axis_*/m_dma_axis_*), not through this register map.";

@@ -1,7 +1,7 @@
 // ============================================================================
-// File: axis_qick_processor_tests.sv
-// Description: SVUnit test cases for axis_qick_processor. Included by
-//              axis_qick_processor_tc00.sv.
+// File: qick_processor_tests.sv
+// Description: SVUnit test cases for qick_processor. Included by
+//              qick_processor_tc00.sv.
 // ============================================================================
 
 `SVTEST(tc_reset_idle)
@@ -47,7 +47,7 @@
 `SVTEST(tc_axi_start_reaches_run)
     bit reached;
     // TPROC_CTRL bit 2 = START; same integration path as qick_processor's
-    // own testbench, exercised here through axis_qick_processor's flat
+    // own testbench, exercised here through qick_processor's flat
     // AXI-Lite pins.
     s_axi.axi_write(ADDR_TPROC_CTRL, 32'h0000_0004);
     wait_for_core_st(C_RUN, reached);
@@ -56,7 +56,7 @@
 
 `SVTEST(tc_external_proc_start_pin_reaches_run)
     bit reached;
-    // Exercises axis_qick_processor's OWN addition: the external
+    // Exercises qick_processor's OWN addition: the external
     // proc_start_i level pin, synchronized (cdc_reg_sync) and edge-detected
     // into a one-shot pulse before reaching qick_processor. The pin only
     // takes effect once TPROC_CFG[10] selects the external start source

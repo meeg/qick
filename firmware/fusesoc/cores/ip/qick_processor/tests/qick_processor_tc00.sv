@@ -1,10 +1,10 @@
 // ============================================================================
-// File: axis_qick_processor_tc00.sv
-// Description: SVUnit testbench top-level for axis_qick_processor.
+// File: qick_processor_tc00.sv
+// Description: SVUnit testbench top-level for qick_processor.
 //
 // Drives the flat AXI-Lite pins through a locally-instantiated axi4_lite_if
 // (its axi_write/axi_read tasks), mirroring the interface<->pins wiring
-// axis_qick_processor.sv itself does internally. DEBUG=3 unlocks the raw
+// qick_processor.sv itself does internally. DEBUG=3 unlocks the raw
 // debug buses (c_debug_do) so qproc_ctrl's FSM state is observable.
 // Default parameters (IN_PORT_QTY=1, OUT_TRIG_QTY=2, OUT_DPORT_QTY=1,
 // OUT_WPORT_QTY=1) exercise the "most pins are unused/tied-off" path.
@@ -12,10 +12,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module axis_qick_processor_unit_test;
+module qick_processor_unit_test;
     import svunit_pkg::svunit_testcase;
 
-    string name = "axis_qick_processor_ut";
+    string name = "qick_processor_ut";
     svunit_testcase svunit_ut;
 
     // =========================================================================
@@ -119,14 +119,14 @@ module axis_qick_processor_unit_test;
     logic [31:0] tb_c_proc_do, tb_c_port_do, tb_c_core_do;
 
     initial begin
-        $dumpfile("axis_qick_processor.vcd");
+        $dumpfile("qick_processor.vcd");
         $dumpvars();
     end
 
     // =========================================================================
     // DUT
     // =========================================================================
-    axis_qick_processor #(
+    qick_processor #(
         .DUAL_CORE     (0),
         .GEN_SYNC      (0),
         .DEBUG         (3),
@@ -306,7 +306,7 @@ module axis_qick_processor_unit_test;
     // Test cases
     // =========================================================================
     `SVUNIT_TESTS_BEGIN
-    `include "axis_qick_processor_tests.sv"
+    `include "qick_processor_tests.sv"
     `SVUNIT_TESTS_END
 
 endmodule

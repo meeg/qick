@@ -1,1 +1,0 @@
-../../../../../rtl_lib/ip/axis_qick_processor.sv

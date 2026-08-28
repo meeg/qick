@@ -1,32 +1,32 @@
 CAPI=2:
-name: qick:ip:axis_qick_processor:1.0.0
-description: "QICK AXI4-Stream Timed Processor v2 (axis_qick_processor) IP core"
+name: qick:ip:qick_processor:1.0.0
+description: "QICK AXI4-Stream Timed Processor v2 (qick_processor) IP core"
 
 filesets:
   hdl:
     files:
-      - hdl/axis_qick_processor.sv
+      - hdl/qick_processor.sv
     file_type: systemVerilogSource
     depend:
-      - qick:ip:axis_qick_processor_regmap
+      - qick:ip:qick_processor_regmap
       - qick:interfaces:axi4_lite_if
       - qick:cdc:cdc_reg_sync
-      - qick:processors:qick_processor
+      - qick:processors:tprocv2
 
   constraints:
     files:
-      - constraints/axis_qick_processor.xdc: {file_type: xdc}
+      - constraints/qick_processor.xdc: {file_type: xdc}
     file_type: xdc
 
   constraints_ooc:
     files:
-      - constraints/axis_qick_processor_ooc.xdc: {file_type: xdc}
+      - constraints/qick_processor_ooc.xdc: {file_type: xdc}
     file_type: xdc
 
   tb:
     files:
-      - tests/axis_qick_processor_tc00.sv
-      - tests/axis_qick_processor_tests.sv: {is_include_file: true}
+      - tests/qick_processor_tc00.sv
+      - tests/qick_processor_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:xilinx
@@ -42,16 +42,16 @@ generate:
     generator: svunit_gen
     parameters:
         test_files:
-          - tests/axis_qick_processor_tc00.sv
+          - tests/qick_processor_tc00.sv
 
 targets:
   default: &default
     filesets: [hdl]
-    toplevel: axis_qick_processor
+    toplevel: qick_processor
 
   lint:
     filesets: [hdl, lint_files]
-    toplevel: axis_qick_processor
+    toplevel: qick_processor
     default_tool: veriblelint
     tools:
       verilator:

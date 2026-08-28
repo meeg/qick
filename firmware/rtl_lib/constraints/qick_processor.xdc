@@ -1,5 +1,5 @@
 #---------------------------------------------------------------------------
-# axis_qick_processor False Paths
+# qick_processor False Paths
 #---------------------------------------------------------------------------
 # Ported from firmware/ip/qick_processor/src/qick_processor.xdc. The legacy
 # file targeted literal hierarchy paths (e.g. */QPROC/QPROC_CTRL/...) that
@@ -7,7 +7,7 @@
 # were renamed -- e.g. QPROC_CTRL -> qproc_ctrl_i, CORE_0 -> core_0_i,
 # CORE_CPU -> core_cpu_i, AXI_DB -> gen_axi_db). Each rule below was
 # re-derived by tracing the (unchanged) internal *signal* names through the
-# new (renamed) *instance* hierarchy under axis_qick_processor's qproc_i.
+# new (renamed) *instance* hierarchy under qick_processor's qproc_i.
 #
 # IMPORTANT: this file has NOT been validated against an actual synthesized
 # netlist (this port has no Vivado synthesis run available) -- before
