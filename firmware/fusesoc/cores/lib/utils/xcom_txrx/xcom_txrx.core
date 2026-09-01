@@ -72,7 +72,7 @@ targets:
 
   test_alone:
     <<: *default
-    description: Simulate the design
+    description: Simulate the design (test_alone)
     filesets_append: [tb_alone]
     default_tool: xsim
     generate: [testrunner_gen]
@@ -90,7 +90,7 @@ targets:
 
   test_cmd:
     <<: *default
-    description: Simulate the design
+    description: Simulate the design (test_cmd)
     filesets_append: [tb_cmd]
     default_tool: xsim
     generate: [testrunner_gen]
@@ -105,6 +105,20 @@ targets:
       modelsim:
         vlog_options:
           - -timescale=1ns/1ns
+
+  # Default test target for `make sim`. Alias of test_alone (basic xcom_link_tx
+  # direct driving). Use test_cmd for the xcom_cmd-driven integration tests.
+  test:
+    <<: *default
+    description: Simulate the design (alias of test_alone)
+    filesets_append: [tb_alone]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: [testrunner, glbl]
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
 
   # The "synth" target synthesizes the design. (It could have any name.)
   synth:
