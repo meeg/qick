@@ -158,6 +158,57 @@ if {[ipx::get_bus_interfaces s_axi -of_objects $core -quiet] ne ""} {
     }
 }
 
+# NOTE: this block was implemented in c9993aff (#106) and silently removed by
+# deec5846 "Update packager files" (2026-08-21), which left the three-step
+# comment above describing behaviour that no longer existed. Without it
+# ipx::infer_bus_interfaces leaves aclk claiming every interface, so a core
+# with a separate envelope or AXI-Lite clock gets FREQ_HZ/CLK_DOMAIN
+# mismatches in any block design that clocks those ports independently --
+# and "Bus interface is found to be associated with multiple clock-pins".
+# remaining_stream_ifs above is only meaningful because of this block; if it
+# ever looks unused again, the block has been dropped a second time.
+
+# 1. Apply explicit clock_domains from .clock_domains.yaml (if any)
+{% if clock_domains %}
+{% for domain in clock_domains %}
+_qick_set_assoc $core {{ domain.name }} \
+    [list {{ domain.interfaces | join(" ") }}] \
+    {{ domain.reset }}
+{% for iface in domain.interfaces %}
+set idx [lsearch -exact $remaining_stream_ifs {{ iface }}]
+if {$idx >= 0} {
+    set remaining_stream_ifs [lreplace $remaining_stream_ifs $idx $idx]
+}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+# 2. Apply naming convention to remaining interfaces
+set s0_axis_ifs {}
+set m0_axis_ifs {}
+set other_axis_ifs {}
+
+foreach name $remaining_stream_ifs {
+    if {[string match "s0_axis*" $name]} {
+        lappend s0_axis_ifs $name
+    } elseif {[string match "m0_axis*" $name]} {
+        lappend m0_axis_ifs $name
+    } else {
+        lappend other_axis_ifs $name
+    }
+}
+
+# 3. Associate each group to its clock domain
+if {[llength $s0_axis_ifs] > 0} {
+    _qick_set_assoc $core s0_axis_aclk $s0_axis_ifs s0_axis_aresetn
+}
+if {[llength $m0_axis_ifs] > 0} {
+    _qick_set_assoc $core m0_axis_aclk $m0_axis_ifs m0_axis_aresetn
+}
+if {[llength $other_axis_ifs] > 0} {
+    _qick_set_assoc $core aclk $other_axis_ifs aresetn
+}
+
 # ── Add XCI sub-IPs ──────────────────────────────────────────
 {% for xci in xci_files | default([]) %}
 set xci_file [ipx::add_file ${src_dir}/{{ xci }} \
