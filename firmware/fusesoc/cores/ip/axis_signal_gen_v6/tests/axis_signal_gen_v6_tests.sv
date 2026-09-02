@@ -119,6 +119,77 @@
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
+// TEST 04b: Frequency with a pinc that is NOT beat-aligned.
+//
+// Every pinc in tc_frequency_sweep_exact is a multiple of 2^28 = 2^32/N_DDS,
+// so the phase advances a whole number of turns per beat and every output
+// frame is identical. Those tests therefore cannot see whether the phase
+// accumulator carries N_DDS*pinc from one beat to the next: a design that
+// restarted it every frame, or that only produced frequencies modulo the
+// beat rate (fs/N_DDS), would pass them all.
+//
+// Checking absolute phase here does not work -- the first frame out of the
+// pipeline is not sample 0, and the offset is not a documented constant. So
+// this uses the second-order recurrence a sampled cosine obeys,
+//
+//     x[n-1] + x[n+1] = 2*cos(2*pi*pinc/2^32) * x[n]
+//
+// which holds for any starting phase and any amplitude. That makes it immune
+// to pipeline latency and to gain scaling, and it is checked straight across
+// the frame boundaries -- exactly where a missing beat-to-beat carry breaks
+// it while every within-frame check still passes.
+// ----------------------------------------------------------------------------
+`SVTEST(tc_frequency_unaligned_across_beats)
+    logic [15:0]        re [], im [];
+    logic signed [15:0] frames [][N_DDS];
+    logic [159:0]       d;
+    logic [31:0]        pinc = 32'h0AAA_AAAB;   // 2^32/24, not beat-aligned
+    int                 nframes = 4;
+    int                 nsm;
+    real                k, lhs, rhs, tol;
+    int                 x [];
+    bit                 all_same;
+
+    const_envelope(N_DDS, 16'h0000, re, im);
+    load_envelope(N_DDS, re, im);
+
+    // nsamp has to outlast the frames we capture: the counter decrements
+    // once per aclk and returns at 2.
+    d = build_descr(pinc, 32'd0, 16'd0, 16'(MAXV),
+                    16'd64, 2'd1, 1'b0, 1'b0, 1'b0);
+    queue_descriptor(d);
+    capture_frames(frames, nframes);
+
+    // Reported separately and first: identical frames mean the accumulator
+    // never advances, which is a different fault from a wrong advance and is
+    // much easier to read as one line than as sixty failing samples.
+    all_same = 1;
+    for (int r = 1; r < nframes; r++)
+        for (int i = 0; i < N_DDS; i++)
+            if (frames[r][i] !== frames[0][i]) all_same = 0;
+    `FAIL_IF_LOG(all_same,
+        "tc_frequency_unaligned_across_beats: every frame identical -- the phase accumulator is not carrying across beats, so the output frequency is only defined modulo the beat rate")
+
+    // Flatten to one sample stream so the recurrence crosses frame edges.
+    nsm = nframes * N_DDS;
+    x = new[nsm];
+    for (int r = 0; r < nframes; r++)
+        for (int i = 0; i < N_DDS; i++)
+            x[r*N_DDS + i] = int'(frames[r][i]);
+
+    k   = 2.0 * $cos(2.0 * PI * real'(pinc) / (2.0 ** 32));
+    tol = 4.0 * real'(LANE_TOL);   // three terms, each quantised
+
+    for (int n = 1; n < nsm - 1; n++) begin
+        lhs = real'(x[n-1]) + real'(x[n+1]);
+        rhs = k * real'(x[n]);
+        `FAIL_IF_LOG(((lhs - rhs) > tol) || ((rhs - lhs) > tol),
+            $sformatf("tc_frequency_unaligned_across_beats: recurrence broken at sample %0d (frame %0d lane %0d): x[n-1]+x[n+1]=%0.1f, 2cos(w)x[n]=%0.1f",
+                      n, n/N_DDS, n%N_DDS, lhs, rhs));
+    end
+`SVTEST_END
+
+// ----------------------------------------------------------------------------
 // TEST 05: Modulated pulse - constant envelope * carrier, beat-aligned pinc.
 // ----------------------------------------------------------------------------
 `SVTEST(tc_modulated_pulse_all_lanes)
