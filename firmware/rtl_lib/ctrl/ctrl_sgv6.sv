@@ -262,7 +262,22 @@ module ctrl_sgv6 #(
             cnt_n <= '0;
          else
             cnt_n <= cnt_n + N_DDS;
-         cnt_n_reg <= cnt_n;
+
+         // cnt_n_reg is a SNAPSHOT of cnt_n taken when the pulse starts, not
+         // a copy of it every cycle. phase_0 = pinc*cnt_n_reg + phase is the
+         // pulse's start phase and must stay CONSTANT for the whole pulse:
+         // the running phase comes from the DDS Compiler, which accumulates
+         // pinc_n = pinc*N_DDS itself (Phase_Increment=Streaming in
+         // dds_compiler_signal_gen.xci) and adds these high bits as a fixed
+         // offset.
+         //
+         // Without this guard cnt_n_reg follows cnt_n, phase_0 accumulates
+         // too, and the phase is advanced twice -- exactly double frequency,
+         // with beat-rate images from the two accumulations being pipelined
+         // differently. Measured on a VRK160: every requested frequency came
+         // out at 2*f, modulo the 491.52 MHz beat rate.
+         if (sync_reg_r1 == 1'b1)
+            cnt_n_reg <= cnt_n;
 
          // Pinc / phase / sync pipelines.
          pinc_r1     <= pinc_int;
