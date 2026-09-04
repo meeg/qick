@@ -205,11 +205,11 @@
             cos_seen = dut.dds_dout[0][15:0];
             sin_seen = dut.dds_dout[0][31:16];
             // allow the pipeline to reflect this phase
-            if (sin_seen === -16'sd32767) got_90 = 1'b1;
+            if (sin_seen === 16'sd32767) got_90 = 1'b1;
         end
     end
     $display("[DDS CARRIER] at 90deg: cos=%0d sin=%0d", $signed(cos_seen), $signed(sin_seen));
-    `FAIL_IF_LOG(!got_90, "DDS did not produce sin=-full-scale at 90deg phase");
+    `FAIL_IF_LOG(!got_90, "DDS did not produce sin=full-scale at 90deg phase");
 `SVTEST_END
 
 // ----------------------------------------------------------------------------
