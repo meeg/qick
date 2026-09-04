@@ -76,7 +76,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     piece of the legacy `firmware/ip/qick_processor/src/` tree now has an
     `rtl_lib/` + fusesoc equivalent. SVUnit drives it through the PS-side
     memory port (load a program into PMEM, run it, read the DMEM result
-    back), the same integration loop `axis_qick_processor` will need.
+    back), the same integration loop `qick_processor` will need.
   - **qick_processor** (`qick:processors:qick_processor`): the full tprocv2
     composition -- AXI-Lite registers (`qproc_axi_reg`), start/stop/time
     FSMs (`qproc_ctrl`), one or two `qproc_core` CPUs (`DUAL_CORE`), bulk
@@ -96,73 +96,72 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     `qproc_dispatcher` FIFOs: an AXI write to TPROC_CTRL's START bit rides
     the actual FIFO wr_rst_busy handshake through to `core_st_ds == C_RUN`.
   - Note: `qick:processors:qick_processor` and the pre-existing, broken
-    `qick:ip:qick_processor:2.0.0` share the short IP name `qick_processor`
-    -- `fusesoc ... run --target <t> qick_processor` is now ambiguous; use
-    the full VLNV (`qick:processors:qick_processor`) until the legacy `ip/`
-    core is retired in favor of the eventual `axis_qick_processor` package.
-  - **axis_qick_processor** (`qick:ip:axis_qick_processor`): the packaged
-    IP -- flattens `qick_processor`'s unpacked-array AXI-Stream/trigger/
-    data-port interfaces into fixed, individually-named pins (s0..s15_axis,
-    m0..m15_axis, trig_0..31_o, port_0..3_dt_o, qnet/qcom/qp1/qp2 dt1/dt2
-    pairs) for Vivado's IP packager, following the `axis_tprocv1` packaging
-    pattern. Faithful port of `axis_qick_processor.sv`; the legacy
-    `TYPE_IF_AXI_REG` interface -> `axi4_lite_if`; `proc_start_i`/
-    `proc_stop_i`'s hand-rolled synchronizer -> `cdc_reg_sync` for its first
-    two (CDC) stages. This closes the full tprocv2 port: every file under
-    the legacy `firmware/ip/qick_processor/src/` tree now has an
-    `rtl_lib/` + fusesoc equivalent. 7/7 SVUnit tests, lint clean, including
-    the external `proc_start_i` pin path (gated by TPROC_CFG[10], the same
-    external-start-source bit the production driver's `start_src('external')`
-    sets).
+    `qick:ip:qick_processor:2.0.0` shared the short IP name `qick_processor`
+    -- `fusesoc ... run --target <t> qick_processor` was ambiguous. The plan
+    at the time was to keep this composition under the `qick:processors:`
+    library namespace and name the eventual packaged IP `axis_qick_processor`
+    (matching the `tprocv1`/`axis_tprocv1` inner/outer split), to avoid a
+    second collision once that packaged IP existed too.
+  - **Update:** that inner/outer split turned out to be unnecessary. The
+    `qick:processors:qick_processor` composition above was renamed to
+    `qick:processors:tprocv2` (`firmware/fusesoc/cores/lib/processors/
+    tprocv2/`, top-level `hdl/tprocv2.sv`), which freed the short name
+    `qick_processor` for the packaged IP -- so no `axis_` prefix was ever
+    needed. The paragraphs below describe that packaged IP.
+  - **qick_processor** (`qick:ip:qick_processor:1.0.0`,
+    `firmware/fusesoc/cores/ip/qick_processor/`): the packaged IP -- wraps
+    `qick:processors:tprocv2` (`hdl/qick_processor.sv`, faithful port of the
+    legacy `firmware/ip/qick_processor/src/tprocv2.sv`) behind
+    `qick:ip:qick_processor_regmap` (AXI-Lite) and the usual CDC/interface
+    dependencies (`qick:interfaces:axi4_lite_if`, `qick:cdc:cdc_reg_sync`).
+    This closes the full tprocv2 port: every file under the legacy
+    `firmware/ip/qick_processor/src/` tree now has an `rtl_lib/` + fusesoc
+    equivalent.
   - **Driver**: `Axis_QICK_Proc` (`qick_lib/qick/drivers/tproc.py`) is the
     existing, full-featured production driver for tprocv2 (already correct
-    for the ported register map) -- extended its `bindto` with
-    `qick:ip:axis_qick_processor:1.0` so it loads for the new fusesoc VLNV
-    too. `cores/ip/axis_qick_processor/driver/axis_qick_processor.py` is a
-    symlink to it (single source of truth), matching Style A ("manual
-    driver") from docs/DRIVER.md. Restored 5 parameters the initial pass
-    had dropped as dead code (`QNET`/`QCOM`/`CUSTOM_PERIPH`/`IO_CTRL`/
-    `CALL_DEPTH`): they are inert in the RTL, but the driver reads them via
-    Vivado's IP parameter metadata for its `cfg`/`__str__` reporting --
-    `CALL_DEPTH` unconditionally, so dropping it would have KeyError'd at
-    driver load time. `TIME_CTRL`/`CORE_CTRL`/`OUT_TIME` stayed dropped
-    (neither the RTL body nor the driver reference them).
-  - **RDL**: `cores/ip/axis_qick_processor/rdl/axis_qick_processor_regmap.rdl`
+    for the ported register map). Its `bindto` still only lists the legacy
+    Vivado-packaged VLNVs (`Fermi:user:qick_processor:2.0`,
+    `QICK:QICK:qick_processor:2.0`) -- extending it with
+    `qick:ip:qick_processor:1.0` so it also loads for the new fusesoc VLNV
+    is still outstanding, not done. `cores/ip/qick_processor/driver/
+    axis_qick_processor.py` is a symlink to the driver (single source of
+    truth, matching Style A ("manual driver") from docs/DRIVER.md) --
+    **still carries the old `axis_` filename** and should be renamed to
+    `qick_processor.py` to match the RDL/constraints below.
+  - **RDL**: `cores/ip/qick_processor/rdl/qick_processor_regmap.rdl`
     documents the full TPROC_CTRL/CFG/MEM_*/CORE_CFG/READ_SEL/status
     register map (strategy 2, driver/docs only -- no `--hdl`, since
     `qproc_axi_reg`'s `axil_slv`-based decode already handles TPROC_CTRL's
     whole-word self-clear that `peakrdl regblock` can't express).
-  - **Constraints**: `constraints/axis_qick_processor.xdc`/`_ooc.xdc`
-    adapted from the legacy `qick_processor.xdc`/`_ooc.xdc`. The OOC clocks
-    file ported directly (unchanged). The false-paths file's hierarchy-
-    literal rules were re-derived against the new (renamed) instance
-    hierarchy by tracing each legacy-preserved *signal* name; the generic
-    CDC rule was upgraded from a name-pattern match (`*_cdc_reg*`, which
-    would NOT have matched `cdc_bit_sync`'s actual `sync_r` register) to an
+  - **Constraints**: `constraints/qick_processor.xdc`/`_ooc.xdc` adapted
+    from the legacy `qick_processor.xdc`/`_ooc.xdc`. The OOC clocks file
+    ported directly (unchanged). The false-paths file's hierarchy-literal
+    rules were re-derived against the new (renamed) instance hierarchy by
+    tracing each legacy-preserved *signal* name; the generic CDC rule was
+    upgraded from a name-pattern match (`*_cdc_reg*`, which would NOT have
+    matched `cdc_bit_sync`'s actual `sync_r` register) to an
     `ASYNC_REG`-property-based match, which is robust to future renaming.
     NOT validated against an actual synthesized netlist (no Vivado
     synthesis run available in this port) -- the file's header flags two
     lower-confidence rules and instructs verifying every `get_cells`
     pattern resolves before relying on it in production.
-  - Remaining follow-up (not blocking): a `driver/tests/` PeakRDL
-    register-layer pytest suite for `axis_qick_processor` (DRIVER.md
-    documents the RDL as optional-but-useful for this even with a Style A
-    manual driver); retiring the broken `qick:ip:qick_processor:2.0.0`
-    leftover now that a real replacement exists.
+  - Remaining follow-up (not blocking): extend the driver `bindto` (see
+    above); rename the `driver/axis_qick_processor.py` symlink; a
+    `driver/tests/` PeakRDL register-layer pytest suite for
+    `qick_processor` (DRIVER.md documents the RDL as optional-but-useful
+    for this even with a Style A manual driver); retiring the broken
+    `qick:ip:qick_processor:2.0.0` leftover now that a real replacement
+    exists.
   - **Naming/backward-compat note**: the legacy Vivado-packaged component
     is identified as `QICK:QICK:qick_processor:2.0` (component name
     "qick_processor", cell name `qick_processor_0`) and is hard-coded into
     several HOG block-design scripts (`firmware/Top/{111,4x2,216}/tpv2_*/
-    bd_2023-1.tcl`). The fusesoc core stays named `axis_qick_processor`
-    (matching the `tprocv1`/`axis_tprocv1` inner/outer naming split -- the
-    inner bare-processor lib core is separately `qick:processors:
-    qick_processor`, so renaming the outer IP to the same short name would
-    reintroduce the ambiguous-short-name problem). Backward compatibility
-    with those scripts is a **packaging-time** concern: when `make package
-    IP=axis_qick_processor` is eventually run, pass `--ip-name
-    qick_processor` (vendor/library `QICK`/`QICK`, version `2.0`) to
-    reproduce the exact VLNV the HOG scripts expect, per the technique
-    DRIVER.md already documents for this scenario.
+    bd_2023-1.tcl`). Backward compatibility with those scripts is a
+    **packaging-time** concern: when `make package IP=qick_processor` is
+    eventually run, pass `--ip-name qick_processor` (vendor/library
+    `QICK`/`QICK`, version `2.0`) to reproduce the exact VLNV the HOG
+    scripts expect, per the technique DRIVER.md already documents for this
+    scenario.
 - **axis_sg_mux8_v1 bottom-up port** (mux8 signal generator, first of the
   4 signal-generator IPs the user asked to keep): faithful ports of
   `firmware/ip/axis_sg_mux8_v1/src/` into `rtl_lib/` + fusesoc lib cores,
@@ -231,7 +230,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     `set_false_path -to [all_outputs]`, not suitable for a real AXI-Lite
     IP boundary). Re-derived for the two-clock (`s_axi_aclk`/`aclk`)
     boundary: `ASYNC_REG`-based CDC rule for the 8x `cdc_bit_sync`
-    instances (same pattern as `axis_qick_processor.xdc`), plus a
+    instances (same pattern as `qick_processor.xdc`), plus a
     false-path rule for the un-synchronized PINC/POFF multi-bit crossing
     (inherited quasi-static CDC from the legacy design -- software holds
     the value stable across the WE_REG pulse, not a defect introduced by
