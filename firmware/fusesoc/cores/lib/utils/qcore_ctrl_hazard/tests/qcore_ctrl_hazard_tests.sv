@@ -120,6 +120,19 @@
     `FAIL_UNLESS(tb_bubble_rd_o);
 `SVTEST_END
 
+// Regression for openquantumhardware/qick#359: PA/PB hangs when s6/s7 are
+// used as A/B source registers. The stall above must also fire when the
+// same core_r_dt read reaches the hazard unit through rs_a_addr_i (PA/PB's
+// DATA_A/DATA_B, or ARITH's RsA/RsB) instead of rs_d_addr_i -- without a
+// stall here, the instruction reads stale/racing core_r_dt data instead of
+// the peripheral result it just requested, which is what produced the hang.
+`SVTEST(tc_core_rdt_read_via_aport_after_peripheral_stalls_rd)
+    tb_rs_a_addr_i[0] = 6'b00_0111; // core_r_dt (address 6 or 7), s7 this time
+    tb_x1_periph_use  = 1'b1;
+    #1;
+    `FAIL_UNLESS(tb_bubble_rd_o);
+`SVTEST_END
+
 `SVTEST(tc_port_read_after_dport_rd_stalls_rd)
     tb_rs_d_addr_i[0] = 7'b000_1000; // in_port (address 8 or 9)
     tb_rd_reg_i = '{we: 1'b0, r_wave_we: 1'b0, addr: 7'd0, src: 2'b00, port_re: 1'b1};

@@ -116,16 +116,24 @@ module qcore_ctrl_hazard (
     logic [31:0] reg_a_nxt [2];
 
     logic [1:0] rfrom_rand_r, rfrom_core_r, rfrom_port_r, rfrom_status_r, rfrom_stime_r;
+    // Same classification, but for the address-section sources (rs_a_addr_i).
+    // Without these, reading s1/s6/s7/s8/s9/s10/s11 through the A/B operand
+    // slots (e.g. PA/PB's DATA_A/DATA_B, or ARITH's RsA/RsB) missed the
+    // corresponding stall below -- see qick_internal#issue-359 upstream
+    // (openquantumhardware/qick#359): using s6/s7 as a PA/PB source register
+    // hung the core because the read-after-peripheral-write hazard was only
+    // ever checked on the D-section sources.
+    logic [1:0] afrom_rand_r, afrom_core_r, afrom_port_r, afrom_status_r, afrom_stime_r;
 
     logic rfrom_rand, rfrom_core_rdt, rfrom_port, rfrom_status, rfrom_stime;
     logic port_re;
     logic wto_r_wave, wto_wreg, wto_qp, wto_s_cfg, wto_s_addr, wto_s_rand;
 
-    assign rfrom_rand     = |rfrom_rand_r;   // READ FROM S_RAND (s1)
-    assign rfrom_core_rdt = |rfrom_core_r;   // READ FROM CORE_R_DT (s6, s7)
-    assign rfrom_port     = |rfrom_port_r;   // READ FROM IN_PORT (s8, s9)
-    assign rfrom_status   = |rfrom_status_r; // READ FROM STATUS (s10)
-    assign rfrom_stime    = |rfrom_stime_r;  // READ FROM TIME_USR (s11)
+    assign rfrom_rand     = (|rfrom_rand_r)   | (|afrom_rand_r);   // READ FROM S_RAND (s1)
+    assign rfrom_core_rdt = (|rfrom_core_r)   | (|afrom_core_r);   // READ FROM CORE_R_DT (s6, s7)
+    assign rfrom_port     = (|rfrom_port_r)   | (|afrom_port_r);   // READ FROM IN_PORT (s8, s9)
+    assign rfrom_status   = (|rfrom_status_r) | (|afrom_status_r); // READ FROM STATUS (s10)
+    assign rfrom_stime    = (|rfrom_stime_r)  | (|afrom_stime_r);  // READ FROM TIME_USR (s11)
     assign port_re = rd_reg_i.port_re | x1_reg_i.port_re | x2_reg_i.port_re; // PORT READ COMMAND
 
     // WREG IS BEING UPDATED
@@ -183,6 +191,17 @@ module qcore_ctrl_hazard (
     end
 
     for (genvar ind_a = 0; ind_a < 2; ind_a++) begin : gen_fwd_a
+        // Check for read (mirrors gen_fwd_d's classification above, but for
+        // the narrower 6-bit address-section source; s1/s6-s11 all fit
+        // within 6 bits so the same address constants apply, just without
+        // the always-0 top bit of the 7-bit rs_d_addr_i field).
+        always_comb begin
+            afrom_rand_r[ind_a]   = (rs_a_addr_i[ind_a][5:0] == 6'b00_0001); // sfr(s1)
+            afrom_status_r[ind_a] = (rs_a_addr_i[ind_a][5:0] == 6'b00_1010); // sfr(s10)
+            afrom_stime_r[ind_a]  = (rs_a_addr_i[ind_a][5:0] == 6'b00_1011); // sfr(s11)
+            afrom_core_r[ind_a]   = (rs_a_addr_i[ind_a][5:1] == 5'b0_0011);  // sfr, address 6 or 7
+            afrom_port_r[ind_a]   = (rs_a_addr_i[ind_a][5:1] == 5'b0_0100);  // sfr, address 8 or 9
+        end
         // 1-ADDRESS) REG_WR from address register after REG_WR to register
         always_comb begin
             reg_a_nxt[ind_a]  = rs_a_dt_i[ind_a];
