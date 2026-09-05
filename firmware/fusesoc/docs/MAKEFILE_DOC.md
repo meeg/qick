@@ -3,8 +3,8 @@
 Complete reference for the `firmware/fusesoc/Makefile`. Every target, the
 variables it consumes, and the gotchas learned in practice.
 
-All targets are run from `firmware/fusesoc/`. Most activate `venv/` internally,
-but for interactive work do `source venv/bin/activate` first.
+All targets are run from `firmware/fusesoc/`. Most activate the shared `../../.venv/` internally,
+but for interactive work do `source ../../.venv/bin/activate` first.
 
 ## Variables
 
@@ -26,7 +26,7 @@ NOTE: the SVUnit helper `get_core_name.py` historically used only
 ## Environment
 
 ### `make setup_environment`
-Run once after cloning. Does: `git submodule init/update`, builds `venv/`
+Run once after cloning. Does: `git submodule init/update`, builds the shared `../../.venv/`
 (`build_virtualenv.sh`), the FuseSoC env (`build_fusesocenv.sh`), and the
 symlinks (`create_symlinks.sh`). Clones the SVUnit library on first sim.
 
@@ -169,7 +169,7 @@ Generates the packaging TCL without running Vivado (inspection / debug).
 ### `make clean`
 `rm -rf build report_pytest vivado* .Xil .fusesoc_libraries`.
 NOTE: this also deletes the cloned `.fusesoc_libraries/svunit_lib`, so the next
-`sim_svunit` re-clones SVUnit (slower first run). It does NOT touch `venv/` or
+`sim_svunit` re-clones SVUnit (slower first run). It does NOT touch `../../.venv/` or
 the source symlinks.
 
 ---

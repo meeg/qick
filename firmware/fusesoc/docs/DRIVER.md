@@ -95,7 +95,7 @@ Install PeakRDL and its plugins:
 
 ```bash
 cd firmware/fusesoc
-source venv/bin/activate
+source ../../.venv/bin/activate
 pip install peakrdl-regblock
 pip install peakrdl-python
 pip install peakrdl-html
@@ -122,7 +122,7 @@ class names and import paths below match that version; other versions may differ
 
 ```bash
 cd firmware/fusesoc
-source venv/bin/activate
+source ../../.venv/bin/activate
 
 # Generate the driver layer (RDL -> Python package + QICK symlink + reg tests)
 make driver IP=axis_constant_iq

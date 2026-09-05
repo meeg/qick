@@ -91,8 +91,9 @@ cd firmware/fusesoc
 make setup_environment
 ```
 
-This creates the Python virtual environment in `venv/`, sets up symlinks, and
-clones the SVUnit library.
+This creates the shared Python virtual environment at `qick_internal/.venv`
+(also used to build the Sphinx docs), sets up symlinks, and clones the SVUnit
+library.
 
 ---
 
@@ -102,7 +103,7 @@ Activate the virtual environment:
 
 ```bash
 cd firmware/fusesoc
-source venv/bin/activate
+source ../../.venv/bin/activate
 ```
 
 ### Simulate a core
@@ -145,7 +146,7 @@ make clean
 ```
 
 > `make clean` also removes `.fusesoc_libraries/`, so the next `sim_svunit`
-> re-clones the SVUnit library (slower first run). It does not touch `venv/` or
+> re-clones the SVUnit library (slower first run). It does not touch `../../.venv/` or
 > the source symlinks.
 
 ---

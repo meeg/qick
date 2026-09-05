@@ -3,7 +3,9 @@
 # ============================================================================
 #
 # Central entry point for the QICK FuseSoC environment. All targets run from
-# firmware/fusesoc/ and activate venv/ internally (no need to `source` it first).
+# firmware/fusesoc/ and activate the shared project venv (../../.venv/, i.e.
+# qick_internal/.venv) internally (no need to `source` it first). This same
+# venv is also used to build the Sphinx docs (docs/requirements.txt).
 #
 # QUICK REFERENCE
 #   Setup:
@@ -45,6 +47,8 @@
 #     that needs it (joined with '\'), because each recipe line is a new shell.
 #   * Sub-makes into cores/ip/<ip>/rdl/ (gen, driver, rdl-docs) MUST activate the
 #     venv first, or python3 uses the system interpreter and systemrdl is missing.
+#   * The venv lives at qick_internal/.venv (shared with the docs build), not
+#     under firmware/fusesoc/ — that's why every activation is '../../.venv/...'.
 #   * Use '$$VAR' (double $) for shell vars inside recipes; single $ is Make's.
 # ============================================================================
 
@@ -127,10 +131,11 @@ help:
 # ----------------------------------------------------------------------------
 # Environment Setup
 # ----------------------------------------------------------------------------
-# One-time setup after cloning: init submodules, build the Python venv (installs
-# pyproject.toml deps incl. systemrdl-compiler / peakrdl-*), build the FuseSoC
-# env, and create source symlinks. Run this before any other target on a fresh
-# checkout (e.g. on a new machine).
+# One-time setup after cloning: init submodules, build the shared project venv
+# at qick_internal/.venv (installs pyproject.toml deps incl. systemrdl-compiler
+# / peakrdl-*, plus docs/requirements.txt so the same venv builds the Sphinx
+# docs), build the FuseSoC env, and create source symlinks. Run this before
+# any other target on a fresh checkout (e.g. on a new machine).
 setup_environment:
 	git submodule init && git submodule update
 	bash scripts/utils/build_virtualenv.sh
@@ -145,7 +150,7 @@ setup_environment:
 # Requires PYTHONPATH=scripts for the get_core_name.py helper.
 sim_svunit: clean
 	mkdir -p report_pytest
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	PYTHONPATH=scripts:$$PYTHONPATH \
 	python3 scripts/tests/svunit_test/get_core_name.py $(IP) && \
 	pytest scripts/tests/ -v -m svunit_test \
@@ -156,7 +161,7 @@ sim_svunit: clean
 #   make sim IP=lfsr
 #   make sim IP=fifo_async MODE=fwft DEPTH=16 WIDTH=24
 sim:
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) run --target test $(IP) $(SIM_ARGS)
 
 # Sweep every fifo_async configuration that matters for the streamer swap:
@@ -212,7 +217,7 @@ sim-streamer-matrix:
 # NOTE: IPs instantiating Xilinx primitives (DSP/XPM/DDS) can't be linted by
 # Verilator alone.
 lint:
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) run --target lint $(IP)
 	#fusesoc $(FUSESOC_CORES) run --target lint --tool $(TOOL) $(IP)
 
@@ -231,7 +236,7 @@ package:
 	exit 1; \
 	fi
 	@echo " Packaging IP: $(IP)"
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	mkdir -p build/package_$(IP); \
 	cd build/package_$(IP) && \
 	python3 ../../generators/ip_gen/ip_packager.py \
@@ -259,7 +264,7 @@ package-dry:
 	echo " Usage: make package-dry IP=<ip_name>"; \
 	exit 1; \
 	fi
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	mkdir -p build/package_$(IP); \
 	cd build/package_$(IP) && \
 	python3 ../../generators/ip_gen/ip_packager.py \
@@ -279,7 +284,7 @@ clean:
 # ----------------------------------------------------------------------------
 # List all cores across the four roots.
 list-cores:
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) list-cores
 
 # Show a core's filesets / targets / deps.  make core-info CORE=qick:ip:xcom
@@ -289,7 +294,7 @@ core-info:
 	echo "Example: make core-info CORE=qick:ip:xcom"; \
 	exit 1; \
 	fi
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	fusesoc $(FUSESOC_CORES) core-info $(CORE)
 
 # Grep the dependency block of qick:ip:<ip>.
@@ -299,7 +304,7 @@ deps:
 	echo "Example: make deps IP=xcom"; \
 	exit 1; \
 	fi
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	echo "=== Dependencies for qick:ip:$(IP) ==="; \
 	fusesoc $(FUSESOC_CORES) core-info qick:ip:$(IP) 2>&1 | grep -E "depend|depends" -A 20 || \
 	echo "No dependencies found or core not found"
@@ -346,7 +351,7 @@ gen:
 	echo "Usage: make gen IP=<ip_name>"; \
 	exit 1; \
 	fi
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	$(MAKE) -C cores/ip/$(IP)/rdl gen
 
 # Scaffold cores/ip/<ip>/ (rdl/, driver/, hdl/, tests/).
@@ -361,7 +366,7 @@ new-ip:
 driver:
 	@if [ -z "$(IP)" ]; then echo "Usage: make driver IP=<ip_name>"; exit 1; fi
 	@echo "Generating driver for $(IP)..."
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	$(MAKE) -C cores/ip/$(IP)/rdl gen
 	@./scripts/gen_driver.sh $(IP)
 	@if [ -f cores/ip/$(IP)/driver/$(IP).py ]; then \
@@ -387,14 +392,14 @@ driver-test:
 	fi
 	@echo "Running driver register tests for $(IP)..."; \
 	mkdir -p report_pytest; \
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	pytest cores/ip/$(IP)/driver/tests/ -v \
 	  --junitxml=report_pytest/driver-$(IP)-report.xml
 
 # Regenerate drivers + symlinks for every IP under cores/ip/ that has rdl/Makefile.
 # NOTE: activates venv once and uses -C (no fragile cd ../../../..).
 driver-all:
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	for ip in $$(ls -d cores/ip/*/); do \
 	ip_name=$$(basename $$ip); \
 	if [ -f $$ip/rdl/Makefile ]; then \
@@ -410,7 +415,7 @@ driver-all:
 # Scaffold driver/tests/ from the generated RDL package (idempotent).
 driver-scaffold:
 	@if [ -z "$(IP)" ]; then echo "Usage: make driver-scaffold IP=<ip_name>"; exit 1; fi
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	python3 scripts/gen_driver_tests.py $(IP)
 
 # Generate HTML register documentation from RDL.
@@ -418,7 +423,7 @@ driver-scaffold:
 #   make rdl-docs IP=axis_constant_iq
 rdl-docs:
 	@if [ -z "$(IP)" ]; then echo "Usage: make rdl-docs IP=<ip_name>"; exit 1; fi
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	$(MAKE) -C cores/ip/$(IP)/rdl docs
 	@echo "✓ Docs: cores/ip/$(IP)/rdl/docs/index.html"
 
@@ -431,7 +436,7 @@ rdl-docs:
 #   make rtl-docs                                   # document all of ../rtl_lib
 #   make rtl-docs INPUT=../rtl_lib/dsp/sgv4_top.sv  # single file
 rtl-docs:
-	. venv/bin/activate; \
+	. ../../.venv/bin/activate; \
 	python3 scripts/gen_docs.py \
 	--input  $(if $(INPUT),$(INPUT),$(RTL_DOCS_IN)) \
 	--outdir $(RTL_DOCS_OUT) \

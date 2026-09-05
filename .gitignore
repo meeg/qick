@@ -36,6 +36,10 @@ __pycache__/
 *.egg
 .ipynb_checkpoints/
 
+# Shared project venv (built by firmware/fusesoc/scripts/utils/build_virtualenv.sh,
+# used for both the FuseSoC tooling and the Sphinx docs build)
+/.venv/
+
 ## Sphinx documentation
 build/
 dist/
