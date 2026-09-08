@@ -23,6 +23,7 @@
 #   RTL library docs:
 #     make rtl-docs    [INPUT=<file>]    # Markdown docs for ../rtl_lib (all or one)
 #     make rtl-docs-clean
+#     make block-diagram TOP=<mod> [DEPTH=0] [IP=<name>]  # top-level instance SVG
 #   Packaging (Vivado):
 #     make package     IP=<ip> [VERSION=] [PART=] [DESCRIPTION=] [DISPLAY_NAME=]
 #     make package-all
@@ -122,7 +123,7 @@ RTL_DOCS_OUT ?= docs/rtl-md
 	clean \
 	list-cores core-info deps verify-core \
 	gen new-ip driver driver-test driver-all driver-scaffold \
-	rdl-docs rtl-docs rtl-docs-clean sim-streamer-matrix
+	rdl-docs rtl-docs rtl-docs-clean block-diagram sim-streamer-matrix
 
 # Default target: show the quick reference.
 help:
@@ -447,3 +448,26 @@ rtl-docs:
 rtl-docs-clean:
 	@rm -rf $(RTL_DOCS_OUT) docs/rtl
 	@echo "✓ Cleaned RTL docs"
+
+# ----------------------------------------------------------------------------
+# Block Diagrams (top-level instance hierarchy, not gate-level)
+# ----------------------------------------------------------------------------
+# Elaborates TOP with Verilator and renders its instance hierarchy as an SVG:
+# real submodule names straight from ../rtl_lib, siblings from a `generate`
+# loop collapsed into one "name (xN)" box, SV interface instances dropped.
+# DEPTH controls how many levels below TOP to expand (default 0: direct
+# children only) -- thin wrapper tops (e.g. axis_dyn_readout_v1, one level
+# to readout_top_dynro) usually need DEPTH=1 to reach the real blocks.
+# Missing vendor primitives (Xilinx XPM, etc.) need a blackbox stub added
+# under scripts/block_diagram_stubs/ -- the error message names the module.
+#   make block-diagram TOP=sgv6_top
+#   make block-diagram TOP=axis_dyn_readout_v1 DEPTH=1 IP=dyn_readout
+block-diagram:
+	@if [ -z "$(TOP)" ]; then \
+	echo " Usage: make block-diagram TOP=<top_module> [DEPTH=0] [IP=<output_name>]"; \
+	exit 1; \
+	fi
+	. ../../.venv/bin/activate; \
+	python3 scripts/gen_block_diagram.py $(TOP) \
+	docs/block-diagrams/$(or $(IP),$(TOP)).svg \
+	--depth $(or $(DEPTH),0)
