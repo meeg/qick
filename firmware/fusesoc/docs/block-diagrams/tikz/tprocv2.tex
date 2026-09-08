@@ -47,8 +47,10 @@ node distance=0.6cm]
 
 % memctrl <-> core (PS DMA into prog/data/wave mem): right from memctrl's
 % own east edge, then up into core's south edge -- a clean two-segment L,
-% independent of how tall/wide either box ends up.
-\draw[arrow] (memctrl.east) -| (core.south) node[pos=0.25,above,font=\scriptsize,align=center] {mem DMA};
+% independent of how tall/wide either box ends up. Offset left of center
+% so it lands at a different point than the inport -> core entry below.
+\coordinate (core dma in) at ($(core.south)+(-1.0,0)$);
+\draw[arrow] (memctrl.east) -| (core dma in) node[pos=0.25,above,font=\scriptsize,align=center] {mem DMA};
 
 % core <-> peripherals.
 \draw[single arrow] (core.north -| arith) -- (arith.south);
