@@ -35,9 +35,9 @@ node distance=0.5cm]
 % Regs -> chsel (ID0-N: which of the 64 channels).
 \draw[single arrow] (regs.south) -- (regs.south |- chsel.north);
 
-% Regs -> dds (PINC0-N/POFF0-N).
-\coordinate (temp) at ($(regs.south)+(2.4,0)$);
-\draw[single arrow] (temp) -- (temp |- dds.north);
+% Regs -> dds (PINC0-N/POFF0-N): horizontal to dds's own center, then
+% down into dds.north -- not a fixed offset that may miss the box.
+\draw[single arrow] (regs.south) -| (dds.north);
 
 % chsel -> dds.
 \draw[single arrow] (chsel.east) -- (dds.west);

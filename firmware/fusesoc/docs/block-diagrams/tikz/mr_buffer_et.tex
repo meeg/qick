@@ -36,7 +36,8 @@ node distance=0.5cm]
 \draw[single arrow] (regs.south) -- (writer.north) node[pos=0.5,right,font=\scriptsize] {dw\_capture};
 
 % regs -> reader (dr_start).
-\coordinate (temp) at ($(regs.east)+(0.3,0)$);
+\coordinate (temp) at ($(regs.east)+(7.0,0)$);
+	\draw[] (regs.east) -- (temp);
 \draw[single arrow] (temp) |- (reader.north);
 
 % writer -> bram.

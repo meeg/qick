@@ -35,9 +35,9 @@ node distance=0.5cm]
 % Regs -> ddsprod_v (FREQ0-7, OUTSEL).
 \draw[single arrow] (regs.south) -- (regs.south |- dds.north);
 
-% Regs -> pfb_mux (CH0-3SEL).
-\coordinate (temp) at ($(regs.south)+(2.2,0)$);
-\draw[single arrow] (temp) -- (temp |- mux.north);
+% Regs -> pfb_mux (CH0-3SEL): horizontal to mux's own center, then down
+% into mux.north -- not a fixed offset that may miss the box.
+\draw[single arrow] (regs.south) -| (mux.north);
 
 % ddsprod_v -> pfb_mux.
 \draw[single arrow] (dds.east) -- (mux.west);
