@@ -1,0 +1,63 @@
+# Run the FuseSoC/SVUnit RTL testbenches (`make sim_svunit`) on a
+# self-hosted runner with Vivado installed, since every core's `test`
+# target uses xsim -- there is no verilator path for actual test
+# execution (only `lint` uses verilator).
+#
+# Runners: label the Vivado-capable hosts (teddy, kenny) with the
+# 'vivado' label so either can pick up the job:
+#   https://github.com/openquantumhardware/qick_internal/settings/actions/runners/new
+
+name: SVUnit Simulation
+
+on:
+  push:
+    branches:
+      - feature/114-integrate-hog-fusesoc
+    paths:
+      - 'firmware/fusesoc/**'
+  pull_request:
+    paths:
+      - 'firmware/fusesoc/**'
+  workflow_dispatch:
+
+concurrency:
+  group: sim_svunit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sim_svunit:
+    runs-on: [self-hosted, vivado]
+    defaults:
+      run:
+        working-directory: firmware/fusesoc
+    steps:
+      - name: Clean workspace
+        continue-on-error: true
+        run: |
+          git clean -ffdx
+          git reset --hard HEAD
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up environment
+        run: make setup_environment
+
+      - name: Run SVUnit tests
+        run: make sim_svunit
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: SVUnit Results
+          path: firmware/fusesoc/report_pytest/pytest-report.xml
+          reporter: java-junit
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: svunit-report
+          path: firmware/fusesoc/report_pytest/pytest-report.xml
