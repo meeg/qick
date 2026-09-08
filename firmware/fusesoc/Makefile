@@ -24,6 +24,7 @@
 #     make rtl-docs    [INPUT=<file>]    # Markdown docs for ../rtl_lib (all or one)
 #     make rtl-docs-clean
 #     make block-diagram TOP=<mod> [IP=<name>]  # real ports + wiring, SVG
+#     make tikz-diagrams | tikz-diagram NAME=<name>  # hand-drawn, for docs
 #   Packaging (Vivado):
 #     make package     IP=<ip> [VERSION=] [PART=] [DESCRIPTION=] [DISPLAY_NAME=]
 #     make package-all
@@ -123,7 +124,7 @@ RTL_DOCS_OUT ?= docs/rtl-md
 	clean \
 	list-cores core-info deps verify-core \
 	gen new-ip driver driver-test driver-all driver-scaffold \
-	rdl-docs rtl-docs rtl-docs-clean block-diagram sim-streamer-matrix
+	rdl-docs rtl-docs rtl-docs-clean block-diagram tikz-diagrams tikz-diagram sim-streamer-matrix
 
 # Default target: show the quick reference.
 help:
@@ -466,6 +467,11 @@ rtl-docs-clean:
 # axis_dyn_readout_v1 -> readout_top_dynro), point TOP at that inner module
 # instead to reach the real blocks in one diagram.
 #
+# For general/public docs, prefer the hand-drawn diagrams below
+# (`make tikz-diagrams`) -- this auto-generated one is useful as a
+# starting point or cross-check against the RTL, but reads more like a
+# netlist dump than a diagram meant to teach someone the architecture.
+#
 # Missing vendor primitives (Xilinx XPM, etc.) need a blackbox stub added
 # under scripts/block_diagram_stubs/ -- the error message names the module.
 #   make block-diagram TOP=sgv6_top
@@ -478,3 +484,27 @@ block-diagram:
 	. ../../.venv/bin/activate; \
 	python3 scripts/gen_block_diagram.py $(TOP) \
 	docs/block-diagrams/$(or $(IP),$(TOP)).svg
+
+# ----------------------------------------------------------------------------
+# Hand-Drawn Block Diagrams (TikZ/circuitikz, for general/public docs)
+# ----------------------------------------------------------------------------
+# Compiles docs/block-diagrams/tikz/<name>.tex to a tightly-cropped
+# docs/block-diagrams/<name>.svg. These are hand-authored (in the style of
+# prior QICK talk/seminar figures), not extracted from RTL -- each one's
+# topology is verified by hand against the real source, but the diagram
+# itself is drawn for clarity, not completeness. Requires pdflatex,
+# ghostscript (gs) and poppler-utils (pdftocairo) on PATH.
+#   make tikz-diagrams              # rebuild every diagram
+#   make tikz-diagram NAME=sg_v6    # rebuild just one
+tikz-diagrams:
+	@for f in docs/block-diagrams/tikz/*.tex; do \
+	name=$$(basename $$f .tex); \
+	$(MAKE) --no-print-directory tikz-diagram NAME=$$name; \
+	done
+
+tikz-diagram:
+	@if [ -z "$(NAME)" ]; then \
+	echo " Usage: make tikz-diagram NAME=<name>  (reads docs/block-diagrams/tikz/<name>.tex)"; \
+	exit 1; \
+	fi
+	bash scripts/gen_tikz_diagram.sh $(NAME)
