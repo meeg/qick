@@ -22,7 +22,7 @@ node distance=0.6cm]
 \node[box,right=3cm of core,minimum height=4.6cm,minimum width=2.6cm] (disp) {qproc\_dispatcher\\(per-channel\\ async FIFO +\\ time-compare)};
 
 % Peripherals, stacked to the right of the core's top, left of dispatcher.
-\node[periphbox,above=0.6cm of core,xshift=-0.5cm] (arith) {tpv2\_arith};
+\node[periphbox,above=0.6cm of core,xshift=-1.5cm] (arith) {tpv2\_arith};
 \node[periphbox,right=0.4cm of arith] (div) {restoring\_divider};
 
 % Row 3: PS memory DMA (below ctrl), input port capture (below core).
