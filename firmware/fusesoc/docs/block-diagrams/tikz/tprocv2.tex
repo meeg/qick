@@ -55,7 +55,7 @@ node distance=0.6cm]
 \draw[single arrow] (inport.north) -- (core.south -| inport.north);
 
 % Input ports (from generators/readouts, trigger/ack/status).
-\draw[arrow] ($(inport.west)+(-1.6,0)$) node[anchor=east,align=right] {IN\_PORT\\(from generators/\\readouts, status)} -- (inport.west);
+\draw[arrow] ($(inport.west)+(-1.6,0)$) node[anchor=east,align=right] {IN\_PORT\\(status)} -- (inport.west);
 
 % core -> dispatcher (WPORT_WR/TRIG/DPORT_WR).
 \draw[single arrow] (core.east) -- (disp.west) node[pos=0.5,above,font=\scriptsize] {WPORT/TRIG/DPORT};
