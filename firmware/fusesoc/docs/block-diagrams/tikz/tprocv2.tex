@@ -17,7 +17,7 @@ node distance=0.6cm]
 % Row 2: control (left column), core (center), dispatcher (right).
 \node[box,below=1.4cm of axireg,minimum height=1.4cm] (ctrl) {qproc\_ctrl\\(start/stop,\\ time base)};
 
-\node[box,right=3cm of ctrl,minimum height=4.6cm,minimum width=3cm] (core) {qproc\_core\\(5-stage pipeline,\\ ALU, hazard unit,\\ prog/data/wave mem)\\ $\times$1-2 (DUAL\_CORE)};
+\node[box,right=3cm of ctrl,minimum height=4.6cm,minimum width=4cm] (core) {qproc\_core\\(5-stage pipeline,\\ ALU, hazard unit,\\ prog/data/wave mem)\\ $\times$1-2 (DUAL\_CORE)};
 
 \node[box,right=3cm of core,minimum height=4.6cm,minimum width=2.6cm] (disp) {qproc\_dispatcher\\(per-channel\\ async FIFO +\\ time-compare)};
 
@@ -36,16 +36,19 @@ node distance=0.6cm]
 % axireg -> ctrl (start/stop, time regs).
 \draw[single arrow] (axireg.south) -- (ctrl.north);
 
-% axireg -> memctrl (PS bulk access to memories).
-\draw[single arrow] (ctrl.west) -- ++(-0.5,0) |- (memctrl.west);
+% axireg -> memctrl (PS bulk access to memories). Routed on a rail well to
+% the left of both ctrl and memctrl (independent of their exact auto-width)
+% so the final approach into memctrl.west is unambiguous.
+\coordinate (ctrl memctrl rail) at ($(ctrl.west)+(-1.4,0)$);
+\draw[single arrow] (ctrl.west) -- (ctrl memctrl rail) -- (ctrl memctrl rail |- memctrl.west) -- (memctrl.west);
 
 % ctrl -> core (restart/time base).
 \draw[single arrow] (ctrl.east) -- (core.west) node[pos=0.5,above,font=\scriptsize] {restart, time base};
 
-% memctrl <-> core (PS DMA into prog/data/wave mem): up from memctrl, then
-% right into core's bottom-left.
-\coordinate (memctrl up) at (memctrl.north -| core.west);
-\draw[arrow] (memctrl.north) -- (memctrl up) -- ($(core.west)+(0,-1.4)$) node[pos=0.75,above,font=\scriptsize,align=center] {mem DMA};
+% memctrl <-> core (PS DMA into prog/data/wave mem): right from memctrl's
+% own east edge, then up into core's south edge -- a clean two-segment L,
+% independent of how tall/wide either box ends up.
+\draw[arrow] (memctrl.east) -| (core.south) node[pos=0.25,above,font=\scriptsize,align=center] {mem DMA};
 
 % core <-> peripherals.
 \draw[single arrow] (core.north -| arith) -- (arith.south);
