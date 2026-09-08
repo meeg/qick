@@ -23,7 +23,7 @@
 #   RTL library docs:
 #     make rtl-docs    [INPUT=<file>]    # Markdown docs for ../rtl_lib (all or one)
 #     make rtl-docs-clean
-#     make block-diagram TOP=<mod> [DEPTH=0] [IP=<name>]  # top-level instance SVG
+#     make block-diagram TOP=<mod> [IP=<name>]  # real ports + wiring, SVG
 #   Packaging (Vivado):
 #     make package     IP=<ip> [VERSION=] [PART=] [DESCRIPTION=] [DISPLAY_NAME=]
 #     make package-all
@@ -450,24 +450,31 @@ rtl-docs-clean:
 	@echo "✓ Cleaned RTL docs"
 
 # ----------------------------------------------------------------------------
-# Block Diagrams (top-level instance hierarchy, not gate-level)
+# Block Diagrams (real ports + real wiring between TOP's direct children,
+# not gate-level)
 # ----------------------------------------------------------------------------
-# Elaborates TOP with Verilator and renders its instance hierarchy as an SVG:
-# real submodule names straight from ../rtl_lib, siblings from a `generate`
-# loop collapsed into one "name (xN)" box, SV interface instances dropped.
-# DEPTH controls how many levels below TOP to expand (default 0: direct
-# children only) -- thin wrapper tops (e.g. axis_dyn_readout_v1, one level
-# to readout_top_dynro) usually need DEPTH=1 to reach the real blocks.
+# Elaborates TOP with Verilator and renders it as a real functional block
+# diagram: TOP's own boundary ports, one box per direct-child instance with
+# its actual port list (inputs left, outputs right), and wires connecting
+# specific pins wherever they share a net -- not just a containment tree.
+# Submodule names come straight from ../rtl_lib; siblings from a `generate`
+# loop collapse into one "name (xN)" box (wiring shown is the first
+# instance's, as a representative); SV interface instances are dropped.
+#
+# TOP is whichever module's boundary you want the diagram centered on --
+# if the packaged IP is a thin wrapper around one real submodule (e.g.
+# axis_dyn_readout_v1 -> readout_top_dynro), point TOP at that inner module
+# instead to reach the real blocks in one diagram.
+#
 # Missing vendor primitives (Xilinx XPM, etc.) need a blackbox stub added
 # under scripts/block_diagram_stubs/ -- the error message names the module.
 #   make block-diagram TOP=sgv6_top
-#   make block-diagram TOP=axis_dyn_readout_v1 DEPTH=1 IP=dyn_readout
+#   make block-diagram TOP=readout_top_dynro IP=dyn_readout
 block-diagram:
 	@if [ -z "$(TOP)" ]; then \
-	echo " Usage: make block-diagram TOP=<top_module> [DEPTH=0] [IP=<output_name>]"; \
+	echo " Usage: make block-diagram TOP=<top_module> [IP=<output_name>]"; \
 	exit 1; \
 	fi
 	. ../../.venv/bin/activate; \
 	python3 scripts/gen_block_diagram.py $(TOP) \
-	docs/block-diagrams/$(or $(IP),$(TOP)).svg \
-	--depth $(or $(DEPTH),0)
+	docs/block-diagrams/$(or $(IP),$(TOP)).svg
