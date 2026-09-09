@@ -15,7 +15,7 @@
 #     make sim_svunit  [IP=<core>]        # pytest+SVUnit wrapper; all cores if no IP
 #     make lint        IP=<core>          # veriblelint / verilator lint-only
 #   Registers / drivers (PeakRDL):
-#     make gen         IP=<ip>            # generate regmap package from RDL
+#     make rdl-gen     IP=<ip>            # generate regmap package from RDL
 #     make driver      IP=<ip>            # gen + symlink driver + register tests
 #     make driver-test IP=<ip>           # register tests only (scaffolds if needed)
 #     make driver-all                    # regenerate drivers for every IP
@@ -123,7 +123,7 @@ RTL_DOCS_OUT ?= docs/rtl-md
 	package package-all package-dry \
 	clean \
 	list-cores core-info deps verify-core \
-	gen new-ip driver driver-test driver-all driver-scaffold \
+	rdl-gen new-ip driver driver-test driver-all driver-scaffold \
 	rdl-docs rtl-docs rtl-docs-clean block-diagram tikz-diagrams tikz-diagram sim-streamer-matrix
 
 # Default target: show the quick reference.
@@ -347,10 +347,10 @@ verify-core:
 # ----------------------------------------------------------------------------
 # Generate the PeakRDL regmap package from the IP's RDL.
 # NOTE: activates venv and uses -C so systemrdl is available in the sub-make.
-#   make gen IP=axis_constant_iq
-gen:
+#   make rdl-gen IP=axis_constant_iq
+rdl-gen:
 	@if [ -z "$(IP)" ]; then \
-	echo "Usage: make gen IP=<ip_name>"; \
+	echo "Usage: make rdl-gen IP=<ip_name>"; \
 	exit 1; \
 	fi
 	. ../../.venv/bin/activate; \

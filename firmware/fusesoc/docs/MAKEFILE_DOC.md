@@ -71,13 +71,13 @@ Verilator alone.
 
 ## Register map & driver (PeakRDL)
 
-### `make gen IP=<ip>`
+### `make rdl-gen IP=<ip>`
 `cd cores/ip/<ip>/rdl && make gen`. Generates the PeakRDL Python package (and
 regblock SV only if the IP's rdl/Makefile keeps `--hdl`). No symlink.
 
 ### `make driver IP=<ip>`
 Full driver flow:
-1. `make gen` in `rdl/`.
+1. `make gen` in `rdl/` (same step as `make rdl-gen`, called directly).
 2. Symlinks `cores/ip/<ip>/driver/<ip>.py` into `qick_lib/qick/drivers/<ip>.py`.
 3. Automatically calls `make driver-test IP=<ip>`.
 

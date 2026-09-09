@@ -732,7 +732,7 @@ if gen.is_saturating():
 |---------|-------------|
 | `make driver IP=<name>`      | Generate RDL Python package + QICK driver symlink + run reg tests |
 | `make driver-test IP=<name>` | Run only the register-layer pytest (no regeneration) |
-| `make gen IP=<name>`         | Generate RDL package only (no symlink) |
+| `make rdl-gen IP=<name>`     | Generate RDL package only (no symlink) |
 | `make rdl-docs IP=<name>`    | Generate HTML documentation from RDL |
 | `make sim_svunit IP=<name>`  | Run the SVUnit RTL testbench (pytest wrapper) |
 | `make new-ip IP=<name>`      | Create a new IP from template |
