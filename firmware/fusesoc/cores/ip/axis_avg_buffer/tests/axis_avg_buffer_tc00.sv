@@ -5,7 +5,7 @@
 //   avg_top, buffer_top, and avg_buffer each already have dedicated
 //   testbenches covering the FSM/datapath details. This testbench only
 //   exercises what's NEW at the packaged-IP level: the AXI-Lite register
-//   map (matching AxisAvgBufferV1pt1.REGISTERS) driving the datapath
+//   map (matching AxisAvgBufferV1pt2.REGISTERS) driving the datapath
 //   through axil_slv.
 //
 //   Three clock domains: s_axi_aclk, s_axis_aclk, m_axis_aclk.

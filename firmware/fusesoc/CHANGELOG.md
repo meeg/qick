@@ -567,20 +567,47 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     with `mr_buffer_et`'s register map, so building a faithful,
     register-compatible fresh port was the only option that doesn't break
     existing driver compatibility.
-  - **axis_avg_buffer** (`qick:ip:axis_avg_buffer`, bumped to `1.1.0` to
-    reflect the v1.1/photon-mode register set): the packaged IP -- `axil_slv`
-    register bank (`NUM_REGS=15`) wrapping `avg_buffer`, register map
-    matching `AxisAvgBufferV1pt1.REGISTERS` exactly (indices 0-11 avg_*/
-    buf_* start/addr/len/dr_start/dr_addr/dr_len, 12-14 photon-mode/
-    thresholds). 4/4 SVUnit tests (reset, register readback, buf capture +
-    exact-match readback round-trip through the AXI-Lite map, and an
-    avg-only-arms-avg cross-check), lint clean.
-  - **Driver/RDL/constraints**: added `qick:ip:axis_avg_buffer:1.1` to
-    `AxisAvgBufferV1pt1.bindto` in `qick_lib/qick/drivers/readout.py`;
-    symlinked `driver/axis_avg_buffer.py` to the same file. RDL documents
-    all 15 registers at 0x00-0x38 (strategy 2: docs/driver only, RTL decode
-    stays the generic `axil_slv`). Constraints are NEW (legacy IP had none
-    at the packaged level): 3 independent clock domains (`s_axi_aclk`,
+  - **axis_avg_buffer** (`qick:ip:axis_avg_buffer`, versioned `1.2.0`):
+    the packaged IP -- `axil_slv` register bank (`NUM_REGS=15`) wrapping
+    `avg_buffer`, register map matching `AxisAvgBufferV1pt2.REGISTERS`
+    exactly (indices 0-11 avg_*/buf_* start/addr/len/dr_start/dr_addr/
+    dr_len, 12-14 photon-mode/thresholds). 4/4 SVUnit tests (reset,
+    register readback, buf capture + exact-match readback round-trip
+    through the AXI-Lite map, and an avg-only-arms-avg cross-check), lint
+    clean.
+  - **Correction: versioned as 1.2, not 1.1.** Originally bound to
+    `AxisAvgBufferV1pt1` on the assumption that the checked-in legacy
+    source (`firmware/ip/axis_avg_buffer/src/`, whose stale `component.xml`
+    claims v1.0) matched v1.1 firmware. The production driver marks v1.1
+    as having a known bug (`FIRST_OUT_SAMPLE_BUG_FIX = False`): the first
+    sample of any `transfer_avg`/`transfer_buf` read is always the data at
+    address 0, worked around in software by requesting 2 extra samples and
+    discarding them. Traced the `data_reader`/`bram_to_axis` FSM by hand
+    (the `REGS_ST`/`READ_BRAM_ST`/`WRITE_FIFO_ST` address-latch pipeline
+    gives the BRAM read a full cycle to settle before the first word is
+    captured) and found no such bug, then confirmed empirically:
+    `bram_to_axis`'s own SVUnit suite (`test_multiple_words`,
+    `test_address_relatch`) requests nonzero-address bursts and checks the
+    first returned word against that address, 12/12 passing. Located the
+    real v1.2-tagged source at `main_qick/firmware/ip/axis_avg_buffer/`
+    (`component.xml` `<spirit:version>1.2</spirit:version>`) and diffed
+    every RTL file (`avg_buffer.v`, `avg.sv`, `avg_top.v`, `buffer.sv`,
+    `buffer_top.v`, `axis_avg_buffer.v`, `data_reader.vhd`,
+    `axi_slv_avg_buf.vhd`) against what's checked into this repo -- all
+    byte-identical. Conclusion: this RTL already *is* the v1.2 (fixed)
+    revision; the 1.0/1.1 labels floating around were stale packaging
+    metadata, not a distinct earlier RTL state. No RTL change was needed --
+    corrected the `.core` VLNV to `1.2.0` and moved the `qick:ip:
+    axis_avg_buffer:1.2` bindto from `AxisAvgBufferV1pt1` (reverted to its
+    original 2-entry bindto) onto `AxisAvgBufferV1pt2` instead. Re-verified
+    lint/sim/driver-test all still pass (RTL untouched, only comments/
+    labels changed).
+  - **Driver/RDL/constraints**: `qick:ip:axis_avg_buffer:1.2` bindto on
+    `AxisAvgBufferV1pt2` in `qick_lib/qick/drivers/readout.py`; symlinked
+    `driver/axis_avg_buffer.py` to the same file. RDL documents all 15
+    registers at 0x00-0x38 (strategy 2: docs/driver only, RTL decode stays
+    the generic `axil_slv`). Constraints are NEW (legacy IP had none at the
+    packaged level): 3 independent clock domains (`s_axi_aclk`,
     `s_axis_aclk`, `m_axis_aclk`), one false-path on the external
     `trigger` port -- same pattern as `mr_buffer_et`'s constraints. `make
     driver IP=axis_avg_buffer`: 4/4 register-layer tests pass.

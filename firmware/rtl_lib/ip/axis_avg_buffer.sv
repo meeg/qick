@@ -22,7 +22,15 @@
 //! Wraps the avg_buffer datapath (avg_top + buffer_top + shared trigger
 //! resync) with an AXI4-Lite register block (axil_slv) exposing all 15
 //! AVG_*/BUF_* control registers, matching the production driver
-//! (`AxisAvgBufferV1pt1` in qick_lib/qick/drivers/readout.py) exactly.
+//! (`AxisAvgBufferV1pt2` in qick_lib/qick/drivers/readout.py) exactly.
+//!
+//! Versioned as v1.2 (not v1.1): the register map, RTL and FSMs here are
+//! byte-for-byte identical to the legacy source checked into
+//! firmware/ip/axis_avg_buffer/src/ at both qick_internal (there labeled
+//! v1.0 in its stale component.xml) and main_qick (there labeled v1.2).
+//! v1.1's photon-mode registers are present in both, so this RTL already
+//! IS the v1.2 revision -- there is no RTL difference to port for v1.2,
+//! only a version/bindto correction. See CHANGELOG for the diff trail.
 //!
 //! Two clock domains:
 //!
@@ -32,7 +40,7 @@
 //!   integration but are independent ports here, matching the legacy IP.
 //!
 //! Register map (axil_slv, byte-addressed, regwidth = 32) -- matches
-//! AxisAvgBufferV1pt1.REGISTERS exactly:
+//! AxisAvgBufferV1pt2.REGISTERS exactly:
 //! 0x00 AVG_START_REG       : averager enable, bit 0 (sw=rw).
 //! 0x04 AVG_ADDR_REG        : averager write start address (sw=rw).
 //! 0x08 AVG_LEN_REG         : averager sample count (sw=rw).

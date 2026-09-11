@@ -4,7 +4,7 @@
 //
 // RTL decode is the generic axil_slv core. This RDL is used ONLY for the
 // Python driver layer and documentation -- do NOT generate RTL from it (no
-// --hdl in rdl/Makefile). Matches AxisAvgBufferV1pt1.REGISTERS
+// --hdl in rdl/Makefile). Matches AxisAvgBufferV1pt2.REGISTERS
 // (qick_lib/qick/drivers/readout.py) exactly.
 addrmap axis_avg_buffer {
     name = "axis_avg_buffer (averager + raw buffer) Registers";

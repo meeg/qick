@@ -841,8 +841,7 @@ class AxisAvgBuffer(SocIP):
 class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
     bindto = ['user.org:user:axis_avg_buffer:1.1',
-              'QICK:QICK:axis_avg_buffer:1.1',
-              'qick:ip:axis_avg_buffer:1.1']
+              'QICK:QICK:axis_avg_buffer:1.1']
 
     EDGE_COUNTER = True
 
@@ -893,7 +892,8 @@ class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
     Same as AxisAvgBufferV1pt1 but firmware has the first output sample bug fixed.
     """
     bindto = ['user.org:user:axis_avg_buffer:1.2',
-              'QICK:QICK:axis_avg_buffer:1.2']
+              'QICK:QICK:axis_avg_buffer:1.2',
+              'qick:ip:axis_avg_buffer:1.2']
 
     FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.2
 

@@ -1,5 +1,5 @@
 CAPI=2:
-name: qick:ip:axis_avg_buffer:1.1.0
+name: qick:ip:axis_avg_buffer:1.2.0
 description: "QICK averager + raw buffer (axis_avg_buffer) IP core"
 
 filesets:
