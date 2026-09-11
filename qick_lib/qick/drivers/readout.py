@@ -841,7 +841,8 @@ class AxisAvgBuffer(SocIP):
 class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
     bindto = ['user.org:user:axis_avg_buffer:1.1',
-              'QICK:QICK:axis_avg_buffer:1.1']
+              'QICK:QICK:axis_avg_buffer:1.1',
+              'qick:ip:axis_avg_buffer:1.1']
 
     EDGE_COUNTER = True
 

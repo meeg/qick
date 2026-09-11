@@ -1,0 +1,1 @@
+../../../firmware/fusesoc/cores/ip/axis_avg_buffer/driver/axis_avg_buffer.py
