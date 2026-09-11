@@ -6,6 +6,80 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
+- **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
+  buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
+  deployed `AxisWeightedBufferV1pt3` -- the revision with the first-
+  output-sample DMA-readback bug fixed, mirroring the same "port the
+  version that's actually used" correction made for `axis_avg_buffer`
+  v1.1->v1.2). Located the real source at
+  `main_qick/firmware/ip/axis_weighted_buffer/` (`component.xml`
+  `<spirit:version>1.3</spirit:version>`).
+  - **mult_pipe3** (`qick:dsp:mult_pipe3`): 3-cycle pipelined signed
+    multiply modeling the legacy `dsp_macro_0` DSP48 IP (`C_LATENCY=-1`,
+    auto-resolved) -- the VHDL's own `DSP_LATENCY=3` constant was the only
+    available ground truth for this IP's register configuration (the
+    `.xci`'s `C_REG_CONFIG` bitfield was not decodable from the checked-in
+    file alone), so it was taken as authoritative rather than re-derived.
+    Latency confirmed empirically via its own testbench (a/b on the bus ->
+    p valid exactly 3 cycles later), not just paper-traced. 6/6 tests.
+  - **matched_filter** (`qick:dsp:matched_filter`): the new DSP block --
+    complex multiply of the incoming I/Q stream against a DMA-loaded
+    weight envelope (`dout_i=ac-bd`, `dout_q=ad+bc`, truncated not rounded,
+    no saturation, matching the legacy bit-select exactly). Reuses
+    `axis_to_bram_sg` for the weight writer (confirmed via direct diff
+    that legacy `data_writer.vhd` here is byte-identical, modulo
+    formatting, to `axis_sg_int4_v2`'s own `data_writer.vhd` -- same
+    already-ported FSM) and `bram_tdp` for the envelope memory (single
+    packed-I/Q bank, unlike `sg_int4_top`'s split real/imag banks).
+    Faithfully reproduces the legacy `WGT_LATENCY=4`/`DSP_LATENCY=3`
+    pipeline constants, including a 2-sample address skew between when
+    delayed `din_i` reaches the multiplier and when the corresponding
+    envelope word is ready (`WGT_LATENCY` does not match the envelope
+    path's own 2-cycle latency) -- reproduced exactly rather than
+    corrected, since this is a faithful port, not a redesign. 3/3 tests.
+  - **CONFIRMED IN SIMULATION -- a second, previously-undocumented skew**:
+    `dout_valid_o` asserts one cycle before `dout_o` settles to its final
+    value (`dout_o` comes from an extra register the legacy
+    `TOTAL_LATENCY` constant does not account for). Legacy `avg_buffer.v`
+    wires `dout_valid_o`/`dout_o` straight into `avg_top`/`buffer_top`'s
+    `din_valid_i`/`din_i` with no compensating register, exactly as ported
+    here -- so **every capture window on real axis_weighted_buffer v1.3
+    hardware likely drops its first live sample** (buffer_top's
+    `TRIGGER_ST`->`MEMW_ST` transition lines up with the first
+    `dout_valid_o` pulse, whose `dout_o` has not caught up yet). This is
+    distinct from the already-known, driver-compensated "first output
+    sample" DMA-readback bug (`FIRST_OUT_SAMPLE_BUG_FIX`) -- it is a
+    live-capture-time issue with no corresponding software workaround
+    found in `qick_lib/qick/drivers/readout.py`. Reproduced faithfully
+    (not silently fixed) and directly verified in
+    `weighted_buffer`'s own testbench; flag to hardware owners.
+  - **weighted_buffer** (`qick:math:weighted_buffer`): composition of
+    `matched_filter` + `avg_top` + `buffer_top`, mirroring `avg_buffer.sv`
+    but routing the filtered stream (and DSP-latency-compensated
+    `trigger_o`) into the averager/buffer instead of the raw input --
+    faithful port of legacy `avg_buffer.v` (the weighted variant, not to
+    be confused with `qick:math:avg_buffer`). 3/3 tests, including an
+    end-to-end check that buf readback shows the FILTERED product (not
+    the raw sample), confirming the weight path is actually in use.
+  - **axis_weighted_buffer** (`qick:ip:axis_weighted_buffer`): the packaged
+    IP -- `axil_slv` register bank (`NUM_REGS=14`), register map matching
+    `AxisWeightedBuffer.REGISTERS` exactly. Unlike `axis_avg_buffer`, two
+    registers are combined multi-bit fields rather than one-field-per-
+    register -- confirmed by direct read of legacy `axi_slv.vhd`'s own
+    "Register Map" assignments: `start_reg` (0x00, bit0=avg enable,
+    bit1=buf enable) and `dr_start_reg` (0x0C, bit0=avg/bit1=buf/bit2=wgt
+    data-reader enable). New `s1_axis` port for weight-coefficient DMA
+    loading, new `wgt_dw_addr_reg` (0x34). 4/4 SVUnit tests, lint clean,
+    4/4 register-layer driver tests.
+  - **Driver/RDL/constraints**: added `qick:ip:axis_weighted_buffer:1.3`
+    to `AxisWeightedBufferV1pt3.bindto`; symlinked
+    `driver/axis_weighted_buffer.py` to `readout.py`. RDL documents all 14
+    registers at 0x00-0x34 including the two combined-bit fields (strategy
+    2: docs/driver only). Constraints are new (legacy IP had none): 3
+    independent clock domains (`s_axi_aclk` doubles as the weight-DMA
+    write clock, matching legacy `avg_buffer.v`'s `write_clk =>
+    s_axi_aclk` wiring; `s_axis_aclk`; `m_axis_aclk`), one false-path on
+    `trigger` -- same pattern as `axis_avg_buffer`/`mr_buffer_et`.
 - **tprocv2 bottom-up port** (in progress, mirroring the completed tprocv1
   port under `qick:processors:tprocv1`): faithful ports of
   `firmware/ip/qick_processor/src/` into `rtl_lib/` + fusesoc lib cores,
