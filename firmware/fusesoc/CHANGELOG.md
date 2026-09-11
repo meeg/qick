@@ -6,7 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
-- **qick_time_tagger bottom-up port (Tier 0: new primitives)** (resuming the
+- **qick_time_tagger bottom-up port (Tier 0 closed, Tier 1 in progress)** (resuming the
   port that was explicitly paused earlier for size/complexity -- ~3500 lines
   across 10 files, 3 clock domains (`ps_clk`/`c_clk`/`adc_clk`), a custom DMA
   engine, 4 ADC inputs at 8 samples/clock, and a hand-written 16-register AXI
@@ -60,21 +60,56 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     asynchronous clocks (300 MHz / 100 MHz, matching this repo's existing
     CDC-testbench convention), including a real fill-to-backpressure-then-
     drain test on the `BLOCK=1` variant. 5/5 tests, lint clean.
-  - **fifo_dc** (`qick:mem:fifo_dc`): async dual-clock FIFO with a two-sided
-    flush handshake, faithful port of `_qtt_mem.sv`'s `FIFO_DC`. The
-    storage array reuses existing `qick:mem:bram_tdp` (true dual-port,
-    independent clocks) in place of the legacy hand-rolled
-    `BRAM_DP_DC_EN` -- same 1-cycle "NO_REG" read timing the legacy code
-    always configured. Tested as a black box across the CDC (push a known
-    sequence, then search for it as a contiguous in-order run in a
-    generously long capture trace) rather than by hand-deriving the exact
-    gray-pointer-CDC-plus-BRAM-register pipeline depth. 4/4 tests, lint
-    clean.
-  - Depends on `qick:cdc:gcc`: `sync_pulse`, `fifo_dc`.
-  - Next (Tier 1, not yet started): `qtt_tag_calc`/`tag_gen`, the
-    `tag_fifo_dc`/`tag_fifo_tc`/`tag_mem` memory stack, `smp_fifo_dc`/
-    `smp_mem`, `dma_fifo_rd` (no existing fusesoc equivalent found for its
-    length-counted FIFO-pop-to-AXIS-streamer shape), and `qtt_cmd`.
+  - **fifo_dc** (`qick:mem:fifo_dc`): initially ported as a faithful
+    gray-counter-based async dual-clock FIFO (`_qtt_mem.sv`'s `FIFO_DC`,
+    storage on `qick:mem:bram_tdp`), 4/4 tests, lint clean.
+  - **Correction:** `fifo_dc` was removed again once composed into
+    `tag_fifo_dc` (Tier 1) exposed a real characteristic of that
+    gray-counter design: an isolated push, with no follow-up push soon
+    after, never becomes visible on the read side at all (a genuine
+    property of the legacy hardware, not a porting bug -- harmless for
+    this IP's actual bursty ADC-tag traffic, but fragile to compose/test in
+    isolation). Reused existing `qick:mem:fifo_async`
+    (`xpm_fifo_async`, `READ_MODE="fwft"`) instead, following the
+    flush-folded-into-`wr_rstn` pattern already established for
+    `qick:utils:qproc_dispatcher` (`fifo_async` has no `flush_i` of its
+    own). `qick:cdc:gcc` stays (still used by `sync_pulse`).
+  - Depends on `qick:cdc:gcc`: `sync_pulse` only, now that `fifo_dc` is gone.
+  - **qtt_tag_calc** (`qick:dsp:qtt_tag_calc`, Tier 1): per-ADC-channel
+    threshold comparator + timestamp tagger, faithful port of
+    `qtt_tag_calc.sv`. Filters `SMP_CK` samples/clock, compares (optionally
+    slope-compensated) against a threshold, encodes the lowest-index
+    crossing sample via `qick:encoders:priority_encoder`, optionally
+    refines the crossing time via `qick:dsp:x_inter`. Two lint/behavior
+    corrections made while porting (identical simulated result, needed
+    for valid `always_comb`/`always_ff` SV): a blocking assignment inside
+    an `always_ff` and a non-blocking assignment inside an `always_comb`.
+    5/5 tests (no-trigger-below-threshold, lowest-index-wins priority, arm
+    gating, an end-to-end interpolation case checked against an
+    independently computed expected value), lint clean.
+  - **tag_gen** (`qick:dsp:tag_gen`, Tier 1): instantiates one
+    `qtt_tag_calc` per ADC channel, faithful port of `tag_gen.sv`.
+    `trig_o`/`cmp_o` wired from channel 0 only, matching the legacy source.
+    2/2 tests (independent per-channel array wiring, since `qtt_tag_calc`'s
+    own math is already covered), lint clean.
+  - **tag_fifo_dc** (`qick:mem:tag_fifo_dc`, Tier 1): two-stage tag buffer,
+    faithful port of `tag_mem.sv`'s `TAG_FIFO_DC` -- the async FIFO stage
+    is `qick:mem:fifo_async` (see the `fifo_dc` correction above), feeding
+    a small dma_clk-only overwrite-on-full ring buffer on
+    `qick:mem:bram_simple_dp`. 4/4 tests, lint clean.
+  - **Testbench lesson (added to `TESTBENCH_PATTERNS.md` #20):**
+    `tag_fifo_dc`'s first testbench draft, written with this repo's usual
+    `default clocking` style, reproducibly dropped the first word of every
+    burst even though `fifo_async`'s own testbench passes 10/10 in the
+    exact same `MODE=fwft` configuration at a comparable clock ratio.
+    Rewriting the bench without clocking blocks (matching
+    `fifo_async_tc00.sv`'s own documented "no clocking blocks, on purpose"
+    convention) fixed all four tests with no RTL change -- the skew was in
+    the testbench, not the DUT.
+  - Next (Tier 1, remaining): the `tag_fifo_tc`/`tag_mem` rest of the tag
+    memory stack, `smp_fifo_dc`/`smp_mem`, `dma_fifo_rd` (no existing
+    fusesoc equivalent found for its length-counted FIFO-pop-to-AXIS-
+    streamer shape), and `qtt_cmd`.
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
   deployed `AxisWeightedBufferV1pt3` -- the revision with the first-
