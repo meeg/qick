@@ -1032,7 +1032,8 @@ class AxisWeightedBufferV1pt3(AxisWeightedBuffer):
     """
     Same as AxisWeightedBuffer, but firmware has the first output sample bug fixed.
     """
-    bindto = ['QICK:QICK:axis_weighted_buffer:1.3']
+    bindto = ['QICK:QICK:axis_weighted_buffer:1.3',
+              'qick:ip:axis_weighted_buffer:1.3']
 
     FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.3
 
