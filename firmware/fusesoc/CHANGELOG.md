@@ -158,11 +158,36 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     tProc command paths, level-sensed external arm, threshold/inhibit
     config, the reset handshake, pop's single-cycle pulse, peek reaching
     the tProc clock domain), lint clean.
-  - **Tier 1 closed.** Every mid-level composed core is done. Next
-    (Tier 2): the top non-AXI core composition, `qick_time_tagger.sv`
-    itself (control FSM, time counter, wiring `tag_gen` + `tag_mem` +
-    `dma_fifo_rd` + `smp_mem` together), followed by Tier 3 (the AXI
-    wrapper, regmap, and driver).
+  - **Tier 1 closed.** Every mid-level composed core is done.
+  - **qick_time_tagger** (`qick:processors:qick_time_tagger`, Tier 2): the
+    top non-AXI composition -- control FSM, time counter, and wiring for
+    `tag_gen`+`tag_mem`+`dma_fifo_rd`+`smp_mem` (`SMP_STORE`) +
+    `tag_fifo_dc` (`ARM_STORE`). **Correction:** `pulse_cdc` was assumed
+    dead code in Tier 0 (fully commented out everywhere that was
+    checked), but this module has one real, live instance
+    (`tag_vld_sync`) -- reused `cdc_handshake` here too (dummy 1-bit
+    payload), same substitution as `xpm_cdc_handshake` in `qtt_cmd`.
+    5/5 tests: a real end-to-end path (arm -> genuine threshold crossing
+    -> tag capture -> DMA readback verifying the captured sample index),
+    armed-vs-disarmed gating, the `qtt_rst_req_i` flush handshake, and
+    the sample-store/arm-store DMA mux channels -- an integration
+    exercise, since every sub-core is already unit-tested. Lint clean.
+  - **Testbench lesson (`TESTBENCH_PATTERNS.md` #21):** the first draft of
+    this test used `CMP_INTER=0` "to keep it simple" and broke tag
+    capture -- `qtt_tag_calc`'s `tag_vld_o` pulses on the exact cycle
+    `trig_time_adc_r`'s own update is scheduled at that parameter value,
+    one cycle before the update is visible, so `tag_mem` latched a stale
+    value. `CMP_INTER=1+` (matching the real deployed default of
+    `CMP_INTER=4`) avoids it -- a testbench parameter fix, not an RTL bug;
+    it happened to hit a real, faithfully-preserved zero-delay edge case.
+  - **Tier 2 closed.** Next (Tier 3, final): the AXI wrapper
+    (`axi_qick_time_tagger.sv` using `axil_slv` + `AUTO_CLEAR_BIT0` for
+    CTRL, replacing the hand-written `axi_slv_qtt.vhd`), the RDL regmap
+    (docs/test-only, matching every other ported IP's convention), the
+    driver (must stay byte-for-byte compatible with
+    `qick_lib/qick/drivers/peripherals.py::QICK_Time_Tagger`), packaging
+    (`qick_time_tagger.core`, constraints, `synth` OOC target), and a
+    CHANGELOG close-out for the whole port.
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
   deployed `AxisWeightedBufferV1pt3` -- the revision with the first-
