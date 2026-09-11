@@ -106,10 +106,63 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     `fifo_async_tc00.sv`'s own documented "no clocking blocks, on purpose"
     convention) fixed all four tests with no RTL change -- the skew was in
     the testbench, not the DUT.
-  - Next (Tier 1, remaining): the `tag_fifo_tc`/`tag_mem` rest of the tag
-    memory stack, `smp_fifo_dc`/`smp_mem`, `dma_fifo_rd` (no existing
-    fusesoc equivalent found for its length-counted FIFO-pop-to-AXIS-
-    streamer shape), and `qtt_cmd`.
+  - **tag_fifo_tc** (`qick:mem:tag_fifo_tc`, Tier 1): the tri-port variant
+    of `tag_fifo_dc` used for tag channel 0, where the tProc (via
+    `qick:cdc:sync_pulse`) and the DMA reader share one dma_clk-only ring
+    buffer's single read port, tProc taking priority when both want to
+    read the same cycle. `c_clk_i`/`c_rst_ni` are on the port list but
+    unused inside the module, matching the legacy `TAG_FIFO_TC` exactly
+    (its tProc-pop CDC is keyed off `tag_clk_i`, not `c_clk_i`). 6/6 tests
+    (including a tProc-vs-DMA simultaneous-request priority race), lint
+    clean.
+  - **tag_mem** (`qick:mem:tag_mem`, Tier 1): top-level tag memory,
+    composes one `tag_fifo_tc` (channel 0) with up to three `tag_fifo_dc`
+    (channels 1-3) behind one `dma_sel_i` DMA read mux; channels at or
+    beyond `MEM_QTY` are tied off. Note: `empty_o` is `|empty` across
+    channels ("at least one channel is empty"), asymmetric with
+    `full_o`'s `&full` ("all channels full") -- exactly what the legacy
+    source does, kept as-is rather than "fixed". 5/5 tests, lint clean.
+    This closes the tag-memory half of Tier 1.
+  - **smp_fifo_dc** (`qick:mem:smp_fifo_dc`, Tier 1): faithful port of
+    `smp_mem.sv`'s `SMP_FIFO_DC` -- moves `SMP_CK*SMP_DW`-wide sample
+    bursts adc_clk->dma_clk via `qick:mem:fifo_async` (same substitution
+    as the tag FIFOs), then a dma_clk-only unpacking FSM writes them one
+    `SMP_DW`-wide sample at a time into an overwrite-on-full ring buffer.
+    5/5 tests (burst unpack order, back-to-back multi-burst order, full,
+    flush), lint clean.
+  - **smp_mem** (`qick:mem:smp_mem`, Tier 1): top-level sample memory --
+    on a trigger (`tag_wr_i`), captures `cfg_smp_wr_qty_i` consecutive
+    sample groups through the legacy 4-deep value-preserving pipeline and
+    hands each to `smp_fifo_dc`; `dma_dt_o` sign-extends to 32 bits. 3/3
+    tests (no-capture-without-trigger, capture-on-trigger with correct
+    values, 32-bit sign extension), lint clean. Closes the sample-memory
+    half of Tier 1.
+  - **dma_fifo_rd** (`qick:mem:dma_fifo_rd`, Tier 1): length-counted
+    FIFO-pop-to-AXI4-Stream reader, faithful port of `_qtt_dma.sv`. No
+    existing fusesoc lib core matched this shape (the BRAM-to-AXIS
+    streamers in this repo are address-based, not pop-based), so this is
+    a new faithful port rather than a reuse. Single clock domain, no CDC
+    primitive, so its testbench safely uses the usual clocking-block
+    style. 4/4 tests (multi-word transfer, the `dma_len_i==1` shortcut
+    path, back-to-back transfers, intermittent `tready` backpressure with
+    no data loss/reorder), lint clean.
+  - **qtt_cmd** (`qick:processors:qtt_cmd`, Tier 1): cross-domain command
+    dispatch unifying the tProc core, the AXI/Python registers, and an
+    external ARM/DISARM level input into one decoded command stream on
+    the ADC clock. `sync_reg` -> `qick:cdc:cdc_reg_sync`; raw
+    `xpm_cdc_handshake` -> `qick:cdc:cdc_handshake`, which also drops the
+    legacy `c_en_r`/`cdc_ack` staging entirely (the lib core owns that
+    bookkeeping internally); `sync_pulse` reused as-is from Tier 0. Also
+    de-duplicated a harmless doubled `assign` for `ext_arm_t01`/
+    `ext_arm_t10` present in the legacy source. 7/7 tests (AXI/Python and
+    tProc command paths, level-sensed external arm, threshold/inhibit
+    config, the reset handshake, pop's single-cycle pulse, peek reaching
+    the tProc clock domain), lint clean.
+  - **Tier 1 closed.** Every mid-level composed core is done. Next
+    (Tier 2): the top non-AXI core composition, `qick_time_tagger.sv`
+    itself (control FSM, time counter, wiring `tag_gen` + `tag_mem` +
+    `dma_fifo_rd` + `smp_mem` together), followed by Tier 3 (the AXI
+    wrapper, regmap, and driver).
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
   deployed `AxisWeightedBufferV1pt3` -- the revision with the first-
