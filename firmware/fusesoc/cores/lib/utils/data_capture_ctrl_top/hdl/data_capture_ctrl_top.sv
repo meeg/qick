@@ -1,1 +1,0 @@
-../../../../../../rtl_lib/utils/data_capture_ctrl_top.sv

@@ -1,1 +1,0 @@
-../../../../../../rtl_lib/utils/data_writer_sg_nt.sv

@@ -658,5 +658,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
 - SG-v6 `RNDQ_REG` and driver `rndq()` (rounding-select removed from the IP).
 - SG-v4 legacy `RNDQ_REG` (removed from the datapath, matching SG-v6).
 
+### Removed
+- **Orphaned `utils/` data-mover cluster**: `data_reader`, `data_writer_trig`,
+  `data_writer_sg`, `data_writer_sg_nt`, `data_capture_ctrl`,
+  `data_capture_ctrl_top` (RTL + `cores/lib/utils/*` + their SVUnit tests).
+  Each was an independent port of the same legacy VHDL/SV source already
+  ported, separately, into the `axi/` family that IPs actually use:
+  `data_reader`/`bram_to_axis` (`data_reader.vhd`), `data_writer_trig`/
+  `axis_to_bram_trig`, `data_writer_sg`/`axis_to_bram_sg`
+  (`axis_sg_int4_v2/data_writer.vhd`), `data_writer_sg_nt`/
+  `axis_to_bram_sg_nt` (`axis_signal_gen_v6/data_writer.vhd`), and
+  `data_capture_ctrl`/`buffer` (`axis_avg_buffer/src/buffer.sv` -- the
+  latter now `qick:math:buffer`, added in this same effort). Confirmed via
+  `.core` dependency search that nothing outside this cluster's own
+  self-references ever depended on it -- the `axi/` versions are the ones
+  wired into `avg_top`, `buffer_top`, `mr_buffer`, `sg_int4_top`,
+  `sgv4_top`, `sgv6_top`, and the only ones that kept receiving fixes after
+  both clusters were first ported on the same day. `data_capture_ctrl_top`
+  (a standalone composition on top of `data_reader`) had no consumers
+  either and was removed with it. Re-verified lint-clean on all 6 real
+  consumers after removal.
+
 ## [0.1.0]
 - Initial version.
