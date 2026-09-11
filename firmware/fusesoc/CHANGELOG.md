@@ -6,6 +6,75 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
+- **qick_time_tagger bottom-up port (Tier 0: new primitives)** (resuming the
+  port that was explicitly paused earlier for size/complexity -- ~3500 lines
+  across 10 files, 3 clock domains (`ps_clk`/`c_clk`/`adc_clk`), a custom DMA
+  engine, 4 ADC inputs at 8 samples/clock, and a hand-written 16-register AXI
+  slave; see `qick_lib/qick/drivers/peripherals.py::QICK_Time_Tagger` for the
+  target register map). Real source confirmed at
+  `main_qick/firmware/ip/qick_time_tagger/src/`. Before writing any RTL,
+  mapped every legacy helper module the IP depends on against what's already
+  ported: `sync_reg` -> existing `qick:cdc:cdc_reg_sync` (port-for-port
+  match); `xpm_cdc_handshake` -> existing `qick:cdc:cdc_handshake`;
+  `pulse_cdc` is dead code in the legacy tree (fully commented out
+  everywhere, superseded by `sync_pulse`) and was not ported; `BRAM_SC` will
+  reuse existing `qick:mem:bram_simple_dp` (`ena=enb=1`) when the modules
+  that use it directly are ported in Tier 1; the planned CTRL-register
+  self-clear will reuse `axil_slv`'s existing `AUTO_CLEAR_BIT0` parameter
+  (register index 0) instead of new logic. Four primitives had no existing
+  equivalent and needed a fresh faithful port, plus one dependency
+  (`gcc`, a gray-code counter) discovered only once its callers were read in
+  full, since both `sync_pulse` and the legacy `FIFO_DC` instantiate it:
+  - **gcc** (`qick:cdc:gcc`): gray-code counter feeding the async-FIFO /
+    pulse-CDC pointer synchronizers, faithful port of `_qtt_mem.sv`'s `gcc`.
+    Presents the count gray-coded so only one bit changes per CDC hop; the
+    `count_bin_o`/`count_gray_o` outputs are a one-*enable-event*-deep
+    shadow of `count_bin_p1_o`/`count_gray_p1_o` (both pairs update inside
+    the same `cnt_en_i` branch), not a fixed one-clock-cycle delay -- tests
+    track this explicitly rather than assuming a flat latency. 5/5 tests,
+    lint clean.
+  - **priority_encoder** (`qick:encoders:priority_encoder`): one-hot/
+    one-cold-to-binary encoder with a valid flag, faithful port of
+    `_qtt_ips.sv`'s `priority_encoder`. `OUT` selects combinational
+    ("NO_REG") vs. registered (anything else) output; kept as a runtime
+    string compare rather than "fixed", because the only real caller
+    (`qtt_tag_calc`, Tier 1) passes `OUT="TNO_REG"` -- not the string
+    `"NO_REG"` -- which is almost certainly a typo in the original design
+    but selects the registered (2-cycle) path on real, already-validated
+    hardware, so changing it here would silently change deployed timing.
+    Both branches are exercised (two DUT instances, one per `OUT` value) in
+    the same testbench. 4/4 tests, lint clean.
+  - **x_inter** (`qick:dsp:x_inter`): timestamp bit-interpolator, faithful
+    port of `_qtt_ips.sv`'s `x_inter` -- a `cfg_inter_i`-cycle bit-serial
+    restoring divider computing
+    `floor(((thr_i-prev_i) << cfg_inter_i) / (curr_i-prev_i))` to refine a
+    threshold-crossing time between two filtered ADC samples. Tests drive it
+    through its `start_i`/`end_o`/`ready_o` handshake (not fixed cycle
+    counts) and check results against an independent integer-division
+    reference model. 4/4 tests, lint clean.
+  - **sync_pulse** (`qick:cdc:sync_pulse`): CDC for a stream of single-cycle
+    pulses (queue of pending pulses via a pair of `gcc` gray pointers,
+    `BLOCK` parameter selects drop-when-full vs. backpressure-via-
+    `pulse_full`), faithful port of `_qtt_ips.sv`'s `sync_pulse`. Both
+    `BLOCK` values are exercised side by side, across two genuinely
+    asynchronous clocks (300 MHz / 100 MHz, matching this repo's existing
+    CDC-testbench convention), including a real fill-to-backpressure-then-
+    drain test on the `BLOCK=1` variant. 5/5 tests, lint clean.
+  - **fifo_dc** (`qick:mem:fifo_dc`): async dual-clock FIFO with a two-sided
+    flush handshake, faithful port of `_qtt_mem.sv`'s `FIFO_DC`. The
+    storage array reuses existing `qick:mem:bram_tdp` (true dual-port,
+    independent clocks) in place of the legacy hand-rolled
+    `BRAM_DP_DC_EN` -- same 1-cycle "NO_REG" read timing the legacy code
+    always configured. Tested as a black box across the CDC (push a known
+    sequence, then search for it as a contiguous in-order run in a
+    generously long capture trace) rather than by hand-deriving the exact
+    gray-pointer-CDC-plus-BRAM-register pipeline depth. 4/4 tests, lint
+    clean.
+  - Depends on `qick:cdc:gcc`: `sync_pulse`, `fifo_dc`.
+  - Next (Tier 1, not yet started): `qtt_tag_calc`/`tag_gen`, the
+    `tag_fifo_dc`/`tag_fifo_tc`/`tag_mem` memory stack, `smp_fifo_dc`/
+    `smp_mem`, `dma_fifo_rd` (no existing fusesoc equivalent found for its
+    length-counted FIFO-pop-to-AXIS-streamer shape), and `qtt_cmd`.
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
   deployed `AxisWeightedBufferV1pt3` -- the revision with the first-
