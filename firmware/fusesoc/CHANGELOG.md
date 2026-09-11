@@ -195,14 +195,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     RDL regmap (`qick_time_tagger_regmap.rdl`, docs/driver-test only, no
     RTL generation) documents all 16 registers; confirmed it already
     matches `qick_lib/qick/drivers/peripherals.py::QICK_Time_Tagger`'s
-    hand-written `REGISTERS` dict and `bindto` list exactly, so the driver
-    is a plain symlink with no changes needed. New OOC constraints
-    (3 async clock groups, false path on `arm_i`), not yet validated
-    against real Vivado synthesis (no Vivado project available, same
-    caveat as every other ported IP's constraints). 4/4 tests (CTRL
-    self-clear, CFG plain read/write, PROC_DT read-only-register
-    protection, and a full AXI-driven arm -> genuine threshold crossing ->
-    DMA-readback path), lint clean.
+    hand-written `REGISTERS` dict exactly, so the driver stays a plain
+    symlink -- only `bindto` needed a one-line addition
+    (`qick:ip:qick_time_tagger:1.0`) alongside the two existing legacy
+    Vivado-packaged VLNVs. New OOC constraints (3 async clock groups,
+    false path on `arm_i`), not yet validated against real Vivado
+    synthesis (no Vivado project available, same caveat as every other
+    ported IP's constraints). 4/4 SVUnit tests (CTRL self-clear, CFG plain
+    read/write, PROC_DT read-only-register protection, and a full
+    AXI-driven arm -> genuine threshold crossing -> DMA-readback path),
+    lint clean, plus 4/4 auto-generated register-layer driver tests
+    (`make driver IP=qick_time_tagger`: reset values, register offsets,
+    field roundtrip, register independence).
   - **Tier 3 closed. Whole port closed (Tiers 0-3).**
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
