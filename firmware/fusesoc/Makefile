@@ -248,17 +248,28 @@ package:
 	--display-name "$(or $(DISPLAY_NAME),$(IP))" \
 	$(if $(DESCRIPTION),--description "$(DESCRIPTION)",)
 
-# Package every IP under cores/ip/.
+# Package every IP under cores/ip/. Keeps going if one IP fails to package
+# (e.g. missing/invalid RTL or RDL source) instead of aborting the whole run;
+# failures are collected and reported as a warning list at the end.
 package-all:
 	@echo " Packaging all IPs in cores/ip/..."
-	@for ip_dir in cores/ip/*/; do \
+	@fail=0; failed=""; \
+	for ip_dir in cores/ip/*/; do \
 	ip=$$(basename $$ip_dir); \
 	echo ""; \
 	echo "=== Packaging $$ip ==="; \
-	$(MAKE) package IP=$$ip; \
-	done
-	@echo ""
-	@echo " All IPs packaged successfully!"
+	if ! $(MAKE) --no-print-directory package IP=$$ip; then \
+	  echo " WARNING: $$ip failed to package -- run 'make verify-core IP=$$ip' to see what's missing"; \
+	  fail=1; failed="$$failed\n  $$ip"; \
+	fi; \
+	done; \
+	echo ""; \
+	if [ $$fail -eq 0 ]; then \
+	  echo " All IPs packaged successfully!"; \
+	else \
+	  printf " *** package-all: FAILED to package:%b\n" "$$failed"; \
+	fi; \
+	exit $$fail
 
 # Generate the packaging TCL without running Vivado (inspection / debug).
 package-dry:
