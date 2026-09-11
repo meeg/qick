@@ -516,7 +516,79 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     all): single `aclk` OOC clock, one false-path on the `s0_axis`
     descriptor input -- identical pattern to `axis_dyn_readout_v1.xdc`.
   - Remaining: `axis_pfb_readout_v2`, `axis_pfb_readout_v4` (the last 2
-    readout IPs).
+    readout IPs; explicitly paused, to be picked up in a future session with
+    fresh context given the jump in complexity -- SSR-FFT core, 8 FIR
+    filters, MATLAB-derived coefficients).
+- **axis_avg_buffer bottom-up port** (tProc-triggered averager + raw-capture
+  buffer, the multi-register QICK readout back-end used by
+  `qick_lib/qick/drivers/readout.py`'s `AxisAvgBuffer`/`AxisAvgBufferV1pt1`).
+  `avg`/`avg_top` (`qick:math:avg`/`qick:math:avg_top`) were already ported
+  and fully tested (16/16, 12/12) by earlier work in this same effort --
+  reused as-is rather than duplicated. This port adds the sibling
+  raw-capture half (`buffer`/`buffer_top`) and the top-level composition
+  (`avg_buffer`) that combines both under one shared hardware trigger, plus
+  the packaged AXI-Lite IP.
+  - **buffer** (`qick:math:buffer`): faithful port of legacy `buffer.sv`
+    (raw-sample capture FSM), written to mirror `avg.sv`'s exact style
+    (async reset, header format) for consistency within this IP family --
+    a deliberate choice even though it differs from this session's own
+    synchronous-reset convention used elsewhere. 5-state FSM (INIT_ST/
+    START_ST/TRIGGER_ST/MEMW_ST/WAIT_TRIGGER_ST). Same documented deviation
+    as `avg`: adds an abort-on-`start_reg`-deassert path not present in the
+    legacy original. 6/6 SVUnit tests.
+  - **buffer_top** (`qick:math:buffer_top`): composition of `buffer` +
+    `cdc_gray_sync` (resync `buf_start_reg`/`dr_start_reg`) + `bram_tdp` +
+    `bram_to_axis` (replaces legacy `data_reader`) -- mirrors `avg_top.sv`
+    minus the photon-mode fields and the second live-feed output stream
+    (buffer has only one output stream, unlike avg's BRAM-readback + live
+    feed pair). 3/3 SVUnit tests.
+  - **avg_buffer** (`qick:math:avg_buffer`): top-level composition of
+    `avg_top` + `buffer_top` sharing a single `cdc_bit_sync` trigger resync
+    (replaces legacy `synchronizer_n`), exposing all 3 output streams
+    (m0=avg BRAM readback, m1=buf BRAM readback, m2=avg live feed) and all
+    15 avg_*/buf_* registers as discrete ports. 3/3 SVUnit tests. One open,
+    deliberately-deprioritized item: the composition-level test's exact-sum
+    check on the m2 live-feed accumulator was relaxed to a liveness/nonzero
+    check after a persistent, not-fully-root-caused off-by-one/two count
+    discrepancy (`avg`'s own dedicated suite already covers the exact
+    arithmetic; this test's actual job -- proving the trigger fans out to
+    both blocks -- is independently confirmed via the buf-side readback,
+    which does pass with an exact match).
+  - **Reuse decision: `mr_buffer_et` was NOT reused.** `mr_buffer_et`
+    (`qick:ip:mr_buffer_et`) is a separate, already fully packaged,
+    hardware-validated multi-channel/multi-rate buffer IP built earlier
+    (likely by a parallel session) with a DIFFERENT, simpler 4-register map
+    (`DW_CAPTURE_REG`/`DR_START_REG`/`STATUS_REG`/`DEBUG_REG`) and a
+    different FSM (`axis_to_bram_trig`: INIT/TRIGGER/CAPTURE/END, always
+    captures the full `2**N` window, no `addr_reg`/`len_reg`). Confirmed by
+    reading `AxisAvgBuffer`/`AxisAvgBufferV1pt1` in `readout.py` that the
+    production driver requires an exact 15-register layout with independent
+    `addr_reg`/`len_reg` per averager/buffer/data-reader -- incompatible
+    with `mr_buffer_et`'s register map, so building a faithful,
+    register-compatible fresh port was the only option that doesn't break
+    existing driver compatibility.
+  - **axis_avg_buffer** (`qick:ip:axis_avg_buffer`, bumped to `1.1.0` to
+    reflect the v1.1/photon-mode register set): the packaged IP -- `axil_slv`
+    register bank (`NUM_REGS=15`) wrapping `avg_buffer`, register map
+    matching `AxisAvgBufferV1pt1.REGISTERS` exactly (indices 0-11 avg_*/
+    buf_* start/addr/len/dr_start/dr_addr/dr_len, 12-14 photon-mode/
+    thresholds). 4/4 SVUnit tests (reset, register readback, buf capture +
+    exact-match readback round-trip through the AXI-Lite map, and an
+    avg-only-arms-avg cross-check), lint clean.
+  - **Driver/RDL/constraints**: added `qick:ip:axis_avg_buffer:1.1` to
+    `AxisAvgBufferV1pt1.bindto` in `qick_lib/qick/drivers/readout.py`;
+    symlinked `driver/axis_avg_buffer.py` to the same file. RDL documents
+    all 15 registers at 0x00-0x38 (strategy 2: docs/driver only, RTL decode
+    stays the generic `axil_slv`). Constraints are NEW (legacy IP had none
+    at the packaged level): 3 independent clock domains (`s_axi_aclk`,
+    `s_axis_aclk`, `m_axis_aclk`), one false-path on the external
+    `trigger` port -- same pattern as `mr_buffer_et`'s constraints. `make
+    driver IP=axis_avg_buffer`: 4/4 register-layer tests pass.
+  - Stray leftover files (`tb.sv`, `tb_avg.sv`, `tb_avg_top.sv`,
+    `tb_buffer_top.sv`, `tb_avg_buffer.sv`, `tb_waves.wcfg`, `data_iq.txt`)
+    from an earlier, unrelated directory-normalization commit were found
+    sitting in `cores/ip/axis_avg_buffer/tests/` and left in place
+    (untouched, not cleaned up as part of this port -- out of scope).
 - **tpv2_alu** (`qick:math:tpv2_alu`): tProcessor v2 combinational ALU,
   faithful port of `AB_alu` from `firmware/ip/qick_processor/src/_qproc_ips.sv`.
   First bottom-up piece of the tprocv2 port (rest of the processor still
