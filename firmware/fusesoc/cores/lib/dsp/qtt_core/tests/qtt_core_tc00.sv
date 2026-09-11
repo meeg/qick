@@ -1,6 +1,6 @@
 // ============================================================================
-// File: qick_time_tagger_tc00.sv
-// Description: SVUnit testbench top-level for qick_time_tagger (Tier 2, the
+// File: qtt_core_tc00.sv
+// Description: SVUnit testbench top-level for qtt_core (Tier 2, the
 //   non-AXI top composition). Every sub-core (tag_gen, tag_mem,
 //   dma_fifo_rd, smp_mem, tag_fifo_dc, cdc_reg_sync, cdc_handshake) is
 //   already thoroughly unit-tested on its own; this is an end-to-end
@@ -19,7 +19,7 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module qick_time_tagger_unit_test;
+module qtt_core_unit_test;
    import svunit_pkg::svunit_testcase;
 
    localparam int ADC_QTY     = 1;
@@ -33,7 +33,7 @@ module qick_time_tagger_unit_test;
    // no interpolation bits and stays cheap to reason about - still takes
    // one extra cycle before x_inter_end/tag_vld_o pulse, by which time
    // trig_time_adc_r has already settled. This mirrors the real deployed
-   // configuration (qick_time_tagger.sv's own default is CMP_INTER=4).
+   // configuration (qtt_core.sv's own default is CMP_INTER=4).
    localparam int CMP_INTER   = 1;
    localparam int ARM_STORE   = 1;
    localparam int SMP_STORE   = 1;
@@ -43,7 +43,7 @@ module qick_time_tagger_unit_test;
    localparam int SMP_DW      = 16;
    localparam int SMP_CK      = 4;
 
-   string name = "qick_time_tagger_ut";
+   string name = "qtt_core_ut";
    svunit_testcase svunit_ut;
 
    localparam real PS_FREQ  = 100e6;
@@ -99,11 +99,11 @@ module qick_time_tagger_unit_test;
    clk_gen #(.FREQ (ADC_FREQ)) u_clk_adc (.i_enable(1'b1), .o_clk(adc_clk));
 
    initial begin
-      $dumpfile("qick_time_tagger.vcd");
+      $dumpfile("qtt_core.vcd");
       $dumpvars(0, dut);
    end
 
-   qick_time_tagger #(
+   qtt_core #(
       .ADC_QTY      ( ADC_QTY     ),
       .CMP_SLOPE    ( CMP_SLOPE   ),
       .CMP_INTER    ( CMP_INTER   ),
@@ -242,7 +242,7 @@ module qick_time_tagger_unit_test;
    endtask
 
    `SVUNIT_TESTS_BEGIN
-   `include "qick_time_tagger_tests.sv"
+   `include "qtt_core_tests.sv"
    `SVUNIT_TESTS_END
 
 endmodule

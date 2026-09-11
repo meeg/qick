@@ -1,12 +1,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  qick_time_tagger
+//  qtt_core
 //  Faithful port from qick_time_tagger's qick_time_tagger.sv (top-level
 //  non-AXI composition, Tier 2). Control FSM + time counter + wiring for
 //  qick:dsp:tag_gen + qick:mem:tag_mem + qick:mem:dma_fifo_rd +
 //  qick:mem:smp_mem (generate-guarded by SMP_STORE) + qick:mem:tag_fifo_dc
 //  (generate-guarded ARM_MEM, by ARM_STORE).
+//
+//  Named `qtt_core` (fusesoc core qick:dsp:qtt_core), not `qick_time_tagger`
+//  like the legacy source: the packaged IP (Tier 3, qick:ip:qick_time_tagger)
+//  already owns that exact name, and fusesoc VLNVs must be unique -- module,
+//  file, and core name are kept in sync here rather than adding a lint
+//  waiver (see the module/file-naming convention in this repo).
 //
 //  Reuse decisions: `sync_reg` -> qick:cdc:cdc_reg_sync (as in Tier 1).
 //  `pulse_cdc` -> qick:cdc:cdc_handshake with a dummy 1-bit payload
@@ -19,7 +25,7 @@
 //  unused by the original caller here either way).
 ///////////////////////////////////////////////////////////////////////////////
 
-module qick_time_tagger # (
+module qtt_core # (
    parameter int ADC_QTY      = 4  , // Number of ADC Inputs
    parameter int CMP_SLOPE    = 1  , // Compare with SLOPE
    parameter int CMP_INTER    = 4  , // Max Number of Interpolation bits

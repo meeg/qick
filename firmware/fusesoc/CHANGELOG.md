@@ -159,8 +159,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     config, the reset handshake, pop's single-cycle pulse, peek reaching
     the tProc clock domain), lint clean.
   - **Tier 1 closed.** Every mid-level composed core is done.
-  - **qick_time_tagger** (`qick:processors:qick_time_tagger`, Tier 2): the
-    top non-AXI composition -- control FSM, time counter, and wiring for
+  - **qtt_core** (`qick:dsp:qtt_core`, Tier 2): the top non-AXI composition
+    -- control FSM, time counter, and wiring for
     `tag_gen`+`tag_mem`+`dma_fifo_rd`+`smp_mem` (`SMP_STORE`) +
     `tag_fifo_dc` (`ARM_STORE`). **Correction:** `pulse_cdc` was assumed
     dead code in Tier 0 (fully commented out everywhere that was
@@ -207,6 +207,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     lint clean, plus 4/4 auto-generated register-layer driver tests
     (`make driver IP=qick_time_tagger`: reset values, register offsets,
     field roundtrip, register independence).
+  - **Correction:** Tier 2's core was originally packaged as
+    `qick:processors:qick_time_tagger`, the same name (module, file, and
+    VLNV) used by the legacy source for its top non-AXI file. Once Tier 3
+    existed as `qick:ip:qick_time_tagger`, this made the bare core name
+    `qick_time_tagger` ambiguous for `make sim`/`make lint` (fusesoc had
+    two equally-valid matches). Renamed Tier 2 -- module, file, and VLNV
+    together, not a lint waiver -- to `qtt_core` under `qick:dsp` (grouping
+    it with `qtt_tag_calc`/`tag_gen`, the datapath pieces it composes).
+    `qick:ip:qick_time_tagger`'s dependency and instantiation
+    (`qtt_core # (...) qtt_i (...)`) updated accordingly; both cores
+    re-verified after the rename (`qtt_core` 5/5, `qick:ip:qick_time_tagger`
+    4/4, both lint clean).
   - **Tier 3 closed. Whole port closed (Tiers 0-3).**
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the

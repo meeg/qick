@@ -1,7 +1,7 @@
 // ============================================================================
-// File: qick_time_tagger_tests.sv
-// Description: SVUnit test cases for qick_time_tagger. Included by
-//   qick_time_tagger_tc00.sv.
+// File: qtt_core_tests.sv
+// Description: SVUnit test cases for qtt_core. Included by
+//   qtt_core_tc00.sv.
 // ============================================================================
 
 `SVTEST(tc_arm_and_trigger)

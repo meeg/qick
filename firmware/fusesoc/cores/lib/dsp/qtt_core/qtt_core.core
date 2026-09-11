@@ -1,11 +1,13 @@
 CAPI=2:
-name: qick:processors:qick_time_tagger:1.0.0
-description: qick_time_tagger (processors library core).
+name: qick:dsp:qtt_core:1.0.0
+description: qtt_core (dsp library core). Top non-AXI composition for the
+  qick_time_tagger IP (Tier 2) -- named qtt_core, not qick_time_tagger, since
+  the packaged IP (qick:ip:qick_time_tagger) already owns that VLNV.
 
 filesets:
   hdl:
     files:
-      - hdl/qick_time_tagger.sv
+      - hdl/qtt_core.sv
     file_type: systemVerilogSource
     depend:
       - qick:dsp:tag_gen
@@ -17,8 +19,8 @@ filesets:
       - qick:cdc:cdc_handshake
   tb:
     files:
-      - tests/qick_time_tagger_tc00.sv
-      - tests/qick_time_tagger_tests.sv: {is_include_file: true}
+      - tests/qtt_core_tc00.sv
+      - tests/qtt_core_tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
       - qick:common:xilinx
@@ -32,17 +34,17 @@ generate:
     generator: svunit_gen
     parameters:
         test_files:
-          - tests/qick_time_tagger_tc00.sv
+          - tests/qtt_core_tc00.sv
 
 targets:
   default: &default
     filesets: [hdl]
-    toplevel: qick_time_tagger
+    toplevel: qtt_core
   lint:
     <<: *default
     filesets_append: [lint_files]
     default_tool: veriblelint
-    toplevel: qick_time_tagger
+    toplevel: qtt_core
     tools:
       verilator:
         mode: lint-only

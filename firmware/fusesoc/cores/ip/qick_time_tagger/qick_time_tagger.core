@@ -11,7 +11,7 @@ filesets:
       - qick:ip:qick_time_tagger_regmap
       - qick:axi:axil_slv
       - qick:cdc:cdc_reg_sync
-      - qick:processors:qick_time_tagger
+      - qick:dsp:qtt_core
       - qick:processors:qtt_cmd
 
   constraints:

@@ -1,7 +1,7 @@
 // ============================================================================
 // File: qick_time_tagger_tc00.sv
 // Description: SVUnit testbench top-level for axi_qick_time_tagger (the
-//   packaged IP, Tier 3). qick:processors:qick_time_tagger (Tier 2) is
+//   packaged IP, Tier 3). qick:dsp:qtt_core (Tier 2) is
 //   already end-to-end tested; this focuses on the AXI-lite register layer
 //   itself (axil_slv wiring, CTRL_REG's AUTO_CLEAR_BIT0 self-clear,
 //   read-only register protection) plus one real AXI-driven
@@ -14,7 +14,7 @@
 //
 //   No clocking blocks for the plain (non-AXI-lite) signals, on purpose -
 //   the DUT's dependency chain includes qick:mem:fifo_async
-//   (xpm_fifo_async) via qick:processors:qick_time_tagger. See
+//   (xpm_fifo_async) via qick:dsp:qtt_core. See
 //   TESTBENCH_PATTERNS.md #20. (axi4_lite_if's own tasks already follow
 //   this convention internally.)
 // ============================================================================

@@ -10,8 +10,9 @@
 //! @details
 //!
 //! Faithful port of legacy `axi_qick_time_tagger.sv`: ADC-channel muxing
-//! (1-4 channels), instantiates `qick:processors:qick_time_tagger` (Tier 2
-//! composition) and `qick:processors:qtt_cmd`, and replaces the legacy
+//! (1-4 channels), instantiates `qick:dsp:qtt_core` (Tier 2 composition,
+//! named `qtt_core` rather than `qick_time_tagger` since this packaged IP
+//! already owns that VLNV) and `qick:processors:qtt_cmd`, and replaces the legacy
 //! hand-written `axi_slv_qtt.vhd` AXI slave with the shared
 //! `qick:axi:axil_slv` register bank -- the same substitution every other
 //! ported IP in this repo uses, per Tier 3 of the qick_time_tagger port.
@@ -58,9 +59,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // Named `axi_qick_time_tagger` (not `qick_time_tagger`) to match the
-// legacy source's own inner/outer split exactly: `qick:processors:
-// qick_time_tagger` (Tier 2, instantiated below) is the non-AXI core,
-// this is the AXI-wrapped top. The packaged fusesoc IP is still VLNV
+// legacy source's own inner/outer split: `qick:dsp:qtt_core` (Tier 2,
+// instantiated below as qtt_i) is the non-AXI core, this is the
+// AXI-wrapped top. The packaged fusesoc IP is still VLNV
 // `qick:ip:qick_time_tagger` (dropping the axi_ prefix, matching every
 // other ported IP's naming), with `toplevel: axi_qick_time_tagger` in
 // its .core file.
@@ -213,7 +214,7 @@ generate
    end
 endgenerate
 
-qick_time_tagger # (
+qtt_core # (
    .ADC_QTY       ( ADC_QTY     ) ,
    .CMP_SLOPE     ( CMP_SLOPE   ) ,
    .CMP_INTER     ( CMP_INTER   ) ,
