@@ -6,7 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
-- **qick_time_tagger bottom-up port (Tier 0 closed, Tier 1 in progress)** (resuming the
+- **qick_time_tagger bottom-up port (CLOSED, Tiers 0-3)** (resuming the
   port that was explicitly paused earlier for size/complexity -- ~3500 lines
   across 10 files, 3 clock domains (`ps_clk`/`c_clk`/`adc_clk`), a custom DMA
   engine, 4 ADC inputs at 8 samples/clock, and a hand-written 16-register AXI
@@ -180,14 +180,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com).
     value. `CMP_INTER=1+` (matching the real deployed default of
     `CMP_INTER=4`) avoids it -- a testbench parameter fix, not an RTL bug;
     it happened to hit a real, faithfully-preserved zero-delay edge case.
-  - **Tier 2 closed.** Next (Tier 3, final): the AXI wrapper
-    (`axi_qick_time_tagger.sv` using `axil_slv` + `AUTO_CLEAR_BIT0` for
-    CTRL, replacing the hand-written `axi_slv_qtt.vhd`), the RDL regmap
-    (docs/test-only, matching every other ported IP's convention), the
-    driver (must stay byte-for-byte compatible with
-    `qick_lib/qick/drivers/peripherals.py::QICK_Time_Tagger`), packaging
-    (`qick_time_tagger.core`, constraints, `synth` OOC target), and a
-    CHANGELOG close-out for the whole port.
+  - **Tier 2 closed.**
+  - **axi_qick_time_tagger** (`qick:ip:qick_time_tagger`, Tier 3, final): the
+    packaged AXI-wrapped IP -- instantiates `qick_time_tagger` (Tier 2) +
+    `qtt_cmd` behind `qick:axi:axil_slv` (`AUTO_CLEAR_BIT0` for the
+    self-clearing CTRL register, `i_reg_is_readonly` masking the 11
+    hardware-driven status/count registers), replacing the legacy
+    hand-written `axi_slv_qtt.vhd` entirely -- same convention as every
+    other ported IP in this repo. `qtag_dt2_o` uses `cdc_reg_sync` for its
+    own CDC into the tProc clock domain. Named `axi_qick_time_tagger` (not
+    `qick_time_tagger`) to preserve the legacy source's own inner/outer
+    split, with a `module-filename` lint waiver documenting why (file name
+    tracks the fusesoc core, not the module, per established convention).
+    RDL regmap (`qick_time_tagger_regmap.rdl`, docs/driver-test only, no
+    RTL generation) documents all 16 registers; confirmed it already
+    matches `qick_lib/qick/drivers/peripherals.py::QICK_Time_Tagger`'s
+    hand-written `REGISTERS` dict and `bindto` list exactly, so the driver
+    is a plain symlink with no changes needed. New OOC constraints
+    (3 async clock groups, false path on `arm_i`), not yet validated
+    against real Vivado synthesis (no Vivado project available, same
+    caveat as every other ported IP's constraints). 4/4 tests (CTRL
+    self-clear, CFG plain read/write, PROC_DT read-only-register
+    protection, and a full AXI-driven arm -> genuine threshold crossing ->
+    DMA-readback path), lint clean.
+  - **Tier 3 closed. Whole port closed (Tiers 0-3).**
 - **axis_weighted_buffer bottom-up port** (matched-filter averager + raw
   buffer, `qick:ip:axis_weighted_buffer`, versioned `1.3.0` to match the
   deployed `AxisWeightedBufferV1pt3` -- the revision with the first-
