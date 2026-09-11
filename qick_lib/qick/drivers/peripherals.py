@@ -11,7 +11,8 @@ class QICK_Time_Tagger(SocIP):
     QICK_Time_Tagger class
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0',
-              'QICK:QICK:qick_time_tagger:1.0']
+              'QICK:QICK:qick_time_tagger:1.0',
+              'qick:ip:qick_time_tagger:1.0']
 
     def __init__(self, description):
         """
